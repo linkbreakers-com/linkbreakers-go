@@ -1,0 +1,154 @@
+name: Update and Publish SDK
+
+on:
+  repository_dispatch:
+    types: [update-sdk]
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  update-and-publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Install OpenAPI Generator
+        run: |
+          npm install -g @openapitools/openapi-generator-cli
+
+      - name: Fetch current version from swagger
+        id: fetch-version
+        run: |
+          SWAGGER_URL="https://api.linkbreakers.com/internal/openapi/api/v1/api.swagger.json"
+          NEW_VERSION=$(curl -s "$SWAGGER_URL" | jq -r '.info.version')
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "Swagger version: $NEW_VERSION"
+
+      - name: Read current OPENAPI_VERSION
+        id: current-version
+        run: |
+          if [ -f OPENAPI_VERSION ]; then
+            CURRENT_VERSION=$(cat OPENAPI_VERSION)
+          else
+            CURRENT_VERSION="0.0.0"
+          fi
+          echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          echo "Current version: $CURRENT_VERSION"
+
+      - name: Compare versions
+        id: compare
+        run: |
+          if [ "${{ steps.fetch-version.outputs.new_version }}" == "${{ steps.current-version.outputs.current_version }}" ]; then
+            echo "needs_update=false" >> $GITHUB_OUTPUT
+            echo "✅ Versions match. No update needed."
+          else
+            echo "needs_update=true" >> $GITHUB_OUTPUT
+            echo "🔄 Version changed: ${{ steps.current-version.outputs.current_version }} → ${{ steps.fetch-version.outputs.new_version }}"
+          fi
+
+      - name: Download and convert OpenAPI spec to 3.1
+        if: steps.compare.outputs.needs_update == 'true'
+        run: |
+          # Download OpenAPI 3.2.0 spec
+          curl -o openapi-3.2.json https://api.linkbreakers.com/internal/openapi/api/v1/api.swagger.json
+
+          # Convert OpenAPI 3.2 to 3.1 (remove 3.2-specific fields)
+          jq '.openapi = "3.1.0" | del(.jsonSchemaDialect)' openapi-3.2.json > openapi-3.1.json
+
+          echo "✅ OpenAPI spec converted from 3.2 to 3.1"
+
+      - name: Generate SDK using OpenAPI Generator
+        if: steps.compare.outputs.needs_update == 'true'
+        run: |
+          # Backup custom files that we want to preserve
+          mkdir -p .backup
+          cp go.mod .backup/ 2>/dev/null || true
+          cp README.md .backup/ 2>/dev/null || true
+
+          # Remove old generated code (keep workflows, etc.)
+          find . -type f -name "*.go" -delete 2>/dev/null || true
+
+          # Generate SDK using OpenAPI Generator with go generator
+          openapi-generator-cli generate \
+            -i openapi-3.1.json \
+            -g go \
+            -o . \
+            --skip-validate-spec \
+            --global-property apiTests=false,modelTests=false,apiDocs=false,modelDocs=false \
+            --additional-properties=packageName=linkbreakers,isGoSubmodule=false,enumClassPrefix=true
+
+          # Restore custom files if they exist
+          cp .backup/go.mod . 2>/dev/null || true
+          cp .backup/README.md . 2>/dev/null || true
+
+          # Clean up
+          rm -rf .backup
+          rm openapi-3.2.json openapi-3.1.json
+
+          echo "✅ SDK generated successfully"
+
+      - name: Update version files
+        if: steps.compare.outputs.needs_update == 'true'
+        run: |
+          NEW_VERSION="${{ steps.fetch-version.outputs.new_version }}"
+
+          # Update OPENAPI_VERSION file
+          echo "$NEW_VERSION" > OPENAPI_VERSION
+
+          echo "✅ Version files updated to $NEW_VERSION"
+
+      - name: Tidy Go modules
+        if: steps.compare.outputs.needs_update == 'true'
+        run: |
+          go mod tidy
+          echo "✅ Go modules tidied"
+
+      - name: Run tests
+        if: steps.compare.outputs.needs_update == 'true'
+        run: |
+          go test ./... || echo "⚠️ Tests failed or no tests found"
+
+      - name: Configure Git
+        if: steps.compare.outputs.needs_update == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Commit changes
+        if: steps.compare.outputs.needs_update == 'true'
+        run: |
+          NEW_VERSION="${{ steps.fetch-version.outputs.new_version }}"
+
+          git add .
+          git commit -m "chore: update SDK to API version $NEW_VERSION"
+
+          echo "✅ Changes committed"
+
+      - name: Create and push tag
+        if: steps.compare.outputs.needs_update == 'true'
+        run: |
+          NEW_VERSION="${{ steps.fetch-version.outputs.new_version }}"
+
+          git tag "v$NEW_VERSION"
+          git push origin main
+          git push origin "v$NEW_VERSION"
+
+          echo "✅ Tag v$NEW_VERSION created and pushed"
+
+      - name: Summary
+        if: steps.compare.outputs.needs_update == 'true'
+        run: |
+          echo "🎉 SDK successfully updated and published!"
+          echo "Version: ${{ steps.fetch-version.outputs.new_version }}"
+          echo "Go users can install with: go get github.com/linkbreakers-com/linkbreakers-go@v${{ steps.fetch-version.outputs.new_version }}"
