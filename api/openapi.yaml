@@ -5,7 +5,7 @@ info:
     url: https://app.linkbreakers.com
   description: This is a documentation of all the APIs of Linkbreakers
   title: Linkbreakers API
-  version: 1.46.1
+  version: 1.46.2
 servers:
 - url: https://api.linkbreakers.com
 security:
@@ -788,22 +788,28 @@ paths:
         schema:
           type: string
         style: form
-      - description: "Filter links by directory. When empty, returns links at root\
-          \ level."
+      - description: |-
+          View mode. Default returns all links. LINK_VIEW_DIRECTORY scopes to a directory (or root when directory_id is empty).
+
+           - LINK_VIEW_UNSPECIFIED: Return all links regardless of directory (default)
+           - LINK_VIEW_DIRECTORY: Return links scoped to a directory.
+          When directory_id is set, returns links in that directory.
+          When directory_id is empty, returns root-level links (no directory).
+        explode: true
+        in: query
+        name: view
+        required: false
+        schema:
+          type: string
+        style: form
+      - description: "Directory ID to scope to when view is LINK_VIEW_DIRECTORY. When\
+          \ empty with LINK_VIEW_DIRECTORY, returns root-level links."
         explode: true
         in: query
         name: directoryId
         required: false
         schema:
           type: string
-        style: form
-      - description: "Return links from all directories, ignoring directory_id filter."
-        explode: true
-        in: query
-        name: includeAllDirectories
-        required: false
-        schema:
-          type: boolean
         style: form
       responses:
         "200":
@@ -6935,6 +6941,18 @@ components:
       - LINK_SORT_FIELD_NAME
       - LINK_SORT_FIELD_EVENT_COUNT
       title: Fields that can be used to sort links
+      type: string
+    LinkView:
+      default: LINK_VIEW_UNSPECIFIED
+      description: |-
+        - LINK_VIEW_UNSPECIFIED: Return all links regardless of directory (default)
+         - LINK_VIEW_DIRECTORY: Return links scoped to a directory.
+        When directory_id is set, returns links in that directory.
+        When directory_id is empty, returns root-level links (no directory).
+      enum:
+      - LINK_VIEW_UNSPECIFIED
+      - LINK_VIEW_DIRECTORY
+      title: View mode for link listing
       type: string
     LinkVisitPayload:
       description: Reserved for future link visit specific configuration

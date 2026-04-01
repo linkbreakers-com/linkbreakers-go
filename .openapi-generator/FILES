@@ -152,6 +152,7 @@ model_lead_score_breakdown.go
 model_link.go
 model_link_setting.go
 model_link_sort_field.go
+model_link_view.go
 model_links_service_update_body.go
 model_list_custom_domains_response.go
 model_list_directories_response.go
