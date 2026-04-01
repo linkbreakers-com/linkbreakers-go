@@ -5,7 +5,7 @@ info:
     url: https://app.linkbreakers.com
   description: This is a documentation of all the APIs of Linkbreakers
   title: Linkbreakers API
-  version: 1.45.1
+  version: 1.46.0
 servers:
 - url: https://api.linkbreakers.com
 security:
@@ -2943,6 +2943,39 @@ paths:
       summary: List visitors
       tags:
       - Visitors
+  /v1/visitors/attributes:
+    get:
+      description: Returns the distinct visitor attribute keys available in the workspace
+        or scoped to a single link.
+      operationId: VisitorsService_ListAttributeKeys
+      parameters:
+      - description: "Optional link identifier (UUID). When set, returns keys observed\
+          \ on visitors who interacted with this link."
+        explode: true
+        in: query
+        name: linkId
+        required: false
+        schema:
+          type: string
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListVisitorAttributeKeysResponse"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth: []
+      summary: List visitor attribute keys
+      tags:
+      - Visitors
   /v1/visitors/{id}:
     delete:
       description: Removes a visitor profile and its stored attributes from the workspace.
@@ -5828,6 +5861,7 @@ components:
          - EVENT_ACTION_DEVICE_BROWSER_CONDITION: Route visitors based on browser family (e.g. Chrome, Safari, Firefox)
          - EVENT_ACTION_DEVICE_BRAND_CONDITION: Route visitors based on hardware brand (e.g. Apple, Samsung, Google)
          - EVENT_ACTION_DEVICE_ACTOR_CONDITION: Route visitors based on actor classification (e.g. HUMAN, BOT, AGENT)
+         - EVENT_ACTION_VISITOR_DATA_CONDITION: Route visitors based on their profile data or custom attributes
       enum:
       - EVENT_ACTION_UNSPECIFIED
       - EVENT_ACTION_CLIENT_REDIRECT
@@ -5848,6 +5882,7 @@ components:
       - EVENT_ACTION_DEVICE_BROWSER_CONDITION
       - EVENT_ACTION_DEVICE_BRAND_CONDITION
       - EVENT_ACTION_DEVICE_ACTOR_CONDITION
+      - EVENT_ACTION_VISITOR_DATA_CONDITION
       title: Event action types for workflow steps
       type: string
     EventTrace:
@@ -5953,6 +5988,8 @@ components:
           $ref: "#/components/schemas/TimeOfDayConditionTraceData"
         visitTypeCondition:
           $ref: "#/components/schemas/VisitTypeConditionTraceData"
+        visitorDataCondition:
+          $ref: "#/components/schemas/VisitorDataConditionTraceData"
     EventsMetric:
       description: "Aggregated analytics calculated on demand for time windows, giving\
         \ Linkbreakers UIs headline numbers without exposing raw events."
@@ -8109,6 +8146,29 @@ components:
           title: The list of tags matching the search criteria
           type: array
       title: ListTagsResponse represents the response containing a list of tags
+    ListVisitorAttributeKeysResponse:
+      example:
+        attributeKeys:
+        - $email
+        - $phone
+        - $firstName
+        - $lastName
+        - company
+        - plan
+      properties:
+        attributeKeys:
+          description: "Distinct selectable visitor attribute keys, including reserved\
+            \ system fields such as $email and $phone."
+          example:
+          - $email
+          - $phone
+          - $firstName
+          - $lastName
+          - company
+          - plan
+          items:
+            type: string
+          type: array
     ListVisitorsCsvResponse:
       description: ListVisitorsCsvResponse carries the raw CSV when ResponseFormat
         is set to RESPONSE_FORMAT_CSV.
@@ -10456,6 +10516,63 @@ components:
           title: Workspace that owns this visitor (UUID)
           type: string
       title: Visitor
+    VisitorDataConditionOption:
+      description: Visitor data condition option for EVENT_ACTION_VISITOR_DATA_CONDITION.
+      properties:
+        attributeKey:
+          example: age
+          title: "Visitor attribute key to check (e.g., \"age\", \"$email\", \"company\"\
+            )"
+          type: string
+        comparisonValue:
+          example: "18"
+          title: Value to compare against (optional for operators like IS_EMPTY)
+          type: string
+        id:
+          example: option-1
+          type: string
+        nextStepId:
+          example: 123e4567-e89b-12d3-a456-426614174000
+          type: string
+        operator:
+          example: NUMBER_GREATER_THAN
+          title: "Operator for comparison (e.g., \"STRING_EQUALS\", \"NUMBER_GREATER_THAN\"\
+            , \"DATE_BEFORE\")"
+          type: string
+    VisitorDataConditionPayload:
+      properties:
+        elseNextStepId:
+          example: 987fcdeb-a321-45e6-b789-123456789012
+          type: string
+        options:
+          items:
+            $ref: "#/components/schemas/VisitorDataConditionOption"
+          type: array
+    VisitorDataConditionTraceData:
+      description: VisitorDataConditionTraceData stores visitor-data routing metadata.
+      properties:
+        hasElse:
+          type: boolean
+        options:
+          items:
+            $ref: "#/components/schemas/VisitorDataConditionTraceOption"
+          type: array
+    VisitorDataConditionTraceOption:
+      properties:
+        attributeFound:
+          type: boolean
+        attributeKey:
+          type: string
+        comparisonValue:
+          type: string
+        hasRoute:
+          type: boolean
+        matched:
+          type: boolean
+        observedValue:
+          type: string
+        operator:
+          type: string
     VisitorEvent:
       example:
         createdAt: 2000-01-23T04:56:07.000+00:00
@@ -10794,6 +10911,7 @@ components:
              - EVENT_ACTION_DEVICE_BROWSER_CONDITION: Route visitors based on browser family (e.g. Chrome, Safari, Firefox)
              - EVENT_ACTION_DEVICE_BRAND_CONDITION: Route visitors based on hardware brand (e.g. Apple, Samsung, Google)
              - EVENT_ACTION_DEVICE_ACTOR_CONDITION: Route visitors based on actor classification (e.g. HUMAN, BOT, AGENT)
+             - EVENT_ACTION_VISITOR_DATA_CONDITION: Route visitors based on their profile data or custom attributes
           enum:
           - EVENT_ACTION_UNSPECIFIED
           - EVENT_ACTION_CLIENT_REDIRECT
@@ -10814,6 +10932,7 @@ components:
           - EVENT_ACTION_DEVICE_BROWSER_CONDITION
           - EVENT_ACTION_DEVICE_BRAND_CONDITION
           - EVENT_ACTION_DEVICE_ACTOR_CONDITION
+          - EVENT_ACTION_VISITOR_DATA_CONDITION
           example: EVENT_ACTION_CLIENT_REDIRECT
           title: The event action type for this workflow step
           type: string
@@ -10971,6 +11090,8 @@ components:
           $ref: "#/components/schemas/VCardPayload"
         visitTypeCondition:
           $ref: "#/components/schemas/VisitTypeConditionPayload"
+        visitorDataCondition:
+          $ref: "#/components/schemas/VisitorDataConditionPayload"
       title: Workflow step payload - uses oneof for type safety based on EventAction
     WorkflowStepsServiceAddRelationshipBody:
       example:
@@ -11013,6 +11134,7 @@ components:
              - EVENT_ACTION_DEVICE_BROWSER_CONDITION: Route visitors based on browser family (e.g. Chrome, Safari, Firefox)
              - EVENT_ACTION_DEVICE_BRAND_CONDITION: Route visitors based on hardware brand (e.g. Apple, Samsung, Google)
              - EVENT_ACTION_DEVICE_ACTOR_CONDITION: Route visitors based on actor classification (e.g. HUMAN, BOT, AGENT)
+             - EVENT_ACTION_VISITOR_DATA_CONDITION: Route visitors based on their profile data or custom attributes
           enum:
           - EVENT_ACTION_UNSPECIFIED
           - EVENT_ACTION_CLIENT_REDIRECT
@@ -11033,6 +11155,7 @@ components:
           - EVENT_ACTION_DEVICE_BROWSER_CONDITION
           - EVENT_ACTION_DEVICE_BRAND_CONDITION
           - EVENT_ACTION_DEVICE_ACTOR_CONDITION
+          - EVENT_ACTION_VISITOR_DATA_CONDITION
           example: EVENT_ACTION_FORM_SUBMIT
           title: The event action type for this workflow step
           type: string
