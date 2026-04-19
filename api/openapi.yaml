@@ -5,7 +5,7 @@ info:
     url: https://app.linkbreakers.com
   description: This is a documentation of all the APIs of Linkbreakers
   title: Linkbreakers API
-  version: 1.46.4
+  version: 1.46.6
 servers:
 - url: https://api.linkbreakers.com
 security:
