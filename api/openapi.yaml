@@ -5,7 +5,7 @@ info:
     url: https://app.linkbreakers.com
   description: This is a documentation of all the APIs of Linkbreakers
   title: Linkbreakers API
-  version: 1.46.16
+  version: 1.49.0
 servers:
 - url: https://api.linkbreakers.com
 security:
@@ -10229,10 +10229,20 @@ components:
           example: "+33123456789"
           title: Phone number for the vCard
           type: string
+        phoneIsWhatsapp:
+          title: Whether the phone number is also a WhatsApp number (shows WhatsApp
+            link on contact card)
+          type: boolean
         postalCode:
           example: "94102"
           title: Postal/ZIP code for the vCard address
           type: string
+        socialLinks:
+          items:
+            $ref: "#/components/schemas/VCardSocialLink"
+          title: Optional social links to display on the contact card and embed in
+            the vCard
+          type: array
         state:
           example: CA
           title: State/province for the vCard address
@@ -10250,6 +10260,19 @@ components:
           title: Website URL for the vCard
           type: string
       title: vCard payload for EVENT_ACTION_CONTACT_CARD
+    VCardSocialLink:
+      properties:
+        platform:
+          example: linkedin
+          title: "Social platform identifier (e.g., \"instagram\", \"linkedin\", \"\
+            twitter\", \"facebook\", \"youtube\", \"tiktok\", \"github\", \"whatsapp\"\
+            , \"medium\", \"website\")"
+          type: string
+        url:
+          example: https://linkedin.com/in/janedoe
+          title: Profile URL for this social platform
+          type: string
+      title: Social link entry for a vCard contact card
     ValidationInstructionsCustomDomainResponse:
       example:
         validations:
