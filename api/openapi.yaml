@@ -5,7 +5,7 @@ info:
     url: https://app.linkbreakers.com
   description: This is a documentation of all the APIs of Linkbreakers
   title: Linkbreakers API
-  version: 1.49.1
+  version: 1.50.0
 servers:
 - url: https://api.linkbreakers.com
 security:
@@ -10174,10 +10174,18 @@ components:
           example: "+33123456789"
           title: Phone number for the vCard
           type: string
+        phoneIsWhatsapp:
+          title: Whether the phone number is a WhatsApp number
+          type: boolean
         postalCode:
           example: "94102"
           title: Postal/ZIP code for the vCard address
           type: string
+        socialLinks:
+          items:
+            $ref: "#/components/schemas/VCardSocialLink"
+          title: Social media links associated with the contact
+          type: array
         state:
           example: CA
           title: State/province for the vCard address
@@ -11354,23 +11362,32 @@ components:
       description: Snapshot of high-level counters Linkbreakers surfaces on the dashboard
         so teams can track workspace growth at a glance.
       example:
-        totalMembers: 2
-        totalEvents: 5
-        totalLinks: 5
-        totalMonthlyEvents: 7
+        totalMembers: 9
+        totalEvents: 2
+        totalLinks: 7
+        topupCreditsUsed: 5
+        totalMonthlyEvents: 3
         tokenCreditsUsed: 6
-        totalDirectories: 1
+        totalDirectories: 5
         tokenCreditsLimit: 0
-        totalQrcodeTemplates: 9
+        topupCreditsLimit: 1
+        totalQrcodeTemplates: 2
       properties:
         tokenCreditsLimit:
           format: int32
-          title: Platform credits available in the current workspace usage cycle (0
-            means unlimited)
+          title: Monthly platform credits limit for the current cycle (0 means unlimited)
           type: integer
         tokenCreditsUsed:
           format: int32
-          title: Platform credits consumed in the current workspace usage cycle
+          title: Monthly platform credits consumed in the current cycle
+          type: integer
+        topupCreditsLimit:
+          format: int32
+          title: Top-up credits total purchased (available = limit - used)
+          type: integer
+        topupCreditsUsed:
+          format: int32
+          title: Top-up credits consumed (from purchased credit packs)
           type: integer
         totalDirectories:
           format: int32
