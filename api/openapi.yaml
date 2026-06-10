@@ -5,7 +5,7 @@ info:
     url: https://app.linkbreakers.com
   description: This is a documentation of all the APIs of Linkbreakers
   title: Linkbreakers API
-  version: 1.51.2
+  version: 1.51.3
 servers:
 - url: https://api.linkbreakers.com
 security:
@@ -8376,9 +8376,11 @@ components:
         channels:
         - name: name
           id: id
+          isMember: true
           isPrivate: true
         - name: name
           id: id
+          isMember: true
           isPrivate: true
       properties:
         channels:
@@ -9877,11 +9879,15 @@ components:
       example:
         name: name
         id: id
+        isMember: true
         isPrivate: true
       properties:
         id:
           title: The Slack channel ID
           type: string
+        isMember:
+          title: Whether the bot is a member of this channel (can post to it)
+          type: boolean
         isPrivate:
           title: Whether this is a private channel
           type: boolean
