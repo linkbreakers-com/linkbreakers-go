@@ -5,7 +5,7 @@ info:
     url: https://app.linkbreakers.com
   description: This is a documentation of all the APIs of Linkbreakers
   title: Linkbreakers API
-  version: 1.50.1
+  version: 1.51.0
 servers:
 - url: https://api.linkbreakers.com
 security:
@@ -44,6 +44,9 @@ tags:
   name: QR Code Templates
 - description: Endpoints for managing link-level data collection settings in Linkbreakers.
   name: Link Settings
+- description: Endpoints for managing the Slack integration. Connect your Slack workspace
+    to receive real-time notifications when events occur on your links.
+  name: Slack Integrations
 - description: Endpoints for managing tags in Linkbreakers. These endpoints allow
     you to search for tags in a workspace.
   name: Tags
@@ -2724,6 +2727,180 @@ paths:
       summary: Update a link setting
       tags:
       - Link Settings
+  /v1/slack-integrations:
+    delete:
+      description: Disconnect and remove the Slack integration from the workspace.
+      operationId: SlackIntegrationsService_Delete
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                properties: {}
+                type: object
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth: []
+      summary: Disconnect Slack integration
+      tags:
+      - Slack Integrations
+    get:
+      description: Retrieve the Slack integration configuration for the workspace.
+      operationId: SlackIntegrationsService_Get
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetSlackIntegrationResponse"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth: []
+      summary: Get Slack integration
+      tags:
+      - Slack Integrations
+    patch:
+      description: "Update the Slack integration configuration (channel, triggers,\
+        \ status)."
+      operationId: SlackIntegrationsService_Update
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSlackIntegrationRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpdateSlackIntegrationResponse"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth: []
+      summary: Update Slack integration
+      tags:
+      - Slack Integrations
+  /v1/slack-integrations/channels:
+    get:
+      description: List available Slack channels the bot can send notifications to.
+      operationId: SlackIntegrationsService_ListChannels
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListSlackChannelsResponse"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth: []
+      summary: List Slack channels
+      tags:
+      - Slack Integrations
+  /v1/slack-integrations/oauth-url:
+    get:
+      description: Returns the Slack OAuth authorization URL to initiate the Add to
+        Slack flow.
+      operationId: SlackIntegrationsService_GetOAuthURL
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetSlackOAuthURLResponse"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth: []
+      summary: Get Slack OAuth URL
+      tags:
+      - Slack Integrations
+  /v1/slack-integrations/oauth/complete:
+    post:
+      description: Exchanges the Slack authorization code for a bot token and creates
+        the workspace integration.
+      operationId: SlackIntegrationsService_CompleteOAuth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompleteSlackOAuthRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompleteSlackOAuthResponse"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth: []
+      summary: Complete Slack OAuth
+      tags:
+      - Slack Integrations
+  /v1/slack-integrations/test:
+    post:
+      description: Send a test notification to verify the Slack integration is working.
+      operationId: SlackIntegrationsService_Test
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TestSlackIntegrationRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TestSlackIntegrationResponse"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth: []
+      summary: Test Slack integration
+      tags:
+      - Slack Integrations
   /v1/tags:
     delete:
       description: Remove a tag by name so it no longer appears for links or analytics
@@ -3748,6 +3925,31 @@ components:
           title: Fully qualified URL used for the redirect
           type: string
       title: Client redirect payload for EVENT_ACTION_CLIENT_REDIRECT
+    CompleteSlackOAuthRequest:
+      example:
+        code: code
+        state: state
+      properties:
+        code:
+          title: The authorization code received from Slack
+          type: string
+        state:
+          title: The state parameter for CSRF validation
+          type: string
+      required:
+      - code
+      - state
+      title: CompleteSlackOAuthRequest completes the OAuth flow by exchanging the
+        authorization code
+    CompleteSlackOAuthResponse:
+      example:
+        slackIntegration: ""
+      properties:
+        slackIntegration:
+          allOf:
+          - $ref: "#/components/schemas/SlackIntegration"
+          title: The newly created Slack integration
+      title: CompleteSlackOAuthResponse returns the created Slack integration
     ContactCardTraceCard:
       description: ContactCardTraceCard stores vCard metadata captured for contact
         cards.
@@ -4452,7 +4654,19 @@ components:
             Only workflow steps matching these kinds will trigger webhook notifications.
             If empty, all workflow step kinds will trigger notifications.
           items:
-            $ref: "#/components/schemas/WorkflowStepKind"
+            description: |-
+              - KIND_UNSPECIFIED: Workflow step kind not specified
+               - KIND_ENTRY: Entry steps are automatically triggered when a visitor reaches the workflow
+               - KIND_EXIT: Exit steps finalize the workflow (commonly a redirect)
+               - KIND_INTERACTION: Interaction steps require visitor input (forms, passwords, etc.)
+               - KIND_CONDITION: Condition steps evaluate logic and route to different next steps
+            enum:
+            - KIND_UNSPECIFIED
+            - KIND_ENTRY
+            - KIND_EXIT
+            - KIND_INTERACTION
+            - KIND_CONDITION
+            type: string
           type: array
       required:
       - endpointUrl
@@ -6474,6 +6688,23 @@ components:
           allOf:
           - $ref: "#/components/schemas/QrcodeDesign"
           title: The QR code design
+    GetSlackIntegrationResponse:
+      example:
+        slackIntegration: ""
+      properties:
+        slackIntegration:
+          allOf:
+          - $ref: "#/components/schemas/SlackIntegration"
+          title: The Slack integration (nil if not connected)
+      title: GetSlackIntegrationResponse returns the Slack integration
+    GetSlackOAuthURLResponse:
+      example:
+        oauthUrl: oauthUrl
+      properties:
+        oauthUrl:
+          title: The full Slack OAuth authorization URL to redirect the user to
+          type: string
+      title: GetSlackOAuthURLResponse returns the Slack OAuth authorization URL
     GetWebhookResponse:
       example:
         webhook: ""
@@ -8140,6 +8371,22 @@ components:
             $ref: "#/components/schemas/Member"
           title: Members included in the current page
           type: array
+    ListSlackChannelsResponse:
+      example:
+        channels:
+        - name: name
+          id: id
+          isPrivate: true
+        - name: name
+          id: id
+          isPrivate: true
+      properties:
+        channels:
+          items:
+            $ref: "#/components/schemas/SlackChannel"
+          title: Available channels the bot can post to
+          type: array
+      title: ListSlackChannelsResponse returns available Slack channels
     ListTagsResponse:
       example:
         nextPageToken: eyJ0YWdJZCI6IjEwIn0=
@@ -9626,6 +9873,113 @@ components:
           title: Suggested available shortlink slug generated by the service
           type: string
       title: Response containing the random shortlink
+    SlackChannel:
+      example:
+        name: name
+        id: id
+        isPrivate: true
+      properties:
+        id:
+          title: The Slack channel ID
+          type: string
+        isPrivate:
+          title: Whether this is a private channel
+          type: boolean
+        name:
+          title: The channel name
+          type: string
+      title: A Slack channel available for notification delivery
+    SlackIntegration:
+      description: |-
+        Represents a connected Slack workspace integration that receives event notifications
+        in a configured channel when workflow steps complete.
+      properties:
+        createdAt:
+          format: date-time
+          readOnly: true
+          title: The timestamp when the integration was connected
+          type: string
+        createdBy:
+          title: The member who connected the integration (UUID)
+          type: string
+        failureCount:
+          format: int64
+          readOnly: true
+          title: Count of failed notification deliveries
+          type: string
+        id:
+          example: d22f7bf1-83a9-4f3a-9b37-9a3a21b6ac11
+          title: The unique identifier of the Slack integration (UUID)
+          type: string
+        lastSentAt:
+          format: date-time
+          readOnly: true
+          title: The timestamp when a notification was last sent
+          type: string
+        linkId:
+          description: |-
+            Filter notifications by a specific link ID.
+            Only events from this link will trigger notifications.
+            If empty, all links in the workspace will trigger notifications.
+          example: d22f7bf1-83a9-4f3a-9b37-9a3a21b6ac11
+          type: string
+        slackChannelId:
+          example: C01ABC123
+          title: The Slack channel ID where notifications are sent
+          type: string
+        slackChannelName:
+          example: general
+          title: The Slack channel name where notifications are sent
+          type: string
+        slackTeamId:
+          example: T01ABC123
+          title: The Slack team/workspace ID
+          type: string
+        slackTeamName:
+          example: My Company
+          title: The Slack team/workspace name
+          type: string
+        status:
+          allOf:
+          - $ref: "#/components/schemas/SlackIntegrationStatus"
+          title: Current status of the integration
+        successCount:
+          format: int64
+          readOnly: true
+          title: Count of successful notification deliveries
+          type: string
+        triggers:
+          description: |-
+            Filter notifications by workflow step kinds.
+            Only workflow steps matching these kinds will trigger notifications.
+            If empty, all workflow step kinds will trigger notifications.
+          items:
+            $ref: "#/components/schemas/WorkflowStepKind"
+          type: array
+        updatedAt:
+          format: date-time
+          readOnly: true
+          title: The timestamp when the integration was last updated
+          type: string
+        workspaceId:
+          example: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
+          title: The workspace ID this integration belongs to (UUID)
+          type: string
+      title: SlackIntegration
+    SlackIntegrationStatus:
+      default: SLACK_INTEGRATION_STATUS_UNSPECIFIED
+      description: |-
+        - SLACK_INTEGRATION_STATUS_UNSPECIFIED: Status not specified
+         - SLACK_INTEGRATION_STATUS_ACTIVE: Integration is active and sending notifications
+         - SLACK_INTEGRATION_STATUS_PAUSED: Integration is paused by user action
+         - SLACK_INTEGRATION_STATUS_DISCONNECTED: Integration is disconnected
+      enum:
+      - SLACK_INTEGRATION_STATUS_UNSPECIFIED
+      - SLACK_INTEGRATION_STATUS_ACTIVE
+      - SLACK_INTEGRATION_STATUS_PAUSED
+      - SLACK_INTEGRATION_STATUS_DISCONNECTED
+      title: The status of a Slack integration
+      type: string
     SocialLinkButton:
       properties:
         id:
@@ -9807,6 +10161,17 @@ components:
       - SUBSCRIPTION_TYPE_LIGHT_PLAN
       title: SubscriptionType represents the type of subscription for a workspace
       type: string
+    TestSlackIntegrationRequest:
+      title: TestSlackIntegrationRequest sends a test notification
+      type: object
+    TestSlackIntegrationResponse:
+      example:
+        success: true
+      properties:
+        success:
+          title: Whether the test notification was sent successfully
+          type: boolean
+      title: TestSlackIntegrationResponse confirms the test notification was sent
     ThemeColor:
       description: |-
         Reusable color payload used across design-oriented APIs (page themes, QR code designs, etc.).
@@ -10053,6 +10418,44 @@ components:
           title: The updated QR code template
       title: UpdateQrcodeTemplateResponse represents the response after updating a
         QR code template
+    UpdateSlackIntegrationRequest:
+      example:
+        linkId: linkId
+        slackChannelId: slackChannelId
+        slackChannelName: slackChannelName
+        triggers:
+        - KIND_UNSPECIFIED
+        - KIND_UNSPECIFIED
+        status: ""
+      properties:
+        linkId:
+          title: Filter notifications by a specific link ID
+          type: string
+        slackChannelId:
+          title: The Slack channel ID to send notifications to
+          type: string
+        slackChannelName:
+          title: The Slack channel name
+          type: string
+        status:
+          allOf:
+          - $ref: "#/components/schemas/SlackIntegrationStatus"
+          title: Integration status (ACTIVE or PAUSED)
+        triggers:
+          items:
+            $ref: "#/components/schemas/WorkflowStepKind"
+          title: Filter notifications by workflow step kinds
+          type: array
+      title: UpdateSlackIntegrationRequest updates the Slack integration configuration
+    UpdateSlackIntegrationResponse:
+      example:
+        slackIntegration: ""
+      properties:
+        slackIntegration:
+          allOf:
+          - $ref: "#/components/schemas/SlackIntegration"
+          title: The updated Slack integration
+      title: UpdateSlackIntegrationResponse returns the updated Slack integration
     UpdateWebhookResponse:
       example:
         webhook: ""
@@ -10816,7 +11219,19 @@ components:
           - KIND_ENTRY
           - KIND_EXIT
           items:
-            $ref: "#/components/schemas/WorkflowStepKind"
+            description: |-
+              - KIND_UNSPECIFIED: Workflow step kind not specified
+               - KIND_ENTRY: Entry steps are automatically triggered when a visitor reaches the workflow
+               - KIND_EXIT: Exit steps finalize the workflow (commonly a redirect)
+               - KIND_INTERACTION: Interaction steps require visitor input (forms, passwords, etc.)
+               - KIND_CONDITION: Condition steps evaluate logic and route to different next steps
+            enum:
+            - KIND_UNSPECIFIED
+            - KIND_ENTRY
+            - KIND_EXIT
+            - KIND_INTERACTION
+            - KIND_CONDITION
+            type: string
           type: array
         updatedAt:
           format: date-time
@@ -10896,7 +11311,19 @@ components:
             Only workflow steps matching these kinds will trigger webhook notifications.
             If empty, all workflow step kinds will trigger notifications.
           items:
-            $ref: "#/components/schemas/WorkflowStepKind"
+            description: |-
+              - KIND_UNSPECIFIED: Workflow step kind not specified
+               - KIND_ENTRY: Entry steps are automatically triggered when a visitor reaches the workflow
+               - KIND_EXIT: Exit steps finalize the workflow (commonly a redirect)
+               - KIND_INTERACTION: Interaction steps require visitor input (forms, passwords, etc.)
+               - KIND_CONDITION: Condition steps evaluate logic and route to different next steps
+            enum:
+            - KIND_UNSPECIFIED
+            - KIND_ENTRY
+            - KIND_EXIT
+            - KIND_INTERACTION
+            - KIND_CONDITION
+            type: string
           type: array
       title: UpdateWebhookRequest represents the request to update a webhook
     WorkflowStep:

@@ -13,6 +13,7 @@ api_members.go
 api_page_themes.go
 api_qr_code_designs.go
 api_qr_code_templates.go
+api_slack_integrations.go
 api_tags.go
 api_time_series.go
 api_visitors.go
@@ -33,6 +34,8 @@ model_background_options.go
 model_canvas_position.go
 model_check_custom_domain_response.go
 model_client_redirect_payload.go
+model_complete_slack_o_auth_request.go
+model_complete_slack_o_auth_response.go
 model_contact_card_trace_card.go
 model_contact_card_trace_data.go
 model_container_config.go
@@ -136,6 +139,8 @@ model_get_link_setting_response.go
 model_get_media_response.go
 model_get_page_theme_response.go
 model_get_qrcode_design_response.go
+model_get_slack_integration_response.go
+model_get_slack_o_auth_url_response.go
 model_get_webhook_response.go
 model_get_workflow_step_response.go
 model_get_workspace_token_response.go
@@ -165,6 +170,7 @@ model_list_media_response.go
 model_list_page_themes_response.go
 model_list_qrcode_templates_response.go
 model_list_response.go
+model_list_slack_channels_response.go
 model_list_tags_response.go
 model_list_visitor_attribute_keys_response.go
 model_list_visitors_csv_response.go
@@ -216,6 +222,9 @@ model_settings_service_update_link_setting_body.go
 model_shape.go
 model_shortlink_availability_response.go
 model_shortlink_random_response.go
+model_slack_channel.go
+model_slack_integration.go
+model_slack_integration_status.go
 model_social_link_button.go
 model_social_link_trace_button.go
 model_social_links_display_style.go
@@ -227,6 +236,7 @@ model_specific_date_condition_trace_data.go
 model_specific_date_condition_trace_option.go
 model_specific_date_option.go
 model_subscription_type.go
+model_test_slack_integration_response.go
 model_theme_color.go
 model_theme_color_theme_color_type.go
 model_time_of_day_condition_payload.go
@@ -243,6 +253,8 @@ model_update_me_request.go
 model_update_page_theme_response.go
 model_update_qrcode_design_response.go
 model_update_qrcode_template_response.go
+model_update_slack_integration_request.go
+model_update_slack_integration_response.go
 model_update_webhook_response.go
 model_update_workflow_step_response.go
 model_update_workspace_origin_inquiry_request.go
