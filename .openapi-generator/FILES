@@ -108,6 +108,7 @@ model_device_type_condition_payload.go
 model_device_type_condition_trace_data.go
 model_device_type_condition_trace_option.go
 model_device_type_condition_value.go
+model_digest_frequency.go
 model_directories_service_update_body.go
 model_directory.go
 model_dots_options.go

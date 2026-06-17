@@ -5,7 +5,7 @@ info:
     url: https://app.linkbreakers.com
   description: This is a documentation of all the APIs of Linkbreakers
   title: Linkbreakers API
-  version: 1.52.8
+  version: 1.53.3
 servers:
 - url: https://api.linkbreakers.com
 security:
@@ -5665,6 +5665,21 @@ components:
       - DEVICE_TYPE_CONDITION_VALUE_TABLET
       - DEVICE_TYPE_CONDITION_VALUE_UNKNOWN
       type: string
+    DigestFrequency:
+      default: DIGEST_FREQUENCY_UNSPECIFIED
+      description: |-
+        - DIGEST_FREQUENCY_UNSPECIFIED: Not specified; defaults to monthly
+         - DIGEST_FREQUENCY_NONE: No digest emails
+         - DIGEST_FREQUENCY_WEEKLY: Weekly digest every Monday
+         - DIGEST_FREQUENCY_MONTHLY: Monthly digest on the 1st of each month
+      enum:
+      - DIGEST_FREQUENCY_UNSPECIFIED
+      - DIGEST_FREQUENCY_NONE
+      - DIGEST_FREQUENCY_WEEKLY
+      - DIGEST_FREQUENCY_MONTHLY
+      title: DigestFrequency controls how often the workspace receives traffic digest
+        emails
+      type: string
     DirectoriesServiceUpdateBody:
       example:
         name: My Updated Directory
@@ -10520,11 +10535,25 @@ components:
         name: name
         description: description
         shortDescription: shortDescription
+        digestFrequency: DIGEST_FREQUENCY_UNSPECIFIED
         slug: slug
         tags: tags
       properties:
         description:
           title: Optional description providing additional context about the workspace
+          type: string
+        digestFrequency:
+          description: |-
+            - DIGEST_FREQUENCY_UNSPECIFIED: Not specified; defaults to monthly
+             - DIGEST_FREQUENCY_NONE: No digest emails
+             - DIGEST_FREQUENCY_WEEKLY: Weekly digest every Monday
+             - DIGEST_FREQUENCY_MONTHLY: Monthly digest on the 1st of each month
+          enum:
+          - DIGEST_FREQUENCY_UNSPECIFIED
+          - DIGEST_FREQUENCY_NONE
+          - DIGEST_FREQUENCY_WEEKLY
+          - DIGEST_FREQUENCY_MONTHLY
+          title: How often the workspace receives traffic digest emails
           type: string
         enforceMfa:
           title: Toggle for enforcing MFA on member sign-in; omitempty leaves current
@@ -11687,6 +11716,7 @@ components:
         faq: faq
         name: name
         id: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
+        digestFrequency: DIGEST_FREQUENCY_UNSPECIFIED
         slug: slug
         updatedAt: 2000-01-23T04:56:07.000+00:00
       externalDocs:
@@ -11703,6 +11733,20 @@ components:
           type: string
         description:
           title: Optional description providing additional context about the workspace
+          type: string
+        digestFrequency:
+          description: |-
+            - DIGEST_FREQUENCY_UNSPECIFIED: Not specified; defaults to monthly
+             - DIGEST_FREQUENCY_NONE: No digest emails
+             - DIGEST_FREQUENCY_WEEKLY: Weekly digest every Monday
+             - DIGEST_FREQUENCY_MONTHLY: Monthly digest on the 1st of each month
+          enum:
+          - DIGEST_FREQUENCY_UNSPECIFIED
+          - DIGEST_FREQUENCY_NONE
+          - DIGEST_FREQUENCY_WEEKLY
+          - DIGEST_FREQUENCY_MONTHLY
+          title: "How often the workspace receives traffic digest emails (none, weekly,\
+            \ monthly)"
           type: string
         enforceMfa:
           title: Whether members must complete multi-factor authentication at sign
