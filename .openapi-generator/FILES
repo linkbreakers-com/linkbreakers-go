@@ -5,6 +5,7 @@ api/openapi.yaml
 api_custom_domains.go
 api_directories.go
 api_events.go
+api_google_forms_integrations.go
 api_integrations_service.go
 api_link_settings.go
 api_links.go
@@ -34,6 +35,8 @@ model_background_options.go
 model_canvas_position.go
 model_check_custom_domain_response.go
 model_client_redirect_payload.go
+model_complete_google_forms_o_auth_request.go
+model_complete_google_forms_o_auth_response.go
 model_complete_slack_o_auth_request.go
 model_complete_slack_o_auth_response.go
 model_contact_card_trace_card.go
@@ -134,6 +137,9 @@ model_get_custom_domain_response.go
 model_get_directory_response.go
 model_get_events_time_series_request.go
 model_get_events_time_series_response.go
+model_get_google_form_fields_response.go
+model_get_google_forms_integration_response.go
+model_get_google_forms_o_auth_url_response.go
 model_get_lead_score_explanation_response.go
 model_get_link_response.go
 model_get_link_setting_response.go
@@ -145,6 +151,11 @@ model_get_slack_o_auth_url_response.go
 model_get_webhook_response.go
 model_get_workflow_step_response.go
 model_get_workspace_token_response.go
+model_google_form.go
+model_google_form_field.go
+model_google_forms_field_mapping.go
+model_google_forms_integration.go
+model_google_forms_integration_status.go
 model_googlerpc_status.go
 model_http_method.go
 model_identify_request.go
@@ -166,6 +177,7 @@ model_list_event_traces_response.go
 model_list_events_csv_response.go
 model_list_events_json_response.go
 model_list_events_response.go
+model_list_google_forms_response.go
 model_list_links_response.go
 model_list_media_response.go
 model_list_page_themes_response.go
@@ -237,6 +249,7 @@ model_specific_date_condition_trace_data.go
 model_specific_date_condition_trace_option.go
 model_specific_date_option.go
 model_subscription_type.go
+model_sync_google_forms_response.go
 model_test_slack_integration_response.go
 model_theme_color.go
 model_theme_color_theme_color_type.go
@@ -248,6 +261,8 @@ model_triggered_by.go
 model_update_custom_domain_response.go
 model_update_device_response.go
 model_update_directory_response.go
+model_update_google_forms_integration_request.go
+model_update_google_forms_integration_response.go
 model_update_link_response.go
 model_update_link_setting_response.go
 model_update_me_request.go
