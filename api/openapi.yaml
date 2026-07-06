@@ -5,7 +5,7 @@ info:
     url: https://app.linkbreakers.com
   description: This is a documentation of all the APIs of Linkbreakers
   title: Linkbreakers API
-  version: 1.76.1
+  version: 1.77.1
 servers:
 - url: https://api.linkbreakers.com
 security:
@@ -3011,6 +3011,36 @@ paths:
       summary: Get a public workspace by slug
       tags:
       - Workspaces
+  /v1/qrcode-designs/apply-template:
+    post:
+      description: Copy all design settings from a community QR code template to an
+        existing link's QR code design. This replaces the current design with the
+        template's styling.
+      operationId: QrcodeDesignService_ApplyTemplate
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApplyQrcodeTemplateRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApplyQrcodeTemplateResponse"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth: []
+      summary: Apply a QR code template to a link
+      tags:
+      - QR Code Designs
   /v1/qrcode-designs/{id}:
     delete:
       description: Remove a QR code design that is no longer in use by any assets.
@@ -4760,6 +4790,34 @@ components:
           format: date-time
           type: string
       title: AnalyticsDashboard represents a workspace's analytics dashboard
+    ApplyQrcodeTemplateRequest:
+      description: ApplyQrcodeTemplateRequest applies a community template's design
+        to an existing link's QR code.
+      example:
+        linkId: 550e8400-e29b-41d4-a716-446655440000
+        templateSlug: google-dinosaur
+      properties:
+        linkId:
+          example: 550e8400-e29b-41d4-a716-446655440000
+          title: The ID of the link to apply the template to (UUID)
+          type: string
+        templateSlug:
+          example: google-dinosaur
+          title: The slug of the QR code template to apply
+          type: string
+      required:
+      - linkId
+      - templateSlug
+    ApplyQrcodeTemplateResponse:
+      description: ApplyQrcodeTemplateResponse returns the updated QR code design
+        after applying the template.
+      example:
+        qrcodeDesign: ""
+      properties:
+        qrcodeDesign:
+          allOf:
+          - $ref: "#/components/schemas/QrcodeDesign"
+          title: The updated QR code design with the template's styling applied
     AutoLayoutWorkflowResponse:
       example:
         stepsRepositioned: 0

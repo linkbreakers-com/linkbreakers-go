@@ -40,6 +40,8 @@ model_ai_send_message_request.go
 model_ai_send_message_response.go
 model_analytics_dashboard.go
 model_api_tag.go
+model_apply_qrcode_template_request.go
+model_apply_qrcode_template_response.go
 model_auto_layout_workflow_response.go
 model_background_options.go
 model_breakdown_data_point.go
