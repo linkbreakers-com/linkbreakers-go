@@ -5,12 +5,21 @@ info:
     url: https://app.linkbreakers.com
   description: This is a documentation of all the APIs of Linkbreakers
   title: Linkbreakers API
-  version: 1.55.0
+  version: 1.76.1
 servers:
 - url: https://api.linkbreakers.com
 security:
 - bearerAuth: []
 tags:
+- description: Context-aware AI assistant that delegates to specialized agents based
+    on the resource being edited.
+  name: AI Assistant
+- description: "Endpoints for managing analytics dashboards with flexible, config-driven\
+    \ widgets. Each widget defines its own data source and visualization."
+  name: Analytics Dashboard
+- description: "Endpoints for retrieving aggregated analytics data for dashboard widgets\
+    \ including geographic breakdown, device distribution, and visitor trends."
+  name: Analytics Data
 - description: "Endpoints for managing custom domains in Linkbreakers. These endpoints\
     \ allow you to register, verify, and manage custom domains for your workspace."
   name: Custom Domains
@@ -20,8 +29,8 @@ tags:
 - description: Endpoints for managing events in Linkbreakers. These endpoints allow
     you to collect data and list events.
   name: Events
-- description: Endpoints for managing the Google Forms integration. Connect your Google
-    account to automatically sync form responses and enrich visitor data.
+- description: Connect your Google account to automatically sync form responses from
+    links that redirect to Google Forms.
   name: Google Forms Integrations
 - description: "Endpoints for managing shortened links in Linkbreakers. These endpoints\
     \ allow you to create, retrieve, list, and delete shortened links for your workspace."
@@ -73,6 +82,413 @@ tags:
     allow you to update and get workspaces.
   name: Workspaces
 paths:
+  /v1/ai/conversation:
+    delete:
+      description: Clear the conversation history for a specific context.
+      operationId: AIAssistantService_ClearConversation
+      parameters:
+      - explode: true
+        in: query
+        name: contextType
+        required: false
+        schema:
+          type: string
+        style: form
+      - explode: true
+        in: query
+        name: contextId
+        required: false
+        schema:
+          type: string
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AIClearConversationResponse"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth: []
+      summary: Clear AI conversation
+      tags:
+      - AI Assistant
+    get:
+      description: Get the display-ready chat history for a specific context.
+      operationId: AIAssistantService_GetConversation
+      parameters:
+      - explode: true
+        in: query
+        name: contextType
+        required: false
+        schema:
+          type: string
+        style: form
+      - explode: true
+        in: query
+        name: contextId
+        required: false
+        schema:
+          type: string
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AIGetConversationResponse"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth: []
+      summary: Get AI conversation
+      tags:
+      - AI Assistant
+  /v1/ai/message:
+    post:
+      description: Send a message to the AI assistant. The context type determines
+        which specialized agent handles the request.
+      operationId: AIAssistantService_SendMessage
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AISendMessageRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AISendMessageResponse"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth: []
+      summary: Send AI message
+      tags:
+      - AI Assistant
+  /v1/analytics/breakdown:
+    post:
+      description: "Returns a ranked breakdown of events by any dimension (browser,\
+        \ platform, device type, country, city, visit type)."
+      operationId: AnalyticsDataService_GetBreakdown
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GetBreakdownRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetBreakdownResponse"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth: []
+      summary: Get dimension breakdown
+      tags:
+      - Analytics Data
+  /v1/analytics/dashboard:
+    put:
+      operationId: AnalyticsDashboardService_UpdateDashboard
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateDashboardRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpdateDashboardResponse"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth: []
+      summary: Update analytics dashboard
+      tags:
+      - Analytics Dashboard
+  /v1/analytics/dashboards:
+    get:
+      operationId: AnalyticsDashboardService_ListDashboards
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListDashboardsResponse"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth: []
+      summary: List analytics dashboards
+      tags:
+      - Analytics Dashboard
+    post:
+      operationId: AnalyticsDashboardService_CreateDashboard
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDashboardRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateDashboardResponse"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth: []
+      summary: Create analytics dashboard
+      tags:
+      - Analytics Dashboard
+  /v1/analytics/dashboards/{id}:
+    delete:
+      description: Delete a dashboard and its associated AI conversation.
+      operationId: AnalyticsDashboardService_DeleteDashboard
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteDashboardResponse"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth: []
+      summary: Delete analytics dashboard
+      tags:
+      - Analytics Dashboard
+  /v1/analytics/devices:
+    post:
+      description: Retrieve event distribution across device types.
+      operationId: AnalyticsDataService_GetDeviceDistribution
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GetDeviceDistributionRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetDeviceDistributionResponse"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth: []
+      summary: Get device distribution
+      tags:
+      - Analytics Data
+  /v1/analytics/geo:
+    post:
+      description: Retrieve geographic distribution of events grouped by country or
+        city.
+      operationId: AnalyticsDataService_GetGeoBreakdown
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GetGeoBreakdownRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetGeoBreakdownResponse"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth: []
+      summary: Get geographic breakdown
+      tags:
+      - Analytics Data
+  /v1/analytics/hours:
+    post:
+      description: Retrieve event counts aggregated by hour of day for identifying
+        peak activity times.
+      operationId: AnalyticsDataService_GetHourOfDayDistribution
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GetHourOfDayDistributionRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetHourOfDayDistributionResponse"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth: []
+      summary: Get hour of day distribution
+      tags:
+      - Analytics Data
+  /v1/analytics/timeseries:
+    post:
+      description: "Retrieve time-bucketed event counts grouped by a dimension like\
+        \ country, city, device type, or visit type."
+      operationId: AnalyticsDataService_GetGroupedTimeSeries
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GetGroupedTimeSeriesRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetGroupedTimeSeriesResponse"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth: []
+      summary: Get grouped time series
+      tags:
+      - Analytics Data
+  /v1/analytics/top-links:
+    post:
+      description: Retrieve links ranked by event count for identifying best performing
+        QR codes and links.
+      operationId: AnalyticsDataService_GetTopLinks
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GetTopLinksRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetTopLinksResponse"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth: []
+      summary: Get top performing links
+      tags:
+      - Analytics Data
+  /v1/analytics/visitors:
+    post:
+      description: Retrieve new vs returning visitor counts over time.
+      operationId: AnalyticsDataService_GetVisitorTrends
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GetVisitorTrendsRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetVisitorTrendsResponse"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth: []
+      summary: Get visitor trends
+      tags:
+      - Analytics Data
   /v1/custom-domains:
     get:
       description: Retrieves the custom domains for your workspace
@@ -695,7 +1111,7 @@ paths:
       tags:
       - Google Forms Integrations
     get:
-      description: Retrieve the Google Forms integration configuration for the workspace.
+      description: Retrieve the Google Forms integration for the workspace.
       operationId: GoogleFormsIntegrationsService_Get
       responses:
         "200":
@@ -716,8 +1132,7 @@ paths:
       tags:
       - Google Forms Integrations
     patch:
-      description: "Update the Google Forms integration configuration (form, field\
-        \ mappings, tracking, status)."
+      description: Update the integration status (pause or resume syncing).
       operationId: GoogleFormsIntegrationsService_Update
       requestBody:
         content:
@@ -743,16 +1158,17 @@ paths:
       summary: Update Google Forms integration
       tags:
       - Google Forms Integrations
-  /v1/google-forms-integrations/forms:
+  /v1/google-forms-integrations/detected-forms:
     get:
-      description: List Google Forms available in the connected Google account.
-      operationId: GoogleFormsIntegrationsService_ListForms
+      description: Returns Google Forms auto-detected from workspace links that have
+        a Google Form as their redirect destination.
+      operationId: GoogleFormsIntegrationsService_ListDetectedForms
       responses:
         "200":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ListGoogleFormsResponse"
+                $ref: "#/components/schemas/ListDetectedGoogleFormsResponse"
           description: Everything worked as expected.
         default:
           content:
@@ -762,39 +1178,7 @@ paths:
           description: Unexpected error
       security:
       - bearerAuth: []
-      summary: List Google Forms
-      tags:
-      - Google Forms Integrations
-  /v1/google-forms-integrations/forms/{formId}/fields:
-    get:
-      description: Returns the questions and fields of a specific Google Form for
-        field mapping configuration.
-      operationId: GoogleFormsIntegrationsService_GetFormFields
-      parameters:
-      - description: The Google Form ID to get fields for
-        explode: false
-        in: path
-        name: formId
-        required: true
-        schema:
-          type: string
-        style: simple
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/GetGoogleFormFieldsResponse"
-          description: Everything worked as expected.
-        default:
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-          description: Unexpected error
-      security:
-      - bearerAuth: []
-      summary: Get form fields
+      summary: List detected Google Forms
       tags:
       - Google Forms Integrations
   /v1/google-forms-integrations/oauth-url:
@@ -851,7 +1235,8 @@ paths:
       - Google Forms Integrations
   /v1/google-forms-integrations/sync:
     post:
-      description: Trigger an immediate sync of new Google Forms responses.
+      description: Trigger an immediate sync of new Google Forms responses from all
+        detected forms.
       operationId: GoogleFormsIntegrationsService_SyncNow
       requestBody:
         content:
@@ -1434,6 +1819,76 @@ paths:
       summary: Create a new workflow step
       tags:
       - Workflow Steps
+  /v1/links/{linkId}/workflow-steps/auto-layout:
+    post:
+      description: |-
+        Arranges all workflow steps in a clean left-to-right DAG layout.
+        Useful after building a workflow from scratch.
+      operationId: WorkflowStepsService_AutoLayoutWorkflow
+      parameters:
+      - explode: false
+        in: path
+        name: linkId
+        required: true
+        schema:
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkflowStepsServiceAutoLayoutWorkflowBody"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AutoLayoutWorkflowResponse"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth: []
+      summary: Auto-layout workflow
+      tags:
+      - Workflow Steps
+  /v1/links/{linkId}/workflow-steps/validate:
+    get:
+      description: |-
+        Checks a workflow for disconnected steps, missing edges on composite nodes,
+        and orphan steps not reachable from the entry point. Returns a list of issues.
+      operationId: WorkflowStepsService_ValidateWorkflow
+      parameters:
+      - explode: false
+        in: path
+        name: linkId
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidateWorkflowResponse"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth: []
+      summary: Validate workflow completeness
+      tags:
+      - Workflow Steps
   /v1/links/{linkId}/workflow-steps/{id}:
     delete:
       description: Removes a workflow step from the link. This operation cannot be
@@ -1611,7 +2066,14 @@ paths:
       - Workflow Steps
   /v1/links/{linkId}/workflow-steps/{parentStepId}/relationships/{childStepId}:
     delete:
-      description: Removes a parent-child relationship between two workflow steps.
+      description: |-
+        Removes a parent-child relationship between two workflow steps.
+
+        IMPORTANT: This endpoint cannot be used to remove connections FROM composite nodes
+        (multi-links, conditions). Composite nodes manage their own routing through
+        their payload structure. Use UpdateWorkflowStep to clear next_step_id in the payload instead.
+
+        Only atomic nodes (redirects, passwords, etc.) can use this endpoint as the parent.
       operationId: WorkflowStepsService_RemoveRelationship
       parameters:
       - description: The ID of the link (UUID)
@@ -1654,6 +2116,52 @@ paths:
       security:
       - bearerAuth: []
       summary: Remove relationship between workflow steps
+      tags:
+      - Workflow Steps
+  /v1/links/{linkId}/workflow-steps/{stepId}/resolve-collisions:
+    post:
+      description: |-
+        Pushes overlapping steps away from a given anchor step using iterative
+        radial repulsion. The anchor step stays fixed. Use after adding or moving
+        individual steps to preserve the existing layout.
+      operationId: WorkflowStepsService_ResolveStepCollisions
+      parameters:
+      - explode: false
+        in: path
+        name: linkId
+        required: true
+        schema:
+          type: string
+        style: simple
+      - explode: false
+        in: path
+        name: stepId
+        required: true
+        schema:
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkflowStepsServiceResolveStepCollisionsBody"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResolveStepCollisionsResponse"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth: []
+      summary: Resolve step collisions
       tags:
       - Workflow Steps
   /v1/media:
@@ -4069,6 +4577,121 @@ components:
             $ref: "#/components/schemas/ErrorResponse"
       description: Unexpected error
   schemas:
+    AIClearConversationResponse:
+      title: AIClearConversationResponse is empty on success
+      type: object
+    AIContextType:
+      default: AI_CONTEXT_TYPE_UNSPECIFIED
+      enum:
+      - AI_CONTEXT_TYPE_UNSPECIFIED
+      - AI_CONTEXT_TYPE_ANALYTICS_DASHBOARD
+      - AI_CONTEXT_TYPE_WORKFLOW
+      - AI_CONTEXT_TYPE_LINK
+      - AI_CONTEXT_TYPE_QRCODE_DESIGN
+      - AI_CONTEXT_TYPE_PAGE_THEME
+      title: AI context types
+      type: string
+    AIDisplayMessage:
+      example:
+        sender: sender
+        id: id
+        text: text
+        timestamp: 2000-01-23T04:56:07.000+00:00
+      properties:
+        id:
+          type: string
+        sender:
+          type: string
+        text:
+          type: string
+        timestamp:
+          format: date-time
+          type: string
+      title: AIDisplayMessage is a user-visible message for rendering
+    AIGetConversationResponse:
+      example:
+        messages:
+        - sender: sender
+          id: id
+          text: text
+          timestamp: 2000-01-23T04:56:07.000+00:00
+        - sender: sender
+          id: id
+          text: text
+          timestamp: 2000-01-23T04:56:07.000+00:00
+      properties:
+        messages:
+          items:
+            $ref: "#/components/schemas/AIDisplayMessage"
+          type: array
+      title: AIGetConversationResponse contains the display-ready messages
+    AISendMessageRequest:
+      example:
+        contextType: ""
+        contextId: contextId
+        message: message
+        contextMetadata: contextMetadata
+      properties:
+        contextId:
+          title: "ID of the resource being edited (dashboard ID, workflow ID, link\
+            \ ID)"
+          type: string
+        contextMetadata:
+          title: Optional pre-existing data from the UI (e.g. wizard form state) injected
+            as context
+          type: string
+        contextType:
+          allOf:
+          - $ref: "#/components/schemas/AIContextType"
+          title: Context type determines which agent(s) to activate
+        message:
+          title: The user's message
+          type: string
+      title: AISendMessageRequest sends a message to the AI assistant in a specific
+        context
+    AISendMessageResponse:
+      example:
+        uiActions:
+        - options:
+          - description: description
+            label: label
+            value: value
+          - description: description
+            label: label
+            value: value
+          label: label
+          type: type
+          value: value
+        - options:
+          - description: description
+            label: label
+            value: value
+          - description: description
+            label: label
+            value: value
+          label: label
+          type: type
+          value: value
+        responseText: responseText
+        contextUpdated: true
+        appliedActions:
+        - appliedActions
+        - appliedActions
+      properties:
+        appliedActions:
+          items:
+            type: string
+          type: array
+        contextUpdated:
+          title: True if the agent modified the resource (frontend should refresh)
+          type: boolean
+        responseText:
+          type: string
+        uiActions:
+          items:
+            $ref: "#/components/schemas/ChatUIAction"
+          type: array
+      title: AISendMessageResponse contains the AI response
     Action:
       default: ACTION_UNSPECIFIED
       description: |-
@@ -4089,6 +4712,61 @@ components:
           title: Confirmation message
           type: string
       title: Response for adding a workflow step relationship
+    AnalyticsDashboard:
+      example:
+        createdAt: 2000-01-23T04:56:07.000+00:00
+        chatMessages:
+        - sender: sender
+          id: id
+          text: text
+          timestamp: 2000-01-23T04:56:07.000+00:00
+        - sender: sender
+          id: id
+          text: text
+          timestamp: 2000-01-23T04:56:07.000+00:00
+        name: name
+        id: id
+        config:
+          widgets:
+          - visualization: ""
+            size: ""
+            id: id
+            position: ""
+            title: title
+            dataSource: ""
+          - visualization: ""
+            size: ""
+            id: id
+            position: ""
+            title: title
+            dataSource: ""
+        updatedAt: 2000-01-23T04:56:07.000+00:00
+      properties:
+        chatMessages:
+          items:
+            $ref: "#/components/schemas/ChatDisplayMessage"
+          title: User-visible chat messages for rendering in the chat panel
+          type: array
+        config:
+          $ref: "#/components/schemas/DashboardConfig"
+        createdAt:
+          format: date-time
+          type: string
+        id:
+          type: string
+        name:
+          type: string
+        updatedAt:
+          format: date-time
+          type: string
+      title: AnalyticsDashboard represents a workspace's analytics dashboard
+    AutoLayoutWorkflowResponse:
+      example:
+        stepsRepositioned: 0
+      properties:
+        stepsRepositioned:
+          format: int32
+          type: integer
     BackgroundOptions:
       properties:
         themeColor:
@@ -4096,6 +4774,24 @@ components:
           - $ref: "#/components/schemas/ThemeColor"
           title: Color configuration supporting solid colors and gradients
       title: BackgroundOptions represents the styling options for the QR code background
+    BreakdownDataPoint:
+      example:
+        percentage: 6.027456183070403
+        eventCount: 0
+        label: label
+      properties:
+        eventCount:
+          format: int32
+          title: Number of events for this dimension value
+          type: integer
+        label:
+          title: "Dimension label (e.g. browser name, country name, device type)"
+          type: string
+        percentage:
+          format: double
+          title: Percentage of total events
+          type: number
+      title: BreakdownDataPoint represents a single dimension breakdown data point
     CanvasPosition:
       properties:
         x:
@@ -4107,6 +4803,61 @@ components:
           title: Y coordinate on the canvas
           type: number
       title: Canvas position for React Flow node positioning
+    ChatDisplayMessage:
+      example:
+        sender: sender
+        id: id
+        text: text
+        timestamp: 2000-01-23T04:56:07.000+00:00
+      properties:
+        id:
+          type: string
+        sender:
+          title: '"user" or "assistant"'
+          type: string
+        text:
+          type: string
+        timestamp:
+          format: date-time
+          type: string
+      title: ChatDisplayMessage is a user-visible chat message for rendering in the
+        UI
+    ChatUIAction:
+      example:
+        options:
+        - description: description
+          label: label
+          value: value
+        - description: description
+          label: label
+          value: value
+        label: label
+        type: type
+        value: value
+      properties:
+        label:
+          type: string
+        options:
+          items:
+            $ref: "#/components/schemas/ChatUIOption"
+          type: array
+        type:
+          type: string
+        value:
+          type: string
+      title: ChatUIAction represents an interactive element rendered in the chat
+    ChatUIOption:
+      example:
+        description: description
+        label: label
+        value: value
+      properties:
+        description:
+          type: string
+        label:
+          type: string
+        value:
+          type: string
     CheckCustomDomainResponse:
       example:
         customDomain:
@@ -4140,22 +4891,28 @@ components:
         state: state
       properties:
         code:
-          title: The authorization code received from Google
           type: string
         state:
-          title: The state parameter for CSRF validation
           type: string
       required:
       - code
       - state
     CompleteGoogleFormsOAuthResponse:
       example:
-        integration: ""
+        integration:
+          createdAt: 2000-01-23T04:56:07.000+00:00
+          createdBy: createdBy
+          lastSyncedAt: 2000-01-23T04:56:07.000+00:00
+          googleEmail: googleEmail
+          id: d22f7bf1-83a9-4f3a-9b37-9a3a21b6ac11
+          visitorsEnriched: visitorsEnriched
+          responsesSynced: responsesSynced
+          status: GOOGLE_FORMS_INTEGRATION_STATUS_UNSPECIFIED
+          updatedAt: 2000-01-23T04:56:07.000+00:00
+          workspaceId: workspaceId
       properties:
         integration:
-          allOf:
-          - $ref: "#/components/schemas/GoogleFormsIntegration"
-          title: The newly created Google Forms integration
+          $ref: "#/components/schemas/GoogleFormsIntegration"
     CompleteSlackOAuthRequest:
       example:
         code: code
@@ -4260,10 +5017,31 @@ components:
           - $ref: "#/components/schemas/ThemeColor"
           title: Color configuration supporting solid colors and gradients
         type:
+          enum:
+          - CORNERS_DOT_TYPE_UNSPECIFIED
+          - CORNERS_DOT_TYPE_DOT
+          - CORNERS_DOT_TYPE_SQUARE
+          - CORNERS_DOT_TYPE_HEXAGON
+          - CORNERS_DOT_TYPE_OCTAGON
+          - CORNERS_DOT_TYPE_TEARDROP
+          - CORNERS_DOT_TYPE_STAR
           title: Rendering style for the dot corners
           type: string
       title: CornersDotOptions represents the styling options for the dot corners
         in the QR code
+    CornersDotType:
+      default: CORNERS_DOT_TYPE_UNSPECIFIED
+      enum:
+      - CORNERS_DOT_TYPE_UNSPECIFIED
+      - CORNERS_DOT_TYPE_DOT
+      - CORNERS_DOT_TYPE_SQUARE
+      - CORNERS_DOT_TYPE_HEXAGON
+      - CORNERS_DOT_TYPE_OCTAGON
+      - CORNERS_DOT_TYPE_TEARDROP
+      - CORNERS_DOT_TYPE_STAR
+      title: CornersDotType represents the rendering style for QR code corner inner
+        dots
+      type: string
     CornersSquareOptions:
       properties:
         themeColor:
@@ -4271,10 +5049,30 @@ components:
           - $ref: "#/components/schemas/ThemeColor"
           title: Color configuration supporting solid colors and gradients
         type:
-          title: Rendering style for the square corners (e.g. "extra-rounded")
+          enum:
+          - CORNERS_SQUARE_TYPE_UNSPECIFIED
+          - CORNERS_SQUARE_TYPE_DOT
+          - CORNERS_SQUARE_TYPE_SQUARE
+          - CORNERS_SQUARE_TYPE_EXTRA_ROUNDED
+          - CORNERS_SQUARE_TYPE_HEXAGON
+          - CORNERS_SQUARE_TYPE_OCTAGON
+          - CORNERS_SQUARE_TYPE_LEAF
+          title: Rendering style for the square corners
           type: string
       title: CornersSquareOptions represents the styling options for the square corners
         in the QR code
+    CornersSquareType:
+      default: CORNERS_SQUARE_TYPE_UNSPECIFIED
+      enum:
+      - CORNERS_SQUARE_TYPE_UNSPECIFIED
+      - CORNERS_SQUARE_TYPE_DOT
+      - CORNERS_SQUARE_TYPE_SQUARE
+      - CORNERS_SQUARE_TYPE_EXTRA_ROUNDED
+      - CORNERS_SQUARE_TYPE_HEXAGON
+      - CORNERS_SQUARE_TYPE_OCTAGON
+      - CORNERS_SQUARE_TYPE_LEAF
+      title: CornersSquareType represents the rendering style for QR code corner squares
+      type: string
     CountryConditionOutcome:
       properties:
         countryCode:
@@ -4333,6 +5131,7 @@ components:
           qrcodeTemplateId: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
           name: My Link
           directoryId: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+          id: 550e8400-e29b-41d4-a716-446655440000
           waitForQrcode: true
           shortlink: my-link
         - leadGoalDefinition: Increase newsletter signups
@@ -4350,6 +5149,7 @@ components:
           qrcodeTemplateId: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
           name: My Link
           directoryId: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+          id: 550e8400-e29b-41d4-a716-446655440000
           waitForQrcode: true
           shortlink: my-link
       properties:
@@ -4588,6 +5388,41 @@ components:
         customDomain:
           $ref: "#/components/schemas/CustomDomain"
       title: Response containing the created custom domain
+    CreateDashboardRequest:
+      type: object
+    CreateDashboardResponse:
+      example:
+        dashboard:
+          createdAt: 2000-01-23T04:56:07.000+00:00
+          chatMessages:
+          - sender: sender
+            id: id
+            text: text
+            timestamp: 2000-01-23T04:56:07.000+00:00
+          - sender: sender
+            id: id
+            text: text
+            timestamp: 2000-01-23T04:56:07.000+00:00
+          name: name
+          id: id
+          config:
+            widgets:
+            - visualization: ""
+              size: ""
+              id: id
+              position: ""
+              title: title
+              dataSource: ""
+            - visualization: ""
+              size: ""
+              id: id
+              position: ""
+              title: title
+              dataSource: ""
+          updatedAt: 2000-01-23T04:56:07.000+00:00
+      properties:
+        dashboard:
+          $ref: "#/components/schemas/AnalyticsDashboard"
     CreateDirectoryRequest:
       example:
         name: My Directory
@@ -4646,6 +5481,7 @@ components:
         qrcodeTemplateId: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
         name: My Link
         directoryId: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+        id: 550e8400-e29b-41d4-a716-446655440000
         waitForQrcode: true
         shortlink: my-link
       properties:
@@ -4670,6 +5506,11 @@ components:
         fallbackDestination:
           example: https://example.com/fallback
           title: The fallback destination URL to use when workflow steps are broken
+          type: string
+        id:
+          description: "Optional pre-generated UUID. If omitted, the system generates\
+            \ one."
+          example: 550e8400-e29b-41d4-a716-446655440000
           type: string
         leadGoalDefinition:
           description: |-
@@ -5081,6 +5922,59 @@ components:
           title: The root destination URL (optional)
           type: string
       title: Request to update a custom domain
+    DashboardConfig:
+      example:
+        widgets:
+        - visualization: ""
+          size: ""
+          id: id
+          position: ""
+          title: title
+          dataSource: ""
+        - visualization: ""
+          size: ""
+          id: id
+          position: ""
+          title: title
+          dataSource: ""
+      properties:
+        widgets:
+          items:
+            $ref: "#/components/schemas/DashboardWidget"
+          type: array
+      title: DashboardConfig is the structured configuration for a dashboard
+    DashboardWidget:
+      example:
+        visualization: ""
+        size: ""
+        id: id
+        position: ""
+        title: title
+        dataSource: ""
+      properties:
+        dataSource:
+          allOf:
+          - $ref: "#/components/schemas/WidgetDataSource"
+          title: What data to fetch
+        id:
+          title: Unique widget identifier
+          type: string
+        position:
+          allOf:
+          - $ref: "#/components/schemas/WidgetPosition"
+          title: Grid position
+        size:
+          allOf:
+          - $ref: "#/components/schemas/WidgetSize"
+          title: Grid size
+        title:
+          title: Display title
+          type: string
+        visualization:
+          allOf:
+          - $ref: "#/components/schemas/WidgetVisualization"
+          title: How to visualize the data
+      title: DashboardWidget represents a single monitor widget on the dashboard
     DataCollection:
       default: DATA_COLLECTION_UNSPECIFIED
       description: |-
@@ -5224,6 +6118,8 @@ components:
     DeleteCustomDomainResponse:
       title: Response for a successful domain deletion
       type: object
+    DeleteDashboardResponse:
+      type: object
     DeleteDirectoryResponse:
       title: Response for directory deletion
       type: object
@@ -5254,6 +6150,30 @@ components:
     DeleteWorkflowStepResponse:
       title: Response for workflow step deletion
       type: object
+    DetectedGoogleForm:
+      example:
+        formId: formId
+        accessible: true
+        linkId: linkId
+        formUrl: formUrl
+        linkName: linkName
+      properties:
+        accessible:
+          title: Whether the form is accessible with the connected Google account
+          type: boolean
+        formId:
+          title: The extracted Google Form ID (if resolvable)
+          type: string
+        formUrl:
+          title: The Google Form URL (destination)
+          type: string
+        linkId:
+          title: The link ID that redirects to this form
+          type: string
+        linkName:
+          title: The link name
+          type: string
+      title: A Google Form auto-detected from a workspace link's redirect destination
     Device:
       description: |-
         Tracks the fingerprint of a visitor's hardware/software so Linkbreakers can de-duplicate scans, enrich analytics,
@@ -5676,6 +6596,24 @@ components:
       - DEVICE_BROWSER_CONDITION_VALUE_OPERA
       - DEVICE_BROWSER_CONDITION_VALUE_SAMSUNG_BROWSER
       type: string
+    DeviceDataPoint:
+      example:
+        deviceType: deviceType
+        percentage: 6.027456183070403
+        eventCount: 0
+      properties:
+        deviceType:
+          title: "Device type (e.g. \"DESKTOP\", \"MOBILE\", \"TABLET\")"
+          type: string
+        eventCount:
+          format: int32
+          title: Number of events from this device type
+          type: integer
+        percentage:
+          format: double
+          title: Percentage of total events
+          type: number
+      title: DeviceDataPoint represents a device type with its event count
     DeviceInput:
       properties:
         browserLanguage:
@@ -5987,9 +6925,37 @@ components:
           - $ref: "#/components/schemas/ThemeColor"
           title: Color configuration supporting solid colors and gradients
         type:
-          title: "Rendering style (e.g. \"rounded\", \"dots\")"
+          enum:
+          - DOTS_TYPE_UNSPECIFIED
+          - DOTS_TYPE_SQUARE
+          - DOTS_TYPE_DOTS
+          - DOTS_TYPE_BUBBLY_DOTS
+          - DOTS_TYPE_CIRCUIT_CHIP
+          - DOTS_TYPE_ROUNDED
+          - DOTS_TYPE_EXTRA_ROUNDED
+          - DOTS_TYPE_CLASSY
+          - DOTS_TYPE_CLASSY_ROUNDED
+          - DOTS_TYPE_HEXAGON
+          - DOTS_TYPE_OCTAGON
+          title: Rendering style for data dots
           type: string
       title: DotsOptions represents the styling options for the dots in the QR code
+    DotsType:
+      default: DOTS_TYPE_UNSPECIFIED
+      enum:
+      - DOTS_TYPE_UNSPECIFIED
+      - DOTS_TYPE_SQUARE
+      - DOTS_TYPE_DOTS
+      - DOTS_TYPE_BUBBLY_DOTS
+      - DOTS_TYPE_CIRCUIT_CHIP
+      - DOTS_TYPE_ROUNDED
+      - DOTS_TYPE_EXTRA_ROUNDED
+      - DOTS_TYPE_CLASSY
+      - DOTS_TYPE_CLASSY_ROUNDED
+      - DOTS_TYPE_HEXAGON
+      - DOTS_TYPE_OCTAGON
+      title: DotsType represents the rendering style for QR code data dots
+      type: string
     EntryAccessTraceData:
       description: EntryAccessTraceData stores details for entry access traces.
       properties:
@@ -6759,6 +7725,73 @@ components:
           type: string
         value:
           type: string
+    GeoDataPoint:
+      example:
+        percentage: 6.027456183070403
+        eventCount: 0
+        location: location
+      properties:
+        eventCount:
+          format: int32
+          title: Number of events from this location
+          type: integer
+        location:
+          title: Location name (country name or city name)
+          type: string
+        percentage:
+          format: double
+          title: Percentage of total events
+          type: number
+      title: GeoDataPoint represents a geographic location with its event count
+    GetBreakdownRequest:
+      example:
+        linkId: linkId
+        endDate: 2000-01-23T04:56:07.000+00:00
+        limit: 0
+        dimension: dimension
+        startDate: 2000-01-23T04:56:07.000+00:00
+      properties:
+        dimension:
+          title: "Dimension to break down by: \"browser\", \"platform\", \"device_type\"\
+            , \"country\", \"city\", \"visit_type\""
+          type: string
+        endDate:
+          format: date-time
+          title: Inclusive end timestamp
+          type: string
+        limit:
+          format: int32
+          title: Maximum number of results (default 10)
+          type: integer
+        linkId:
+          title: Optional link filter (UUID); when omitted aggregates workspace-wide
+          type: string
+        startDate:
+          format: date-time
+          title: Inclusive start timestamp
+          type: string
+      title: GetBreakdownRequest retrieves a ranked breakdown of events by any dimension
+    GetBreakdownResponse:
+      example:
+        total: 1
+        data:
+        - percentage: 6.027456183070403
+          eventCount: 0
+          label: label
+        - percentage: 6.027456183070403
+          eventCount: 0
+          label: label
+      properties:
+        data:
+          items:
+            $ref: "#/components/schemas/BreakdownDataPoint"
+          title: Ordered list of dimension values by event count (descending)
+          type: array
+        total:
+          format: int32
+          title: Total number of events in the date range
+          type: integer
+      title: GetBreakdownResponse contains dimension breakdown data
     GetCustomDomainResponse:
       example:
         customDomain:
@@ -6775,6 +7808,45 @@ components:
         customDomain:
           $ref: "#/components/schemas/CustomDomain"
       title: Response containing the requested custom domain
+    GetDeviceDistributionRequest:
+      example:
+        linkId: linkId
+        endDate: 2000-01-23T04:56:07.000+00:00
+        startDate: 2000-01-23T04:56:07.000+00:00
+      properties:
+        endDate:
+          format: date-time
+          title: Inclusive end timestamp
+          type: string
+        linkId:
+          title: Optional link filter (UUID); when omitted aggregates workspace-wide
+          type: string
+        startDate:
+          format: date-time
+          title: Inclusive start timestamp
+          type: string
+      title: GetDeviceDistributionRequest retrieves device type distribution
+    GetDeviceDistributionResponse:
+      example:
+        data:
+        - deviceType: deviceType
+          percentage: 6.027456183070403
+          eventCount: 0
+        - deviceType: deviceType
+          percentage: 6.027456183070403
+          eventCount: 0
+        totalEvents: 1
+      properties:
+        data:
+          items:
+            $ref: "#/components/schemas/DeviceDataPoint"
+          title: Device type breakdown
+          type: array
+        totalEvents:
+          format: int32
+          title: Total number of events in the date range
+          type: integer
+      title: GetDeviceDistributionResponse contains device distribution data
     GetDirectoryResponse:
       example:
         directory:
@@ -6823,36 +7895,167 @@ components:
           - $ref: "#/components/schemas/EventsTimeSeries"
           title: Aggregated time series results
       title: Response message for getting events time series
-    GetGoogleFormFieldsResponse:
+    GetGeoBreakdownRequest:
       example:
-        fields:
-        - questionId: questionId
-          title: title
-          type: type
-        - questionId: questionId
-          title: title
-          type: type
+        linkId: linkId
+        endDate: 2000-01-23T04:56:07.000+00:00
+        limit: 0
+        groupBy: groupBy
+        startDate: 2000-01-23T04:56:07.000+00:00
       properties:
-        fields:
+        endDate:
+          format: date-time
+          title: Inclusive end timestamp
+          type: string
+        groupBy:
+          title: Group by "country" or "city"
+          type: string
+        limit:
+          format: int32
+          title: Maximum number of results (default 10)
+          type: integer
+        linkId:
+          title: Optional link filter (UUID); when omitted aggregates workspace-wide
+          type: string
+        startDate:
+          format: date-time
+          title: Inclusive start timestamp
+          type: string
+      title: GetGeoBreakdownRequest retrieves geographic distribution of events
+    GetGeoBreakdownResponse:
+      example:
+        data:
+        - percentage: 6.027456183070403
+          eventCount: 0
+          location: location
+        - percentage: 6.027456183070403
+          eventCount: 0
+          location: location
+        totalEvents: 1
+      properties:
+        data:
           items:
-            $ref: "#/components/schemas/GoogleFormField"
-          title: The questions/fields in the form
+            $ref: "#/components/schemas/GeoDataPoint"
+          title: Ordered list of locations by event count (descending)
           type: array
+        totalEvents:
+          format: int32
+          title: Total number of events in the date range
+          type: integer
+      title: GetGeoBreakdownResponse contains geographic breakdown data
     GetGoogleFormsIntegrationResponse:
       example:
-        integration: ""
+        integration:
+          createdAt: 2000-01-23T04:56:07.000+00:00
+          createdBy: createdBy
+          lastSyncedAt: 2000-01-23T04:56:07.000+00:00
+          googleEmail: googleEmail
+          id: d22f7bf1-83a9-4f3a-9b37-9a3a21b6ac11
+          visitorsEnriched: visitorsEnriched
+          responsesSynced: responsesSynced
+          status: GOOGLE_FORMS_INTEGRATION_STATUS_UNSPECIFIED
+          updatedAt: 2000-01-23T04:56:07.000+00:00
+          workspaceId: workspaceId
       properties:
         integration:
-          allOf:
-          - $ref: "#/components/schemas/GoogleFormsIntegration"
-          title: The Google Forms integration (nil if not connected)
+          $ref: "#/components/schemas/GoogleFormsIntegration"
     GetGoogleFormsOAuthURLResponse:
       example:
         oauthUrl: oauthUrl
       properties:
         oauthUrl:
-          title: The full Google OAuth authorization URL to redirect the user to
           type: string
+    GetGroupedTimeSeriesRequest:
+      example:
+        linkId: linkId
+        endDate: 2000-01-23T04:56:07.000+00:00
+        limit: 6
+        groupBy: ""
+        intervalInMinutes: 0
+        startDate: 2000-01-23T04:56:07.000+00:00
+      properties:
+        endDate:
+          format: date-time
+          type: string
+        groupBy:
+          allOf:
+          - $ref: "#/components/schemas/GroupByDimension"
+          title: Dimension to group by
+        intervalInMinutes:
+          format: int32
+          type: integer
+        limit:
+          description: Max number of groups to return (top N by volume). Default 5.
+          format: int32
+          type: integer
+        linkId:
+          title: Optional link filter (UUID); when omitted aggregates workspace-wide
+          type: string
+        startDate:
+          format: date-time
+          type: string
+      title: GetGroupedTimeSeriesRequest fetches time-bucketed event data grouped
+        by a dimension
+    GetGroupedTimeSeriesResponse:
+      example:
+        series:
+        - label: label
+          points:
+          - value: 0
+            timestamp: 2000-01-23T04:56:07.000+00:00
+          - value: 0
+            timestamp: 2000-01-23T04:56:07.000+00:00
+        - label: label
+          points:
+          - value: 0
+            timestamp: 2000-01-23T04:56:07.000+00:00
+          - value: 0
+            timestamp: 2000-01-23T04:56:07.000+00:00
+        totalEvents: 6
+      properties:
+        series:
+          items:
+            $ref: "#/components/schemas/TimeSeriesSeries"
+          type: array
+        totalEvents:
+          format: int32
+          title: Total events across all series
+          type: integer
+      title: GetGroupedTimeSeriesResponse contains multiple named time series
+    GetHourOfDayDistributionRequest:
+      example:
+        linkId: linkId
+        endDate: 2000-01-23T04:56:07.000+00:00
+        startDate: 2000-01-23T04:56:07.000+00:00
+      properties:
+        endDate:
+          format: date-time
+          type: string
+        linkId:
+          title: Optional link filter (UUID); when omitted aggregates workspace-wide
+          type: string
+        startDate:
+          format: date-time
+          type: string
+      title: GetHourOfDayDistributionRequest fetches event counts aggregated by hour
+        of day
+    GetHourOfDayDistributionResponse:
+      example:
+        data:
+        - hour: 6
+          eventCount: 0
+        - hour: 6
+          eventCount: 0
+        totalEvents: 1
+      properties:
+        data:
+          items:
+            $ref: "#/components/schemas/HourOfDayDataPoint"
+          type: array
+        totalEvents:
+          format: int32
+          type: integer
+      title: GetHourOfDayDistributionResponse contains 24 data points (one per hour)
     GetLeadScoreExplanationResponse:
       example:
         leadScore: 0
@@ -6981,6 +8184,95 @@ components:
           title: The full Slack OAuth authorization URL to redirect the user to
           type: string
       title: GetSlackOAuthURLResponse returns the Slack OAuth authorization URL
+    GetTopLinksRequest:
+      example:
+        linkId: linkId
+        endDate: 2000-01-23T04:56:07.000+00:00
+        limit: 0
+        startDate: 2000-01-23T04:56:07.000+00:00
+      properties:
+        endDate:
+          format: date-time
+          type: string
+        limit:
+          format: int32
+          title: Max number of links to return (default 10)
+          type: integer
+        linkId:
+          title: Optional link filter (UUID); when omitted aggregates workspace-wide
+          type: string
+        startDate:
+          format: date-time
+          type: string
+      title: GetTopLinksRequest fetches the top performing links by event count
+    GetTopLinksResponse:
+      example:
+        data:
+        - name: name
+          eventCount: 0
+          shortlink: shortlink
+        - name: name
+          eventCount: 0
+          shortlink: shortlink
+        totalEvents: 6
+      properties:
+        data:
+          items:
+            $ref: "#/components/schemas/TopLinkDataPoint"
+          type: array
+        totalEvents:
+          format: int32
+          type: integer
+      title: GetTopLinksResponse contains the ranked links
+    GetVisitorTrendsRequest:
+      example:
+        linkId: linkId
+        endDate: 2000-01-23T04:56:07.000+00:00
+        intervalInMinutes: 0
+        startDate: 2000-01-23T04:56:07.000+00:00
+      properties:
+        endDate:
+          format: date-time
+          title: Inclusive end timestamp
+          type: string
+        intervalInMinutes:
+          format: int32
+          title: "Bucket size in minutes (e.g. 60 for hourly, 1440 for daily)"
+          type: integer
+        linkId:
+          title: Optional link filter (UUID); when omitted aggregates workspace-wide
+          type: string
+        startDate:
+          format: date-time
+          title: Inclusive start timestamp
+          type: string
+      title: GetVisitorTrendsRequest retrieves new vs returning visitor trends
+    GetVisitorTrendsResponse:
+      example:
+        data:
+        - newVisitorCount: 0
+          returningVisitorCount: 6
+          timestamp: 2000-01-23T04:56:07.000+00:00
+        - newVisitorCount: 0
+          returningVisitorCount: 6
+          timestamp: 2000-01-23T04:56:07.000+00:00
+        totalReturning: 5
+        totalNew: 1
+      properties:
+        data:
+          items:
+            $ref: "#/components/schemas/VisitorTrendDataPoint"
+          title: Time-bucketed visitor trend data
+          type: array
+        totalNew:
+          format: int32
+          title: Total new visitors in the range
+          type: integer
+        totalReturning:
+          format: int32
+          title: Total returning visitors in the range
+          type: integer
+      title: GetVisitorTrendsResponse contains visitor trend data
     GetWebhookResponse:
       example:
         webhook: ""
@@ -7022,133 +8314,74 @@ components:
           title: Token metadata (does not include the secret access token)
       title: GetWorkspaceTokenResponse represents the response containing a workspace
         token
-    GoogleForm:
-      example:
-        formId: formId
-        title: title
-      properties:
-        formId:
-          title: The Google Form ID
-          type: string
-        title:
-          title: The form title
-          type: string
-      title: A Google Form available for selection
-    GoogleFormField:
-      example:
-        questionId: questionId
-        title: title
-        type: type
-      properties:
-        questionId:
-          title: The question ID
-          type: string
-        title:
-          title: The question title
-          type: string
-        type:
-          title: "The question type (SHORT_ANSWER, PARAGRAPH, MULTIPLE_CHOICE, etc.)"
-          type: string
-      title: A field/question within a Google Form
-    GoogleFormsFieldMapping:
-      example:
-        linkbreakersField: linkbreakersField
-        questionId: questionId
-        questionTitle: questionTitle
-      properties:
-        linkbreakersField:
-          title: "The Linkbreakers field to map to (e.g. \"$email\", \"$firstName\"\
-            , \"$lastName\", \"$phone\", or a custom attribute name)"
-          type: string
-        questionId:
-          title: The Google Forms question ID
-          type: string
-        questionTitle:
-          title: The question title (for display purposes)
-          type: string
-      title: GoogleFormsFieldMapping maps a Google Forms question to a Linkbreakers
-        visitor field
     GoogleFormsIntegration:
       description: |-
-        Represents a connected Google Forms integration that syncs form responses
-        to enrich visitor data in Linkbreakers.
+        GoogleFormsIntegration represents a connected Google account.
+        Forms are auto-detected from workflow steps — no manual configuration needed.
+      example:
+        createdAt: 2000-01-23T04:56:07.000+00:00
+        createdBy: createdBy
+        lastSyncedAt: 2000-01-23T04:56:07.000+00:00
+        googleEmail: googleEmail
+        id: d22f7bf1-83a9-4f3a-9b37-9a3a21b6ac11
+        visitorsEnriched: visitorsEnriched
+        responsesSynced: responsesSynced
+        status: GOOGLE_FORMS_INTEGRATION_STATUS_UNSPECIFIED
+        updatedAt: 2000-01-23T04:56:07.000+00:00
+        workspaceId: workspaceId
       properties:
         createdAt:
           format: date-time
           readOnly: true
-          title: The timestamp when the integration was connected
           type: string
         createdBy:
-          title: The member who connected the integration (UUID)
-          type: string
-        fieldMappings:
-          items:
-            $ref: "#/components/schemas/GoogleFormsFieldMapping"
-          title: Field mappings from Google Forms questions to Linkbreakers visitor
-            fields
-          type: array
-        formId:
-          example: 1FAIpQLSe...
-          title: The selected Google Form ID
-          type: string
-        formTitle:
-          example: Contact Form
-          title: The selected Google Form title
           type: string
         googleEmail:
-          example: user@gmail.com
-          title: The Google account email connected
           type: string
         id:
           example: d22f7bf1-83a9-4f3a-9b37-9a3a21b6ac11
-          title: The unique identifier of the integration (UUID)
           type: string
         lastSyncedAt:
           format: date-time
           readOnly: true
-          title: The timestamp of the last successful sync
           type: string
         responsesSynced:
           format: int64
           readOnly: true
-          title: Total number of form responses synced
           type: string
         status:
-          allOf:
-          - $ref: "#/components/schemas/GoogleFormsIntegrationStatus"
-          title: Current status of the integration
-        trackingQuestionId:
-          title: The question ID used for lbid tracking correlation (empty if not
-            set)
-          type: string
+          $ref: "#/components/schemas/GoogleFormsIntegrationStatus"
         updatedAt:
           format: date-time
           readOnly: true
-          title: The timestamp when the integration was last updated
           type: string
         visitorsEnriched:
           format: int64
           readOnly: true
-          title: Total number of visitors enriched from form data
           type: string
         workspaceId:
-          example: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
-          title: The workspace ID this integration belongs to (UUID)
           type: string
-      title: GoogleFormsIntegration
     GoogleFormsIntegrationStatus:
       default: GOOGLE_FORMS_INTEGRATION_STATUS_UNSPECIFIED
-      description: |-
-        - GOOGLE_FORMS_INTEGRATION_STATUS_UNSPECIFIED: Status not specified
-         - GOOGLE_FORMS_INTEGRATION_STATUS_ACTIVE: Integration is active and syncing responses
-         - GOOGLE_FORMS_INTEGRATION_STATUS_PAUSED: Integration is paused by user action
-         - GOOGLE_FORMS_INTEGRATION_STATUS_DISCONNECTED: Integration is disconnected
       enum:
       - GOOGLE_FORMS_INTEGRATION_STATUS_UNSPECIFIED
       - GOOGLE_FORMS_INTEGRATION_STATUS_ACTIVE
       - GOOGLE_FORMS_INTEGRATION_STATUS_PAUSED
       - GOOGLE_FORMS_INTEGRATION_STATUS_DISCONNECTED
-      title: The status of a Google Forms integration
+      type: string
+    GroupByDimension:
+      default: GROUP_BY_DIMENSION_UNSPECIFIED
+      description: |-
+        GroupByDimension defines the available dimensions for grouping analytics data.
+        Add new dimensions here as the platform grows.
+      enum:
+      - GROUP_BY_DIMENSION_UNSPECIFIED
+      - GROUP_BY_DIMENSION_COUNTRY
+      - GROUP_BY_DIMENSION_CITY
+      - GROUP_BY_DIMENSION_DEVICE_TYPE
+      - GROUP_BY_DIMENSION_VISIT_TYPE
+      - GROUP_BY_DIMENSION_BROWSER
+      - GROUP_BY_DIMENSION_PLATFORM
       type: string
     HTTPMethod:
       default: HTTP_METHOD_UNSPECIFIED
@@ -7164,6 +8397,20 @@ components:
       - HTTP_METHOD_HEAD
       title: The HTTP method used when the event was generated
       type: string
+    HourOfDayDataPoint:
+      example:
+        hour: 6
+        eventCount: 0
+      properties:
+        eventCount:
+          format: int32
+          title: Number of events in this hour across the date range
+          type: integer
+        hour:
+          format: int32
+          title: Hour of day (0-23)
+          type: integer
+      title: HourOfDayDataPoint represents event count for a specific hour (0-23)
     IdentifyRequest:
       example:
         lbid: lbid
@@ -7691,6 +8938,86 @@ components:
             $ref: "#/components/schemas/CustomDomain"
           type: array
       title: Response containing a list of custom domains
+    ListDashboardsResponse:
+      example:
+        dashboards:
+        - createdAt: 2000-01-23T04:56:07.000+00:00
+          chatMessages:
+          - sender: sender
+            id: id
+            text: text
+            timestamp: 2000-01-23T04:56:07.000+00:00
+          - sender: sender
+            id: id
+            text: text
+            timestamp: 2000-01-23T04:56:07.000+00:00
+          name: name
+          id: id
+          config:
+            widgets:
+            - visualization: ""
+              size: ""
+              id: id
+              position: ""
+              title: title
+              dataSource: ""
+            - visualization: ""
+              size: ""
+              id: id
+              position: ""
+              title: title
+              dataSource: ""
+          updatedAt: 2000-01-23T04:56:07.000+00:00
+        - createdAt: 2000-01-23T04:56:07.000+00:00
+          chatMessages:
+          - sender: sender
+            id: id
+            text: text
+            timestamp: 2000-01-23T04:56:07.000+00:00
+          - sender: sender
+            id: id
+            text: text
+            timestamp: 2000-01-23T04:56:07.000+00:00
+          name: name
+          id: id
+          config:
+            widgets:
+            - visualization: ""
+              size: ""
+              id: id
+              position: ""
+              title: title
+              dataSource: ""
+            - visualization: ""
+              size: ""
+              id: id
+              position: ""
+              title: title
+              dataSource: ""
+          updatedAt: 2000-01-23T04:56:07.000+00:00
+      properties:
+        dashboards:
+          items:
+            $ref: "#/components/schemas/AnalyticsDashboard"
+          type: array
+    ListDetectedGoogleFormsResponse:
+      example:
+        forms:
+        - formId: formId
+          accessible: true
+          linkId: linkId
+          formUrl: formUrl
+          linkName: linkName
+        - formId: formId
+          accessible: true
+          linkId: linkId
+          formUrl: formUrl
+          linkName: linkName
+      properties:
+        forms:
+          items:
+            $ref: "#/components/schemas/DetectedGoogleForm"
+          type: array
     ListDirectoriesResponse:
       example:
         nextPageToken: eyJkaXJlY3RvcnlJZCI6IjEwIn0=
@@ -8480,19 +9807,6 @@ components:
           $ref: "#/components/schemas/ListEventsCsvResponse"
         json:
           $ref: "#/components/schemas/ListEventsJsonResponse"
-    ListGoogleFormsResponse:
-      example:
-        forms:
-        - formId: formId
-          title: title
-        - formId: formId
-          title: title
-      properties:
-        forms:
-          items:
-            $ref: "#/components/schemas/GoogleForm"
-          title: Available Google Forms from the user's Google Drive
-          type: array
     ListLinksResponse:
       example:
         nextPageToken: eyJsaW5rSWQiOiI0YmEifQ==
@@ -10227,6 +11541,13 @@ components:
           type: string
       title: RequestWorkspaceEnrollmentRequest represents a request for workspace
         enrollment
+    ResolveStepCollisionsResponse:
+      example:
+        stepsRepositioned: 0
+      properties:
+        stepsRepositioned:
+          format: int32
+          type: integer
     ResponseFormat:
       default: RESPONSE_FORMAT_UNSPECIFIED
       description: |-
@@ -10593,11 +11914,9 @@ components:
       properties:
         responsesSynced:
           format: int64
-          title: Number of new responses synced in this run
           type: string
         visitorsEnriched:
           format: int64
-          title: Number of visitors enriched in this run
           type: string
     TestSlackIntegrationRequest:
       title: TestSlackIntegrationRequest sends a test notification
@@ -10709,6 +12028,54 @@ components:
           title: Start time in 24-hour format (HH:MM)
           type: string
       title: Time of day range for EVENT_ACTION_TIME_OF_DAY_CONDITION
+    TimeSeriesPoint:
+      example:
+        value: 0
+        timestamp: 2000-01-23T04:56:07.000+00:00
+      properties:
+        timestamp:
+          format: date-time
+          type: string
+        value:
+          format: int32
+          type: integer
+      title: TimeSeriesPoint is a single data point in a time series
+    TimeSeriesSeries:
+      example:
+        label: label
+        points:
+        - value: 0
+          timestamp: 2000-01-23T04:56:07.000+00:00
+        - value: 0
+          timestamp: 2000-01-23T04:56:07.000+00:00
+      properties:
+        label:
+          title: "Series label (e.g. country name, device type, \"new\", \"returning\"\
+            )"
+          type: string
+        points:
+          items:
+            $ref: "#/components/schemas/TimeSeriesPoint"
+          title: Data points for this series
+          type: array
+      title: TimeSeriesSeries represents a single named series in a grouped timeseries
+    TopLinkDataPoint:
+      example:
+        name: name
+        eventCount: 0
+        shortlink: shortlink
+      properties:
+        eventCount:
+          format: int32
+          title: Number of events for this link
+          type: integer
+        name:
+          title: Link name or shortlink
+          type: string
+        shortlink:
+          title: Link shortlink identifier
+          type: string
+      title: TopLinkDataPoint represents a link ranked by event count
     TriggeredBy:
       default: TRIGGERED_BY_UNSPECIFIED
       description: |-
@@ -10735,6 +12102,61 @@ components:
         customDomain:
           $ref: "#/components/schemas/CustomDomain"
       title: Response containing the updated custom domain
+    UpdateDashboardRequest:
+      example:
+        name: name
+        config:
+          widgets:
+          - visualization: ""
+            size: ""
+            id: id
+            position: ""
+            title: title
+            dataSource: ""
+          - visualization: ""
+            size: ""
+            id: id
+            position: ""
+            title: title
+            dataSource: ""
+      properties:
+        config:
+          $ref: "#/components/schemas/DashboardConfig"
+        name:
+          type: string
+    UpdateDashboardResponse:
+      example:
+        dashboard:
+          createdAt: 2000-01-23T04:56:07.000+00:00
+          chatMessages:
+          - sender: sender
+            id: id
+            text: text
+            timestamp: 2000-01-23T04:56:07.000+00:00
+          - sender: sender
+            id: id
+            text: text
+            timestamp: 2000-01-23T04:56:07.000+00:00
+          name: name
+          id: id
+          config:
+            widgets:
+            - visualization: ""
+              size: ""
+              id: id
+              position: ""
+              title: title
+              dataSource: ""
+            - visualization: ""
+              size: ""
+              id: id
+              position: ""
+              title: title
+              dataSource: ""
+          updatedAt: 2000-01-23T04:56:07.000+00:00
+      properties:
+        dashboard:
+          $ref: "#/components/schemas/AnalyticsDashboard"
     UpdateDeviceResponse:
       properties:
         success:
@@ -10757,44 +12179,28 @@ components:
       title: Response containing the updated directory
     UpdateGoogleFormsIntegrationRequest:
       example:
-        formId: formId
-        trackingQuestionId: trackingQuestionId
-        formTitle: formTitle
-        fieldMappings:
-        - linkbreakersField: linkbreakersField
-          questionId: questionId
-          questionTitle: questionTitle
-        - linkbreakersField: linkbreakersField
-          questionId: questionId
-          questionTitle: questionTitle
         status: ""
       properties:
-        fieldMappings:
-          items:
-            $ref: "#/components/schemas/GoogleFormsFieldMapping"
-          title: Field mappings from form questions to Linkbreakers visitor fields
-          type: array
-        formId:
-          title: The selected Google Form ID
-          type: string
-        formTitle:
-          title: The selected Google Form title
-          type: string
         status:
           allOf:
           - $ref: "#/components/schemas/GoogleFormsIntegrationStatus"
-          title: Integration status (ACTIVE or PAUSED)
-        trackingQuestionId:
-          title: The question ID used for lbid tracking correlation (empty to disable)
-          type: string
+          title: Only status can be updated (ACTIVE or PAUSED)
     UpdateGoogleFormsIntegrationResponse:
       example:
-        integration: ""
+        integration:
+          createdAt: 2000-01-23T04:56:07.000+00:00
+          createdBy: createdBy
+          lastSyncedAt: 2000-01-23T04:56:07.000+00:00
+          googleEmail: googleEmail
+          id: d22f7bf1-83a9-4f3a-9b37-9a3a21b6ac11
+          visitorsEnriched: visitorsEnriched
+          responsesSynced: responsesSynced
+          status: GOOGLE_FORMS_INTEGRATION_STATUS_UNSPECIFIED
+          updatedAt: 2000-01-23T04:56:07.000+00:00
+          workspaceId: workspaceId
       properties:
         integration:
-          allOf:
-          - $ref: "#/components/schemas/GoogleFormsIntegration"
-          title: The updated Google Forms integration
+          $ref: "#/components/schemas/GoogleFormsIntegration"
     UpdateLinkResponse:
       example:
         link:
@@ -11176,6 +12582,22 @@ components:
           title: Profile URL for this social platform
           type: string
       title: Social link entry for a vCard contact card
+    ValidateWorkflowResponse:
+      example:
+        issues:
+        - severity: severity
+          stepType: stepType
+          stepId: stepId
+          message: message
+        - severity: severity
+          stepType: stepType
+          stepId: stepId
+          message: message
+      properties:
+        issues:
+          items:
+            $ref: "#/components/schemas/WorkflowIssue"
+          type: array
     ValidationInstructionsCustomDomainResponse:
       example:
         validations:
@@ -11602,6 +13024,25 @@ components:
           title: Shortlink slug used in public URLs
           type: string
       title: VisitorLink
+    VisitorTrendDataPoint:
+      example:
+        newVisitorCount: 0
+        returningVisitorCount: 6
+        timestamp: 2000-01-23T04:56:07.000+00:00
+      properties:
+        newVisitorCount:
+          format: int32
+          title: Number of first-time visitors in this interval
+          type: integer
+        returningVisitorCount:
+          format: int32
+          title: Number of returning visitors in this interval
+          type: integer
+        timestamp:
+          format: date-time
+          title: Start timestamp of the interval
+          type: string
+      title: VisitorTrendDataPoint represents visitor counts for a time bucket
     VisitorsServiceUpdateBody:
       example:
         visitor: ""
@@ -11818,6 +13259,114 @@ components:
             type: string
           type: array
       title: UpdateWebhookRequest represents the request to update a webhook
+    WidgetDataSource:
+      properties:
+        endpoint:
+          title: "The API endpoint path, e.g. \"/v1/timeseries/events\""
+          type: string
+        method:
+          title: "HTTP method: \"GET\" or \"POST\""
+          type: string
+        params:
+          title: Static parameters always sent with the request
+          type: object
+        responseDataPath:
+          title: |-
+            Dot-notation path to the data array in the response, e.g. "timeSeries.data" or "data"
+            Empty string means the root object is the data (for single-value endpoints like metrics)
+          type: string
+        usesDateRange:
+          title: Whether the dashboard date range should be injected (startDate/endDate)
+          type: boolean
+        usesInterval:
+          title: Whether interval calculation should be injected (for time-bucketed
+            data)
+          type: boolean
+      title: WidgetDataSource describes which API endpoint to call and how to pass
+        parameters
+    WidgetFieldMapping:
+      properties:
+        chartRole:
+          title: "Role in the chart: \"label\", \"value\", \"value2\", \"timestamp\"\
+            , \"category\""
+          type: string
+        displayLabel:
+          title: Display label shown in legend and tooltips
+          type: string
+        sourceField:
+          title: "Field name in the API response objects, e.g. \"eventCount\", \"\
+            timestamp\""
+          type: string
+      title: WidgetFieldMapping maps a field from the API response to a chart role
+    WidgetPosition:
+      properties:
+        x:
+          format: int32
+          type: integer
+        "y":
+          format: int32
+          type: integer
+      title: WidgetPosition defines where a widget sits in the grid
+    WidgetSize:
+      properties:
+        h:
+          format: int32
+          title: Row span
+          type: integer
+        w:
+          format: int32
+          title: "Column span (1 = half-width, 2 = full-width)"
+          type: integer
+      title: WidgetSize defines how many grid cells a widget spans
+    WidgetTab:
+      properties:
+        label:
+          title: Tab display label
+          type: string
+        params:
+          title: Params that override the base data source params when this tab is
+            active
+          type: object
+      title: WidgetTab represents a tab for grouped views in a widget
+    WidgetVisualization:
+      properties:
+        chartType:
+          title: "Chart type: \"bar\", \"horizontal_bar\", \"line\", \"area\", \"\
+            stacked_area\", \"pie\", \"number\""
+          type: string
+        colors:
+          items:
+            type: string
+          title: Ordered list of colors for chart series/segments
+          type: array
+        fieldMappings:
+          items:
+            $ref: "#/components/schemas/WidgetFieldMapping"
+          title: Maps response fields to chart roles
+          type: array
+        tabs:
+          description: Optional tabs for grouped views. Each tab has label and params
+            that override the base params.
+          items:
+            $ref: "#/components/schemas/WidgetTab"
+          type: array
+      title: WidgetVisualization describes how to render the fetched data
+    WorkflowIssue:
+      example:
+        severity: severity
+        stepType: stepType
+        stepId: stepId
+        message: message
+      properties:
+        message:
+          type: string
+        severity:
+          title: '"error" or "warning"'
+          type: string
+        stepId:
+          type: string
+        stepType:
+          type: string
     WorkflowStep:
       description: |-
         Models a node in the Linkbreakers workflow canvas, defining what should occur after a scan (redirects, gates,
@@ -12070,6 +13619,8 @@ components:
           title: The ID of the child workflow step (UUID)
           type: string
       title: Request to add a relationship between workflow steps
+    WorkflowStepsServiceAutoLayoutWorkflowBody:
+      type: object
     WorkflowStepsServiceCreateBody:
       example:
         payload: ""
@@ -12137,6 +13688,8 @@ components:
           - $ref: "#/components/schemas/WorkflowStepPayload"
           title: The payload for the workflow step (structure varies by event action)
       title: Request to create a new workflow step
+    WorkflowStepsServiceResolveStepCollisionsBody:
+      type: object
     WorkflowStepsServiceUpdateBody:
       example:
         payload: ""
