@@ -82,6 +82,8 @@ model_create_media_request.go
 model_create_media_response.go
 model_create_qrcode_template_request.go
 model_create_qrcode_template_response.go
+model_create_thank_you_link_request.go
+model_create_thank_you_link_response.go
 model_create_webhook_request.go
 model_create_webhook_response.go
 model_create_workflow_step_response.go
