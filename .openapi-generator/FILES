@@ -236,6 +236,8 @@ model_media_type.go
 model_media_visibility.go
 model_member.go
 model_members_service_update_body.go
+model_message_page_navigation_type.go
+model_message_page_payload.go
 model_multi_link_button.go
 model_multi_link_payload.go
 model_multi_link_trace_button.go
@@ -290,6 +292,7 @@ model_specific_date_option.go
 model_subscription_type.go
 model_sync_google_forms_response.go
 model_test_slack_integration_response.go
+model_thank_you_page_payload.go
 model_theme_color.go
 model_theme_color_theme_color_type.go
 model_time_of_day_condition_payload.go
