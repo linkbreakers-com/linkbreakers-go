@@ -5,7 +5,7 @@ info:
     url: https://app.linkbreakers.com
   description: This is a documentation of all the APIs of Linkbreakers
   title: Linkbreakers API
-  version: 1.81.3
+  version: 1.81.4
 servers:
 - url: https://api.linkbreakers.com
 security:
@@ -14005,6 +14005,7 @@ components:
         createdAt: 2000-01-23T04:56:07.000+00:00
         enforceMfa: true
         enrollRequestedAt: 2000-01-23T04:56:07.000+00:00
+        trialEndsAt: 2000-01-23T04:56:07.000+00:00
         inactiveSince: 2000-01-23T04:56:07.000+00:00
         subscriptionType: SUBSCRIPTION_TYPE_PRO_PLAN
         faq: faq
@@ -14103,6 +14104,10 @@ components:
           type: string
         timezone:
           title: Default timezone used to render analytics and schedules (IANA name)
+          type: string
+        trialEndsAt:
+          format: date-time
+          title: When the free trial period ends (null if not on trial)
           type: string
         updatedAt:
           format: date-time
