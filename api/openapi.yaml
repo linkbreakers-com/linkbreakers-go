@@ -5,7 +5,7 @@ info:
     url: https://app.linkbreakers.com
   description: This is a documentation of all the APIs of Linkbreakers
   title: Linkbreakers API
-  version: 1.87.9
+  version: 1.89.0
 servers:
 - url: https://api.linkbreakers.com
 security:
@@ -5989,6 +5989,7 @@ components:
           - parentStepIds
           - parentStepIds
           eventAction: EVENT_ACTION_CLIENT_REDIRECT
+          themeOverride: ""
           updatedAt: 2000-01-23T04:56:07.000+00:00
       properties:
         workflowStep:
@@ -8522,6 +8523,7 @@ components:
           - parentStepIds
           - parentStepIds
           eventAction: EVENT_ACTION_CLIENT_REDIRECT
+          themeOverride: ""
           updatedAt: 2000-01-23T04:56:07.000+00:00
       properties:
         workflowStep:
@@ -10493,6 +10495,7 @@ components:
           - parentStepIds
           - parentStepIds
           eventAction: EVENT_ACTION_CLIENT_REDIRECT
+          themeOverride: ""
           updatedAt: 2000-01-23T04:56:07.000+00:00
         - createdAt: 2000-01-23T04:56:07.000+00:00
           linkId: 123e4567-e89b-12d3-a456-426614174000
@@ -10508,6 +10511,7 @@ components:
           - parentStepIds
           - parentStepIds
           eventAction: EVENT_ACTION_CLIENT_REDIRECT
+          themeOverride: ""
           updatedAt: 2000-01-23T04:56:07.000+00:00
         nextPageToken: eyJzdGVwSWQiOiI5ODcifQ==
       properties:
@@ -12147,6 +12151,30 @@ components:
           title: Optional year for one-time events
           type: integer
       title: Specific date option for EVENT_ACTION_SPECIFIC_DATE_CONDITION
+    StepThemeOverride:
+      description: |-
+        Theme override for a specific workflow step.
+        All fields are optional — only set fields override the global page theme
+        when this step is displayed to visitors.
+      properties:
+        badgeEnabled:
+          title: Whether the badge is enabled for this step
+          type: boolean
+        badgeIconColor:
+          allOf:
+          - $ref: "#/components/schemas/ThemeColor"
+          title: Badge icon background color (used when no badge image is set)
+        badgeId:
+          title: Media ID for the badge image (UUID)
+          type: string
+        badgeShape:
+          enum:
+          - PAGE_THEME_BADGE_SHAPE_UNSPECIFIED
+          - PAGE_THEME_BADGE_SHAPE_CIRCLE
+          - PAGE_THEME_BADGE_SHAPE_SQUARE
+          - PAGE_THEME_BADGE_SHAPE_ROUNDED
+          title: Badge shape override
+          type: string
     SubscriptionType:
       default: SUBSCRIPTION_TYPE_UNSPECIFIED
       description: |-
@@ -12638,6 +12666,7 @@ components:
           - parentStepIds
           - parentStepIds
           eventAction: EVENT_ACTION_CLIENT_REDIRECT
+          themeOverride: ""
           updatedAt: 2000-01-23T04:56:07.000+00:00
       properties:
         workflowStep:
@@ -13658,6 +13687,7 @@ components:
         - parentStepIds
         - parentStepIds
         eventAction: EVENT_ACTION_CLIENT_REDIRECT
+        themeOverride: ""
         updatedAt: 2000-01-23T04:56:07.000+00:00
       externalDocs:
         description: Learn more about workflows in Linkbreakers
@@ -13780,6 +13810,12 @@ components:
           allOf:
           - $ref: "#/components/schemas/WorkflowStepPayload"
           title: The payload data for this workflow step (varies by event action)
+        themeOverride:
+          allOf:
+          - $ref: "#/components/schemas/StepThemeOverride"
+          description: |-
+            Optional theme override for this step. Set fields override the global page theme
+            when this step is displayed to visitors.
         updatedAt:
           format: date-time
           readOnly: true
@@ -13907,6 +13943,7 @@ components:
         canvasPosition: ""
         id: 987fcdeb-a321-45e6-b789-123456789012
         eventAction: EVENT_ACTION_FORM_SUBMIT
+        themeOverride: ""
       properties:
         canvasPosition:
           allOf:
@@ -13971,6 +14008,10 @@ components:
           allOf:
           - $ref: "#/components/schemas/WorkflowStepPayload"
           title: The payload for the workflow step (structure varies by event action)
+        themeOverride:
+          allOf:
+          - $ref: "#/components/schemas/StepThemeOverride"
+          title: Optional theme override for this step
       title: Request to create a new workflow step
     WorkflowStepsServiceResolveStepCollisionsBody:
       type: object
@@ -13978,6 +14019,7 @@ components:
       example:
         payload: ""
         canvasPosition: ""
+        themeOverride: ""
       properties:
         canvasPosition:
           allOf:
@@ -13987,6 +14029,10 @@ components:
           allOf:
           - $ref: "#/components/schemas/WorkflowStepPayload"
           title: The updated payload for the workflow step (optional)
+        themeOverride:
+          allOf:
+          - $ref: "#/components/schemas/StepThemeOverride"
+          title: Optional theme override for this step
       title: Request to update a workflow step
     Workspace:
       description: |-
