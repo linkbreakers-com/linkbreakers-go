@@ -5,7 +5,7 @@ info:
     url: https://app.linkbreakers.com
   description: This is a documentation of all the APIs of Linkbreakers
   title: Linkbreakers API
-  version: 1.92.1
+  version: 1.92.2
 servers:
 - url: https://api.linkbreakers.com
 security:
@@ -11070,17 +11070,18 @@ components:
     PageThemesServiceUpdatePageThemeBody:
       example:
         badgeShape: PAGE_THEME_BADGE_SHAPE_UNSPECIFIED
-        badge: ""
         containerConfig: ""
-        badgeIconColor: ""
         canvasCoverMode: PAGE_THEME_BACKGROUND_COVER_MODE_UNSPECIFIED
         bodyFont: ""
         canvasCover: ""
         titleFont: ""
-        badgeEnabled: true
-        canvasColor: ""
         elementColor: ""
         elementFont: ""
+        containerEnabled: true
+        badge: ""
+        badgeIconColor: ""
+        badgeEnabled: true
+        canvasColor: ""
       properties:
         badge:
           allOf:
@@ -11129,6 +11130,9 @@ components:
           allOf:
           - $ref: "#/components/schemas/ContainerConfig"
           title: Container styling configuration to update
+        containerEnabled:
+          title: Whether container is enabled (false clears container_config)
+          type: boolean
         elementColor:
           allOf:
           - $ref: "#/components/schemas/ThemeColor"
