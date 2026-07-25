@@ -5,7 +5,7 @@ info:
     url: https://app.linkbreakers.com
   description: This is a documentation of all the APIs of Linkbreakers
   title: Linkbreakers API
-  version: 1.92.2
+  version: 1.94.0
 servers:
 - url: https://api.linkbreakers.com
 security:
@@ -10178,6 +10178,7 @@ components:
           titleFont: ""
           elementColor: ""
           elementFont: ""
+          containerEnabled: true
           createdAt: 2000-01-23T04:56:07.000+00:00
           canvasCoverId: canvasCoverId
           badgeIconColor: ""
@@ -10194,6 +10195,7 @@ components:
           titleFont: ""
           elementColor: ""
           elementFont: ""
+          containerEnabled: true
           createdAt: 2000-01-23T04:56:07.000+00:00
           canvasCoverId: canvasCoverId
           badgeIconColor: ""
@@ -10929,6 +10931,7 @@ components:
         titleFont: ""
         elementColor: ""
         elementFont: ""
+        containerEnabled: true
         createdAt: 2000-01-23T04:56:07.000+00:00
         canvasCoverId: canvasCoverId
         badgeIconColor: ""
@@ -10986,6 +10989,9 @@ components:
           allOf:
           - $ref: "#/components/schemas/ContainerConfig"
           title: Container styling configuration
+        containerEnabled:
+          title: Whether container is enabled
+          type: boolean
         createdAt:
           format: date-time
           readOnly: true
