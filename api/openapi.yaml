@@ -5,7 +5,7 @@ info:
     url: https://app.linkbreakers.com
   description: This is a documentation of all the APIs of Linkbreakers
   title: Linkbreakers API
-  version: 1.94.2
+  version: 1.94.3
 servers:
 - url: https://api.linkbreakers.com
 security:
@@ -3800,8 +3800,10 @@ paths:
   /v1/visitor/devices/{id}/update: {}
   /v1/visitor/identify:
     post:
-      description: Finds or creates a visitor profile from an LBID and merges the
-        provided system fields and attributes.
+      description: "Identifies a visitor from an LBID. Anonymous visitors (created\
+        \ at scan time) are promoted or merged into existing identified visitors.\
+        \ If the identity matches an existing visitor, devices and events converge\
+        \ into that source-of-truth record."
       operationId: VisitorsService_Identify
       requestBody:
         content:
