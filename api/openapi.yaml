@@ -5,7 +5,7 @@ info:
     url: https://app.linkbreakers.com
   description: This is a documentation of all the APIs of Linkbreakers
   title: Linkbreakers API
-  version: 1.104.0
+  version: 1.106.1
 servers:
 - url: https://api.linkbreakers.com
 security:
@@ -182,6 +182,35 @@ paths:
       security:
       - bearerAuth: []
       summary: Send AI message
+      tags:
+      - AI Assistant
+  /v1/ai/upload:
+    post:
+      description: Upload a file to attach to the next AI message. Returns a temporary
+        file ID. Files expire after 5 minutes. Max 20MB.
+      operationId: AIAssistantService_UploadFile
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AIUploadFileRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AIUploadFileResponse"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth: []
+      summary: Upload file for AI chat
       tags:
       - AI Assistant
   /v1/analytics/breakdown:
@@ -4665,11 +4694,20 @@ components:
       type: string
     AIDisplayMessage:
       example:
+        attachments:
+        - name: name
+          mimeType: mimeType
+        - name: name
+          mimeType: mimeType
         sender: sender
         id: id
         text: text
         timestamp: 2000-01-23T04:56:07.000+00:00
       properties:
+        attachments:
+          items:
+            $ref: "#/components/schemas/AIDisplayMessageAttachment"
+          type: array
         id:
           type: string
         sender:
@@ -4680,14 +4718,34 @@ components:
           format: date-time
           type: string
       title: AIDisplayMessage is a user-visible message for rendering
+    AIDisplayMessageAttachment:
+      example:
+        name: name
+        mimeType: mimeType
+      properties:
+        mimeType:
+          type: string
+        name:
+          type: string
+      title: AIDisplayMessageAttachment is a file attached to a message
     AIGetConversationResponse:
       example:
         messages:
-        - sender: sender
+        - attachments:
+          - name: name
+            mimeType: mimeType
+          - name: name
+            mimeType: mimeType
+          sender: sender
           id: id
           text: text
           timestamp: 2000-01-23T04:56:07.000+00:00
-        - sender: sender
+        - attachments:
+          - name: name
+            mimeType: mimeType
+          - name: name
+            mimeType: mimeType
+          sender: sender
           id: id
           text: text
           timestamp: 2000-01-23T04:56:07.000+00:00
@@ -4764,6 +4822,38 @@ components:
             $ref: "#/components/schemas/ChatUIAction"
           type: array
       title: AISendMessageResponse contains the AI response
+    AIUploadFileRequest:
+      example:
+        name: name
+        mimeType: mimeType
+        content: content
+      properties:
+        content:
+          title: File content (base64-encoded in JSON)
+          type: string
+        mimeType:
+          title: "MIME type (e.g. \"image/png\", \"application/pdf\")"
+          type: string
+        name:
+          title: Original filename
+          type: string
+      title: AIUploadFileRequest uploads a file for AI chat attachment
+    AIUploadFileResponse:
+      example:
+        name: name
+        mimeType: mimeType
+        fileId: fileId
+      properties:
+        fileId:
+          title: Temporary file ID to include in AI message attachments
+          type: string
+        mimeType:
+          title: MIME type (echoed back)
+          type: string
+        name:
+          title: Original filename (echoed back)
+          type: string
+      title: AIUploadFileResponse returns the temporary file reference
     Action:
       default: ACTION_UNSPECIFIED
       description: |-
@@ -4876,10 +4966,14 @@ components:
       title: BackgroundOptions represents the styling options for the QR code background
     BreakdownDataPoint:
       example:
+        code: code
         percentage: 6.027456183070403
         eventCount: 0
         label: label
       properties:
+        code:
+          title: Optional code (e.g. ISO 3166-1 alpha-2 country code for country dimension)
+          type: string
         eventCount:
           format: int32
           title: Number of events for this dimension value
@@ -8011,10 +8105,12 @@ components:
       example:
         total: 1
         data:
-        - percentage: 6.027456183070403
+        - code: code
+          percentage: 6.027456183070403
           eventCount: 0
           label: label
-        - percentage: 6.027456183070403
+        - code: code
+          percentage: 6.027456183070403
           eventCount: 0
           label: label
       properties:

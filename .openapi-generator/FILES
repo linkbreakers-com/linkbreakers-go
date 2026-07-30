@@ -35,9 +35,12 @@ model_action.go
 model_add_workflow_step_relationship_response.go
 model_ai_context_type.go
 model_ai_display_message.go
+model_ai_display_message_attachment.go
 model_ai_get_conversation_response.go
 model_ai_send_message_request.go
 model_ai_send_message_response.go
+model_ai_upload_file_request.go
+model_ai_upload_file_response.go
 model_analytics_dashboard.go
 model_api_tag.go
 model_apply_qrcode_template_request.go
