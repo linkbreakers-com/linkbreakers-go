@@ -349,6 +349,7 @@ model_visitor_data_condition_trace_option.go
 model_visitor_event.go
 model_visitor_input.go
 model_visitor_link.go
+model_visitor_sort_field.go
 model_visitor_trend_data_point.go
 model_visitors_service_update_body.go
 model_webhook.go
