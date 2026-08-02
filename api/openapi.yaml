@@ -5,7 +5,7 @@ info:
     url: https://app.linkbreakers.com
   description: This is a documentation of all the APIs of Linkbreakers
   title: Linkbreakers API
-  version: 1.110.3
+  version: 1.111.0
 servers:
 - url: https://api.linkbreakers.com
 security:
@@ -14567,6 +14567,13 @@ components:
           title: Params that override the base data source params when this tab is
             active
           type: object
+        view:
+          allOf:
+          - $ref: "#/components/schemas/WidgetTabView"
+          description: |-
+            How it is drawn. The map used to be chosen by a tab literally labelled
+            "Map", so renaming it to "Carte" lost the map and a data tab called
+            "Site Map clicks" was hijacked into one.
       title: WidgetTab represents a tab for grouped views in a widget
     WidgetTabMode:
       default: WIDGET_TAB_MODE_UNSPECIFIED
@@ -14581,6 +14588,18 @@ components:
       - WIDGET_TAB_MODE_UNSPECIFIED
       - WIDGET_TAB_MODE_DATA
       - WIDGET_TAB_MODE_AGENT_SUMMARY
+      type: string
+    WidgetTabView:
+      default: WIDGET_TAB_VIEW_UNSPECIFIED
+      description: |-
+        WidgetTabView says how a tab draws what it fetched.
+
+         - WIDGET_TAB_VIEW_UNSPECIFIED: The widget's own chart type.
+         - WIDGET_TAB_VIEW_MAP: A world map, which needs rows carrying a country code.
+      enum:
+      - WIDGET_TAB_VIEW_UNSPECIFIED
+      - WIDGET_TAB_VIEW_CHART
+      - WIDGET_TAB_VIEW_MAP
       type: string
     WidgetVisualization:
       properties:

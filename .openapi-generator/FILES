@@ -378,6 +378,7 @@ model_widget_position.go
 model_widget_size.go
 model_widget_tab.go
 model_widget_tab_mode.go
+model_widget_tab_view.go
 model_widget_visualization.go
 model_workflow_issue.go
 model_workflow_step.go
