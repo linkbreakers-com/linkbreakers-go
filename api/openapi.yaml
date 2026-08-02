@@ -5,15 +5,15 @@ info:
     url: https://app.linkbreakers.com
   description: This is a documentation of all the APIs of Linkbreakers
   title: Linkbreakers API
-  version: 1.107.3
+  version: 1.108.0
 servers:
 - url: https://api.linkbreakers.com
 security:
 - bearerAuth: []
 tags:
-- description: Context-aware AI assistant that delegates to specialized agents based
+- description: Context-aware agent that delegates to specialized sub-agents based
     on the resource being edited.
-  name: AI Assistant
+  name: Agent
 - description: "Endpoints for managing analytics dashboards with flexible, config-driven\
     \ widgets. Each widget defines its own data source and visualization."
   name: Analytics Dashboard
@@ -82,12 +82,17 @@ tags:
     allow you to update and get workspaces.
   name: Workspaces
 paths:
-  /v1/ai/conversation:
+  /v1/agent/conversation:
     delete:
       description: Clear the conversation history for a specific context.
-      operationId: AIAssistantService_ClearConversation
+      operationId: AgentService_ClearConversation
       parameters:
-      - explode: true
+      - description: |2-
+           - AGENT_CONTEXT_TYPE_LINK_ANALYTICS: Building a link's analytics dashboard. context_id is the LINK id, not a
+          dashboard id — the dashboard does not exist yet while the user and the
+          assistant are still agreeing on what it should show. Once it exists,
+          editing it happens under AGENT_CONTEXT_TYPE_ANALYTICS_DASHBOARD instead.
+        explode: true
         in: query
         name: contextType
         required: false
@@ -106,7 +111,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AIClearConversationResponse"
+                $ref: "#/components/schemas/AgentClearConversationResponse"
           description: Everything worked as expected.
         default:
           content:
@@ -116,14 +121,19 @@ paths:
           description: Unexpected error
       security:
       - bearerAuth: []
-      summary: Clear AI conversation
+      summary: Clear agent conversation
       tags:
-      - AI Assistant
+      - Agent
     get:
       description: Get the display-ready chat history for a specific context.
-      operationId: AIAssistantService_GetConversation
+      operationId: AgentService_GetConversation
       parameters:
-      - explode: true
+      - description: |2-
+           - AGENT_CONTEXT_TYPE_LINK_ANALYTICS: Building a link's analytics dashboard. context_id is the LINK id, not a
+          dashboard id — the dashboard does not exist yet while the user and the
+          assistant are still agreeing on what it should show. Once it exists,
+          editing it happens under AGENT_CONTEXT_TYPE_ANALYTICS_DASHBOARD instead.
+        explode: true
         in: query
         name: contextType
         required: false
@@ -142,7 +152,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AIGetConversationResponse"
+                $ref: "#/components/schemas/AgentGetConversationResponse"
           description: Everything worked as expected.
         default:
           content:
@@ -152,26 +162,26 @@ paths:
           description: Unexpected error
       security:
       - bearerAuth: []
-      summary: Get AI conversation
+      summary: Get agent conversation
       tags:
-      - AI Assistant
-  /v1/ai/message:
+      - Agent
+  /v1/agent/message:
     post:
-      description: Send a message to the AI assistant. The context type determines
-        which specialized agent handles the request.
-      operationId: AIAssistantService_SendMessage
+      description: Send a message to the agent. The context type determines which
+        specialized sub-agent handles the request.
+      operationId: AgentService_SendMessage
       requestBody:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/AISendMessageRequest"
+              $ref: "#/components/schemas/AgentSendMessageRequest"
         required: true
       responses:
         "200":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AISendMessageResponse"
+                $ref: "#/components/schemas/AgentSendMessageResponse"
           description: Everything worked as expected.
         default:
           content:
@@ -181,26 +191,26 @@ paths:
           description: Unexpected error
       security:
       - bearerAuth: []
-      summary: Send AI message
+      summary: Send agent message
       tags:
-      - AI Assistant
-  /v1/ai/upload:
+      - Agent
+  /v1/agent/upload:
     post:
-      description: Upload a file to attach to the next AI message. Returns a temporary
+      description: Upload a file to attach to the next agent message. Returns a temporary
         file ID. Files expire after 5 minutes. Max 20MB.
-      operationId: AIAssistantService_UploadFile
+      operationId: AgentService_UploadFile
       requestBody:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/AIUploadFileRequest"
+              $ref: "#/components/schemas/AgentUploadFileRequest"
         required: true
       responses:
         "200":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AIUploadFileResponse"
+                $ref: "#/components/schemas/AgentUploadFileResponse"
           description: Everything worked as expected.
         default:
           content:
@@ -210,9 +220,96 @@ paths:
           description: Unexpected error
       security:
       - bearerAuth: []
-      summary: Upload file for AI chat
+      summary: Upload file for agent chat
       tags:
-      - AI Assistant
+      - Agent
+  /v1/analytics/attributes/distribution:
+    post:
+      description: "Returns how visitors are spread across the values of one attribute,\
+        \ for example how many gave each rating."
+      operationId: AnalyticsDataService_GetAttributeDistribution
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GetAttributeDistributionRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetAttributeDistributionResponse"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth: []
+      summary: Get visitor attribute distribution
+      tags:
+      - Analytics Data
+  /v1/analytics/attributes/metric:
+    post:
+      description: "Returns count, average, minimum and maximum for a visitor attribute,\
+        \ plus how much of the audience carries it."
+      operationId: AnalyticsDataService_GetAttributeMetric
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GetAttributeMetricRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetAttributeMetricResponse"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth: []
+      summary: Get visitor attribute metric
+      tags:
+      - Analytics Data
+  /v1/analytics/attributes/values:
+    post:
+      description: "Returns the individual recorded values of one attribute, most\
+        \ recent first. Intended for free text such as comments."
+      operationId: AnalyticsDataService_GetAttributeValues
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GetAttributeValuesRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetAttributeValuesResponse"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth: []
+      summary: List visitor attribute values
+      tags:
+      - Analytics Data
   /v1/analytics/breakdown:
     post:
       description: "Returns a ranked breakdown of events by any dimension (browser,\
@@ -242,36 +339,33 @@ paths:
       summary: Get dimension breakdown
       tags:
       - Analytics Data
-  /v1/analytics/dashboard:
-    put:
-      operationId: AnalyticsDashboardService_UpdateDashboard
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/UpdateDashboardRequest"
-        required: true
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/UpdateDashboardResponse"
-          description: Everything worked as expected.
-        default:
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-          description: Unexpected error
-      security:
-      - bearerAuth: []
-      summary: Update analytics dashboard
-      tags:
-      - Analytics Dashboard
   /v1/analytics/dashboards:
     get:
       operationId: AnalyticsDashboardService_ListDashboards
+      parameters:
+      - description: |-
+          Restricts the result to the dashboard scoped to this link.
+          Takes precedence over scope when both are set.
+        explode: true
+        in: query
+        name: linkId
+        required: false
+        schema:
+          type: string
+        style: form
+      - description: |-
+          Restricts the result by scope. Unset returns every dashboard.
+
+           - DASHBOARD_SCOPE_UNSPECIFIED: Every dashboard in the workspace, link-scoped or not.
+           - DASHBOARD_SCOPE_WORKSPACE: Only the workspace-wide dashboard, the one with no link.
+           - DASHBOARD_SCOPE_LINK: Only dashboards tied to a link.
+        explode: true
+        in: query
+        name: scope
+        required: false
+        schema:
+          type: string
+        style: form
       responses:
         "200":
           content:
@@ -316,9 +410,92 @@ paths:
       summary: Create analytics dashboard
       tags:
       - Analytics Dashboard
+  /v1/analytics/dashboards/{dashboardId}/widgets/{widgetId}/summary:
+    get:
+      description: "Returns the last generated analysis, and whether the underlying\
+        \ values have changed since."
+      operationId: AnalyticsDashboardService_GetWidgetSummary
+      parameters:
+      - explode: false
+        in: path
+        name: dashboardId
+        required: true
+        schema:
+          type: string
+        style: simple
+      - explode: false
+        in: path
+        name: widgetId
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetWidgetSummaryResponse"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth: []
+      summary: Get a stored widget agent summary
+      tags:
+      - Analytics Dashboard
+    post:
+      description: "Analyses the widget's current values and stores the result. Consumes\
+        \ platform credits, so it runs only when requested."
+      operationId: AnalyticsDashboardService_GenerateWidgetSummary
+      parameters:
+      - description: Dashboard holding the widget
+        explode: false
+        in: path
+        name: dashboardId
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: Widget whose values should be analysed
+        explode: false
+        in: path
+        name: widgetId
+        required: true
+        schema:
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnalyticsDashboardServiceGenerateWidgetSummaryBody"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerateWidgetSummaryResponse"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth: []
+      summary: Generate a widget agent summary
+      tags:
+      - Analytics Dashboard
   /v1/analytics/dashboards/{id}:
     delete:
-      description: Delete a dashboard and its associated AI conversation.
+      description: Delete a dashboard and its associated agent conversation.
       operationId: AnalyticsDashboardService_DeleteDashboard
       parameters:
       - explode: false
@@ -344,6 +521,41 @@ paths:
       security:
       - bearerAuth: []
       summary: Delete analytics dashboard
+      tags:
+      - Analytics Dashboard
+    put:
+      operationId: AnalyticsDashboardService_UpdateDashboard
+      parameters:
+      - description: ID of the dashboard to update.
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnalyticsDashboardServiceUpdateDashboardBody"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpdateDashboardResponse"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth: []
+      summary: Update analytics dashboard
       tags:
       - Analytics Dashboard
   /v1/analytics/devices:
@@ -4706,21 +4918,47 @@ components:
             $ref: "#/components/schemas/ErrorResponse"
       description: Unexpected error
   schemas:
-    AIClearConversationResponse:
-      title: AIClearConversationResponse is empty on success
-      type: object
-    AIContextType:
-      default: AI_CONTEXT_TYPE_UNSPECIFIED
+    Action:
+      default: ACTION_UNSPECIFIED
+      description: |-
+        - ACTION_UNSPECIFIED: Action not specified
+         - ACTION_SCAN: QR code scan
+         - ACTION_CLICK: First-time direct link click
       enum:
-      - AI_CONTEXT_TYPE_UNSPECIFIED
-      - AI_CONTEXT_TYPE_ANALYTICS_DASHBOARD
-      - AI_CONTEXT_TYPE_WORKFLOW
-      - AI_CONTEXT_TYPE_LINK
-      - AI_CONTEXT_TYPE_QRCODE_DESIGN
-      - AI_CONTEXT_TYPE_PAGE_THEME
-      title: AI context types
+      - ACTION_UNSPECIFIED
+      - ACTION_SCAN
+      - ACTION_CLICK
+      title: The type of event action
       type: string
-    AIDisplayMessage:
+    AddWorkflowStepRelationshipResponse:
+      example:
+        message: message
+      properties:
+        message:
+          title: Confirmation message
+          type: string
+      title: Response for adding a workflow step relationship
+    AgentClearConversationResponse:
+      title: AgentClearConversationResponse is empty on success
+      type: object
+    AgentContextType:
+      default: AGENT_CONTEXT_TYPE_UNSPECIFIED
+      description: |-
+        - AGENT_CONTEXT_TYPE_LINK_ANALYTICS: Building a link's analytics dashboard. context_id is the LINK id, not a
+        dashboard id — the dashboard does not exist yet while the user and the
+        assistant are still agreeing on what it should show. Once it exists,
+        editing it happens under AGENT_CONTEXT_TYPE_ANALYTICS_DASHBOARD instead.
+      enum:
+      - AGENT_CONTEXT_TYPE_UNSPECIFIED
+      - AGENT_CONTEXT_TYPE_ANALYTICS_DASHBOARD
+      - AGENT_CONTEXT_TYPE_WORKFLOW
+      - AGENT_CONTEXT_TYPE_LINK
+      - AGENT_CONTEXT_TYPE_QRCODE_DESIGN
+      - AGENT_CONTEXT_TYPE_PAGE_THEME
+      - AGENT_CONTEXT_TYPE_LINK_ANALYTICS
+      title: Agent context types
+      type: string
+    AgentDisplayMessage:
       example:
         attachments:
         - name: name
@@ -4734,7 +4972,7 @@ components:
       properties:
         attachments:
           items:
-            $ref: "#/components/schemas/AIDisplayMessageAttachment"
+            $ref: "#/components/schemas/AgentDisplayMessageAttachment"
           type: array
         id:
           type: string
@@ -4745,8 +4983,8 @@ components:
         timestamp:
           format: date-time
           type: string
-      title: AIDisplayMessage is a user-visible message for rendering
-    AIDisplayMessageAttachment:
+      title: AgentDisplayMessage is a user-visible message for rendering
+    AgentDisplayMessageAttachment:
       example:
         name: name
         mimeType: mimeType
@@ -4755,8 +4993,8 @@ components:
           type: string
         name:
           type: string
-      title: AIDisplayMessageAttachment is a file attached to a message
-    AIGetConversationResponse:
+      title: AgentDisplayMessageAttachment is a file attached to a message
+    AgentGetConversationResponse:
       example:
         messages:
         - attachments:
@@ -4780,10 +5018,10 @@ components:
       properties:
         messages:
           items:
-            $ref: "#/components/schemas/AIDisplayMessage"
+            $ref: "#/components/schemas/AgentDisplayMessage"
           type: array
-      title: AIGetConversationResponse contains the display-ready messages
-    AISendMessageRequest:
+      title: AgentGetConversationResponse contains the display-ready messages
+    AgentSendMessageRequest:
       example:
         contextType: ""
         contextId: contextId
@@ -4800,14 +5038,13 @@ components:
           type: string
         contextType:
           allOf:
-          - $ref: "#/components/schemas/AIContextType"
+          - $ref: "#/components/schemas/AgentContextType"
           title: Context type determines which agent(s) to activate
         message:
           title: The user's message
           type: string
-      title: AISendMessageRequest sends a message to the AI assistant in a specific
-        context
-    AISendMessageResponse:
+      title: AgentSendMessageRequest sends a message to the agent in a specific context
+    AgentSendMessageResponse:
       example:
         uiActions:
         - options:
@@ -4849,8 +5086,8 @@ components:
           items:
             $ref: "#/components/schemas/ChatUIAction"
           type: array
-      title: AISendMessageResponse contains the AI response
-    AIUploadFileRequest:
+      title: AgentSendMessageResponse contains the agent response
+    AgentUploadFileRequest:
       example:
         name: name
         mimeType: mimeType
@@ -4865,15 +5102,15 @@ components:
         name:
           title: Original filename
           type: string
-      title: AIUploadFileRequest uploads a file for AI chat attachment
-    AIUploadFileResponse:
+      title: AgentUploadFileRequest uploads a file for agent chat attachment
+    AgentUploadFileResponse:
       example:
         name: name
         mimeType: mimeType
         fileId: fileId
       properties:
         fileId:
-          title: Temporary file ID to include in AI message attachments
+          title: Temporary file ID to include in agent message attachments
           type: string
         mimeType:
           title: MIME type (echoed back)
@@ -4881,30 +5118,11 @@ components:
         name:
           title: Original filename (echoed back)
           type: string
-      title: AIUploadFileResponse returns the temporary file reference
-    Action:
-      default: ACTION_UNSPECIFIED
-      description: |-
-        - ACTION_UNSPECIFIED: Action not specified
-         - ACTION_SCAN: QR code scan
-         - ACTION_CLICK: First-time direct link click
-      enum:
-      - ACTION_UNSPECIFIED
-      - ACTION_SCAN
-      - ACTION_CLICK
-      title: The type of event action
-      type: string
-    AddWorkflowStepRelationshipResponse:
-      example:
-        message: message
-      properties:
-        message:
-          title: Confirmation message
-          type: string
-      title: Response for adding a workflow step relationship
+      title: AgentUploadFileResponse returns the temporary file reference
     AnalyticsDashboard:
       example:
         createdAt: 2000-01-23T04:56:07.000+00:00
+        linkId: linkId
         chatMessages:
         - sender: sender
           id: id
@@ -4944,12 +5162,78 @@ components:
           type: string
         id:
           type: string
+        linkId:
+          description: Link this dashboard is scoped to. Empty for the workspace-wide
+            dashboard.
+          type: string
         name:
           type: string
         updatedAt:
           format: date-time
           type: string
       title: AnalyticsDashboard represents a workspace's analytics dashboard
+    AnalyticsDashboardServiceGenerateWidgetSummaryBody:
+      example:
+        force: true
+      properties:
+        force:
+          title: Regenerate even when the stored result is still current
+          type: boolean
+    AnalyticsDashboardServiceUpdateDashboardBody:
+      example:
+        name: name
+        config:
+          widgets:
+          - visualization: ""
+            size: ""
+            id: id
+            position: ""
+            title: title
+            dataSource: ""
+          - visualization: ""
+            size: ""
+            id: id
+            position: ""
+            title: title
+            dataSource: ""
+      properties:
+        config:
+          $ref: "#/components/schemas/DashboardConfig"
+        name:
+          type: string
+    AnalyticsWidgetResult:
+      description: AnalyticsWidgetResult is a generated result for an on-demand widget
+        tab.
+      example:
+        sourceCount: 6
+        stale: true
+        widgetId: widgetId
+        currentCount: 0
+        generatedAt: 2000-01-23T04:56:07.000+00:00
+        text: text
+      properties:
+        currentCount:
+          format: int32
+          title: "How many values exist now, for \"N new answers since this ran\""
+          type: integer
+        generatedAt:
+          format: date-time
+          title: When it was produced
+          type: string
+        sourceCount:
+          format: int32
+          title: How many values it was generated from
+          type: integer
+        stale:
+          description: |-
+            True when the underlying values have changed since it was generated, so
+            the UI can offer a re-run rather than presenting stale prose as current.
+          type: boolean
+        text:
+          title: The generated analysis
+          type: string
+        widgetId:
+          type: string
     ApplyQrcodeTemplateRequest:
       description: ApplyQrcodeTemplateRequest applies a community template's design
         to an existing link's QR code.
@@ -4978,6 +5262,35 @@ components:
           allOf:
           - $ref: "#/components/schemas/QrcodeDesign"
           title: The updated QR code design with the template's styling applied
+    AttributeValueDataPoint:
+      example:
+        visitorCount: 6
+        percentage: 0.8008281904610115
+        label: label
+      properties:
+        label:
+          type: string
+        percentage:
+          format: double
+          type: number
+        visitorCount:
+          format: int32
+          type: integer
+      title: AttributeValueDataPoint is one value of an attribute with how many visitors
+        hold it
+    AttributeValueEntry:
+      example:
+        recordedAt: 2000-01-23T04:56:07.000+00:00
+        value: value
+      properties:
+        recordedAt:
+          format: date-time
+          title: When the visitor last set it
+          type: string
+        value:
+          title: The value as captured
+          type: string
+      title: AttributeValueEntry is one recorded value of an attribute
     AutoLayoutWorkflowResponse:
       example:
         stepsRepositioned: 0
@@ -5613,11 +5926,33 @@ components:
           $ref: "#/components/schemas/CustomDomain"
       title: Response containing the created custom domain
     CreateDashboardRequest:
-      type: object
+      example:
+        linkId: linkId
+        name: name
+        id: id
+        config: ""
+      properties:
+        config:
+          allOf:
+          - $ref: "#/components/schemas/DashboardConfig"
+          description: |-
+            Initial widgets. When empty, a workspace-wide dashboard is seeded with the
+            default widget set and a link-scoped dashboard starts with no widgets.
+        id:
+          description: Client-supplied dashboard id. Generated server-side when empty.
+          type: string
+        linkId:
+          description: Link to scope this dashboard to. Empty creates the workspace-wide
+            dashboard.
+          type: string
+        name:
+          description: Display name. Defaults to "Default Dashboard" when empty.
+          type: string
     CreateDashboardResponse:
       example:
         dashboard:
           createdAt: 2000-01-23T04:56:07.000+00:00
+          linkId: linkId
           chatMessages:
           - sender: sender
             id: id
@@ -6340,6 +6675,19 @@ components:
             $ref: "#/components/schemas/DashboardWidget"
           type: array
       title: DashboardConfig is the structured configuration for a dashboard
+    DashboardScope:
+      default: DASHBOARD_SCOPE_UNSPECIFIED
+      description: |-
+        DashboardScope selects dashboards by whether they are tied to a link.
+
+         - DASHBOARD_SCOPE_UNSPECIFIED: Every dashboard in the workspace, link-scoped or not.
+         - DASHBOARD_SCOPE_WORKSPACE: Only the workspace-wide dashboard, the one with no link.
+         - DASHBOARD_SCOPE_LINK: Only dashboards tied to a link.
+      enum:
+      - DASHBOARD_SCOPE_UNSPECIFIED
+      - DASHBOARD_SCOPE_WORKSPACE
+      - DASHBOARD_SCOPE_LINK
+      type: string
     DashboardWidget:
       example:
         visualization: ""
@@ -7563,7 +7911,19 @@ components:
           firstName: Sam
           visitCount: 42
           phone: "+15551234567"
-          attributes: "{}"
+          attributes:
+          - dateValue: 2000-01-23T04:56:07.000+00:00
+            boolValue: true
+            numberValue: 9.301444243932576
+            type: VISITOR_ATTRIBUTE_TYPE_UNSPECIFIED
+            value: "8"
+            key: rating
+          - dateValue: 2000-01-23T04:56:07.000+00:00
+            boolValue: true
+            numberValue: 9.301444243932576
+            type: VISITOR_ATTRIBUTE_TYPE_UNSPECIFIED
+            value: "8"
+            key: rating
           links:
           - firstVisitedAt: 2000-01-23T04:56:07.000+00:00
             entrypoint: https://linkbreak.ing/4BnH-R19p
@@ -8172,6 +8532,18 @@ components:
           type: string
         value:
           type: string
+    GenerateWidgetSummaryResponse:
+      example:
+        result:
+          sourceCount: 6
+          stale: true
+          widgetId: widgetId
+          currentCount: 0
+          generatedAt: 2000-01-23T04:56:07.000+00:00
+          text: text
+      properties:
+        result:
+          $ref: "#/components/schemas/AnalyticsWidgetResult"
     GeoDataPoint:
       example:
         percentage: 6.027456183070403
@@ -8190,6 +8562,156 @@ components:
           title: Percentage of total events
           type: number
       title: GeoDataPoint represents a geographic location with its event count
+    GetAttributeDistributionRequest:
+      example:
+        linkId: linkId
+        endDate: 2000-01-23T04:56:07.000+00:00
+        limit: 0
+        key: key
+        startDate: 2000-01-23T04:56:07.000+00:00
+      properties:
+        endDate:
+          format: date-time
+          type: string
+        key:
+          type: string
+        limit:
+          format: int32
+          title: Maximum number of values (default 10)
+          type: integer
+        linkId:
+          type: string
+        startDate:
+          format: date-time
+          type: string
+      title: GetAttributeDistributionRequest retrieves how attribute values are spread
+    GetAttributeDistributionResponse:
+      example:
+        total: 1
+        data:
+        - visitorCount: 6
+          percentage: 0.8008281904610115
+          label: label
+        - visitorCount: 6
+          percentage: 0.8008281904610115
+          label: label
+      properties:
+        data:
+          items:
+            $ref: "#/components/schemas/AttributeValueDataPoint"
+          type: array
+        total:
+          format: int32
+          type: integer
+      title: GetAttributeDistributionResponse contains the value spread for an attribute
+    GetAttributeMetricRequest:
+      description: |-
+        GetAttributeMetricRequest retrieves aggregate statistics for one visitor
+        attribute, for example the average rating.
+      example:
+        linkId: linkId
+        endDate: 2000-01-23T04:56:07.000+00:00
+        key: key
+        startDate: 2000-01-23T04:56:07.000+00:00
+      properties:
+        endDate:
+          format: date-time
+          title: Inclusive end timestamp
+          type: string
+        key:
+          title: "Attribute key, for example \"rating\""
+          type: string
+        linkId:
+          description: |-
+            Optional link filter (UUID). Attributes belong to the visitor rather than
+            to a link, so this filters the audience: visitors who interacted with the
+            link, whatever set the attribute.
+          type: string
+        startDate:
+          format: date-time
+          title: Inclusive start timestamp
+          type: string
+    GetAttributeMetricResponse:
+      example:
+        averageValue: 6.027456183070403
+        minValue: 5.637376656633329
+        usableCount: 7
+        maxValue: 5.962133916683182
+        audienceCount: 0
+        coverageRate: 1.4658129805029452
+        totalCount: 2
+      properties:
+        audienceCount:
+          format: int32
+          title: "Visitors in the audience, whether or not they have the attribute"
+          type: integer
+        averageValue:
+          format: double
+          type: number
+        coverageRate:
+          format: double
+          title: "Share of the audience carrying the attribute, 0 to 1"
+          type: number
+        maxValue:
+          format: double
+          type: number
+        minValue:
+          format: double
+          type: number
+        totalCount:
+          format: int32
+          title: Visitors carrying the attribute at all
+          type: integer
+        usableCount:
+          description: |-
+            Values that parsed as numbers, so the denominator for averages. Lower than
+            total_count when some values do not match the attribute's declared type.
+          format: int32
+          type: integer
+      title: GetAttributeMetricResponse contains aggregate statistics for an attribute
+    GetAttributeValuesRequest:
+      description: |-
+        GetAttributeValuesRequest lists individual values of one attribute, for free
+        text such as comments where a distribution would be meaningless.
+      example:
+        linkId: linkId
+        endDate: 2000-01-23T04:56:07.000+00:00
+        limit: 0
+        key: key
+        startDate: 2000-01-23T04:56:07.000+00:00
+      properties:
+        endDate:
+          format: date-time
+          type: string
+        key:
+          type: string
+        limit:
+          format: int32
+          title: Maximum number of values (default 50)
+          type: integer
+        linkId:
+          type: string
+        startDate:
+          format: date-time
+          type: string
+    GetAttributeValuesResponse:
+      example:
+        total: 0
+        data:
+        - recordedAt: 2000-01-23T04:56:07.000+00:00
+          value: value
+        - recordedAt: 2000-01-23T04:56:07.000+00:00
+          value: value
+      properties:
+        data:
+          items:
+            $ref: "#/components/schemas/AttributeValueEntry"
+          type: array
+        total:
+          format: int32
+          type: integer
+      title: "GetAttributeValuesResponse contains the recorded values, most recent\
+        \ first"
     GetBreakdownRequest:
       example:
         linkId: linkId
@@ -8731,6 +9253,14 @@ components:
           - $ref: "#/components/schemas/Webhook"
           title: Webhook details
       title: GetWebhookResponse represents the response containing a webhook
+    GetWidgetSummaryResponse:
+      example:
+        result: ""
+      properties:
+        result:
+          allOf:
+          - $ref: "#/components/schemas/AnalyticsWidgetResult"
+          title: Absent when nothing has been generated yet
     GetWorkflowStepResponse:
       example:
         workflowStep:
@@ -9391,6 +9921,7 @@ components:
       example:
         dashboards:
         - createdAt: 2000-01-23T04:56:07.000+00:00
+          linkId: linkId
           chatMessages:
           - sender: sender
             id: id
@@ -9418,6 +9949,7 @@ components:
               dataSource: ""
           updatedAt: 2000-01-23T04:56:07.000+00:00
         - createdAt: 2000-01-23T04:56:07.000+00:00
+          linkId: linkId
           chatMessages:
           - sender: sender
             id: id
@@ -9681,7 +10213,19 @@ components:
             firstName: Sam
             visitCount: 42
             phone: "+15551234567"
-            attributes: "{}"
+            attributes:
+            - dateValue: 2000-01-23T04:56:07.000+00:00
+              boolValue: true
+              numberValue: 9.301444243932576
+              type: VISITOR_ATTRIBUTE_TYPE_UNSPECIFIED
+              value: "8"
+              key: rating
+            - dateValue: 2000-01-23T04:56:07.000+00:00
+              boolValue: true
+              numberValue: 9.301444243932576
+              type: VISITOR_ATTRIBUTE_TYPE_UNSPECIFIED
+              value: "8"
+              key: rating
             links:
             - firstVisitedAt: 2000-01-23T04:56:07.000+00:00
               entrypoint: https://linkbreak.ing/4BnH-R19p
@@ -9850,7 +10394,19 @@ components:
             firstName: Sam
             visitCount: 42
             phone: "+15551234567"
-            attributes: "{}"
+            attributes:
+            - dateValue: 2000-01-23T04:56:07.000+00:00
+              boolValue: true
+              numberValue: 9.301444243932576
+              type: VISITOR_ATTRIBUTE_TYPE_UNSPECIFIED
+              value: "8"
+              key: rating
+            - dateValue: 2000-01-23T04:56:07.000+00:00
+              boolValue: true
+              numberValue: 9.301444243932576
+              type: VISITOR_ATTRIBUTE_TYPE_UNSPECIFIED
+              value: "8"
+              key: rating
             links:
             - firstVisitedAt: 2000-01-23T04:56:07.000+00:00
               entrypoint: https://linkbreak.ing/4BnH-R19p
@@ -10054,7 +10610,19 @@ components:
               firstName: Sam
               visitCount: 42
               phone: "+15551234567"
-              attributes: "{}"
+              attributes:
+              - dateValue: 2000-01-23T04:56:07.000+00:00
+                boolValue: true
+                numberValue: 9.301444243932576
+                type: VISITOR_ATTRIBUTE_TYPE_UNSPECIFIED
+                value: "8"
+                key: rating
+              - dateValue: 2000-01-23T04:56:07.000+00:00
+                boolValue: true
+                numberValue: 9.301444243932576
+                type: VISITOR_ATTRIBUTE_TYPE_UNSPECIFIED
+                value: "8"
+                key: rating
               links:
               - firstVisitedAt: 2000-01-23T04:56:07.000+00:00
                 entrypoint: https://linkbreak.ing/4BnH-R19p
@@ -10225,7 +10793,19 @@ components:
               firstName: Sam
               visitCount: 42
               phone: "+15551234567"
-              attributes: "{}"
+              attributes:
+              - dateValue: 2000-01-23T04:56:07.000+00:00
+                boolValue: true
+                numberValue: 9.301444243932576
+                type: VISITOR_ATTRIBUTE_TYPE_UNSPECIFIED
+                value: "8"
+                key: rating
+              - dateValue: 2000-01-23T04:56:07.000+00:00
+                boolValue: true
+                numberValue: 9.301444243932576
+                type: VISITOR_ATTRIBUTE_TYPE_UNSPECIFIED
+                value: "8"
+                key: rating
               links:
               - firstVisitedAt: 2000-01-23T04:56:07.000+00:00
                 entrypoint: https://linkbreak.ing/4BnH-R19p
@@ -12649,32 +13229,11 @@ components:
         customDomain:
           $ref: "#/components/schemas/CustomDomain"
       title: Response containing the updated custom domain
-    UpdateDashboardRequest:
-      example:
-        name: name
-        config:
-          widgets:
-          - visualization: ""
-            size: ""
-            id: id
-            position: ""
-            title: title
-            dataSource: ""
-          - visualization: ""
-            size: ""
-            id: id
-            position: ""
-            title: title
-            dataSource: ""
-      properties:
-        config:
-          $ref: "#/components/schemas/DashboardConfig"
-        name:
-          type: string
     UpdateDashboardResponse:
       example:
         dashboard:
           createdAt: 2000-01-23T04:56:07.000+00:00
+          linkId: linkId
           chatMessages:
           - sender: sender
             id: id
@@ -13355,7 +13914,19 @@ components:
         firstName: Sam
         visitCount: 42
         phone: "+15551234567"
-        attributes: "{}"
+        attributes:
+        - dateValue: 2000-01-23T04:56:07.000+00:00
+          boolValue: true
+          numberValue: 9.301444243932576
+          type: VISITOR_ATTRIBUTE_TYPE_UNSPECIFIED
+          value: "8"
+          key: rating
+        - dateValue: 2000-01-23T04:56:07.000+00:00
+          boolValue: true
+          numberValue: 9.301444243932576
+          type: VISITOR_ATTRIBUTE_TYPE_UNSPECIFIED
+          value: "8"
+          key: rating
         links:
         - firstVisitedAt: 2000-01-23T04:56:07.000+00:00
           entrypoint: https://linkbreak.ing/4BnH-R19p
@@ -13393,9 +13964,12 @@ components:
         url: https://linkbreakers.com/help/article/whats-a-visitor
       properties:
         attributes:
-          title: Arbitrary attributes provided without "$" prefix (stored as JSON
-            object)
-          type: object
+          description: |-
+            Arbitrary attributes provided without "$" prefix, with the type each value
+            was captured as.
+          items:
+            $ref: "#/components/schemas/VisitorAttribute"
+          type: array
         createdAt:
           format: date-time
           title: Timestamps
@@ -13459,6 +14033,66 @@ components:
           title: Workspace that owns this visitor (UUID)
           type: string
       title: Visitor
+    VisitorAttribute:
+      description: VisitorAttribute is one key/value pair on a visitor profile.
+      example:
+        dateValue: 2000-01-23T04:56:07.000+00:00
+        boolValue: true
+        numberValue: 9.301444243932576
+        type: VISITOR_ATTRIBUTE_TYPE_UNSPECIFIED
+        value: "8"
+        key: rating
+      properties:
+        boolValue:
+          type: boolean
+        dateValue:
+          format: date-time
+          type: string
+        key:
+          example: rating
+          title: "Attribute key, for example \"rating\""
+          type: string
+        numberValue:
+          description: |-
+            Set only when the value parses as a number. Absent when it does not, so a
+            value that contradicts its type is still readable but not aggregatable.
+          format: double
+          type: number
+        type:
+          description: |-
+            VisitorAttributeType is what a value was captured as. It decides how the
+            value is parsed and which analytics the key can support, which the value
+            alone cannot tell you: "8" from a rating field and "8" typed into a text box
+            are different facts.
+          enum:
+          - VISITOR_ATTRIBUTE_TYPE_UNSPECIFIED
+          - VISITOR_ATTRIBUTE_TYPE_STRING
+          - VISITOR_ATTRIBUTE_TYPE_NUMBER
+          - VISITOR_ATTRIBUTE_TYPE_BOOLEAN
+          - VISITOR_ATTRIBUTE_TYPE_DATE
+          - VISITOR_ATTRIBUTE_TYPE_ENUM
+          title: What the value was captured as
+          type: string
+        value:
+          description: "The raw value as captured. Always populated, whatever the\
+            \ type."
+          example: "8"
+          type: string
+    VisitorAttributeType:
+      default: VISITOR_ATTRIBUTE_TYPE_UNSPECIFIED
+      description: |-
+        VisitorAttributeType is what a value was captured as. It decides how the
+        value is parsed and which analytics the key can support, which the value
+        alone cannot tell you: "8" from a rating field and "8" typed into a text box
+        are different facts.
+      enum:
+      - VISITOR_ATTRIBUTE_TYPE_UNSPECIFIED
+      - VISITOR_ATTRIBUTE_TYPE_STRING
+      - VISITOR_ATTRIBUTE_TYPE_NUMBER
+      - VISITOR_ATTRIBUTE_TYPE_BOOLEAN
+      - VISITOR_ATTRIBUTE_TYPE_DATE
+      - VISITOR_ATTRIBUTE_TYPE_ENUM
+      type: string
     VisitorDataConditionOption:
       description: Visitor data condition option for EVENT_ACTION_VISITOR_DATA_CONDITION.
       properties:
@@ -13916,11 +14550,29 @@ components:
         label:
           title: Tab display label
           type: string
+        mode:
+          allOf:
+          - $ref: "#/components/schemas/WidgetTabMode"
+          description: How this tab produces its content. Absent means data.
         params:
           title: Params that override the base data source params when this tab is
             active
           type: object
       title: WidgetTab represents a tab for grouped views in a widget
+    WidgetTabMode:
+      default: WIDGET_TAB_MODE_UNSPECIFIED
+      description: |-
+        WidgetTabMode says how a tab produces what it shows.
+
+         - WIDGET_TAB_MODE_UNSPECIFIED: Fetches the widget's data source with this tab's params, on switch.
+         - WIDGET_TAB_MODE_AGENT_SUMMARY: Shows an agent's analysis of the widget's values. Runs only when the user
+        asks, because it costs platform credits, and its result is stored rather
+        than regenerated on every view.
+      enum:
+      - WIDGET_TAB_MODE_UNSPECIFIED
+      - WIDGET_TAB_MODE_DATA
+      - WIDGET_TAB_MODE_AGENT_SUMMARY
+      type: string
     WidgetVisualization:
       properties:
         chartType:
