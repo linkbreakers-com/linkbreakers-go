@@ -5,7 +5,7 @@ info:
     url: https://app.linkbreakers.com
   description: This is a documentation of all the APIs of Linkbreakers
   title: Linkbreakers API
-  version: 1.108.0
+  version: 1.109.2
 servers:
 - url: https://api.linkbreakers.com
 security:
@@ -5930,14 +5930,15 @@ components:
         linkId: linkId
         name: name
         id: id
+        useDefaultWidgets: true
         config: ""
       properties:
         config:
           allOf:
           - $ref: "#/components/schemas/DashboardConfig"
           description: |-
-            Initial widgets. When empty, a workspace-wide dashboard is seeded with the
-            default widget set and a link-scoped dashboard starts with no widgets.
+            Initial widgets. Empty means the dashboard starts with none, because its
+            contents are normally agreed with the agent before anything is created.
         id:
           description: Client-supplied dashboard id. Generated server-side when empty.
           type: string
@@ -5948,6 +5949,14 @@ components:
         name:
           description: Display name. Defaults to "Default Dashboard" when empty.
           type: string
+        useDefaultWidgets:
+          description: |-
+            Fill a workspace dashboard with the standard starter widgets instead of
+            leaving it empty. For the first dashboard in a workspace, which is created
+            by one click rather than by a conversation. Ignored when config is set or
+            when link_id is set, and hidden from the agent, which agrees its widgets
+            with the user and would otherwise stack them on top of these.
+          type: boolean
     CreateDashboardResponse:
       example:
         dashboard:
