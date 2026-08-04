@@ -193,7 +193,7 @@ model_get_grouped_time_series_request.go
 model_get_grouped_time_series_response.go
 model_get_hour_of_day_distribution_request.go
 model_get_hour_of_day_distribution_response.go
-model_get_lead_score_explanation_response.go
+model_get_lead_score_response.go
 model_get_link_response.go
 model_get_link_setting_response.go
 model_get_media_response.go

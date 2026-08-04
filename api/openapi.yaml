@@ -5,7 +5,7 @@ info:
     url: https://app.linkbreakers.com
   description: This is a documentation of all the APIs of Linkbreakers
   title: Linkbreakers API
-  version: 1.111.1
+  version: 1.111.2
 servers:
 - url: https://api.linkbreakers.com
 security:
@@ -92,6 +92,10 @@ paths:
           dashboard id — the dashboard does not exist yet while the user and the
           assistant are still agreeing on what it should show. Once it exists,
           editing it happens under AGENT_CONTEXT_TYPE_ANALYTICS_DASHBOARD instead.
+           - AGENT_CONTEXT_TYPE_LEAD_SCORE: A conversation about one visit and the lead score it produced. The context
+          id is the EVENT id, not the link id: two visits to the same link are two
+          different subjects, and sharing a thread between them lets one visitor's
+          details bleed into answers about another.
         explode: true
         in: query
         name: contextType
@@ -133,6 +137,10 @@ paths:
           dashboard id — the dashboard does not exist yet while the user and the
           assistant are still agreeing on what it should show. Once it exists,
           editing it happens under AGENT_CONTEXT_TYPE_ANALYTICS_DASHBOARD instead.
+           - AGENT_CONTEXT_TYPE_LEAD_SCORE: A conversation about one visit and the lead score it produced. The context
+          id is the EVENT id, not the link id: two visits to the same link are two
+          different subjects, and sharing a thread between them lets one visitor's
+          details bleed into answers about another.
         explode: true
         in: query
         name: contextType
@@ -1974,11 +1982,13 @@ paths:
       summary: Update a link
       tags:
       - Links
-  /v1/links/{linkId}/lead-score-explanation/{eventId}:
+  /v1/links/{linkId}/lead-score/{eventId}:
     get:
-      description: Generates an AI-powered explanation for a lead score result based
-        on event data.
-      operationId: LinksService_GetLeadScoreExplanation
+      description: |-
+        Returns the score exactly as it was recorded when the visitor came through,
+        together with the factor breakdown and the weighting the link was scored
+        on. Nothing is recalculated here.
+      operationId: LinksService_GetLeadScore
       parameters:
       - description: The ID of the link (UUID)
         explode: false
@@ -2001,7 +2011,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/GetLeadScoreExplanationResponse"
+                $ref: "#/components/schemas/GetLeadScoreResponse"
           description: Everything worked as expected.
         default:
           content:
@@ -2011,7 +2021,7 @@ paths:
           description: Unexpected error
       security:
       - bearerAuth: []
-      summary: Get lead score explanation
+      summary: Get the stored lead score for an event
       tags:
       - Links
   /v1/links/{linkId}/workflow-steps:
@@ -4948,6 +4958,10 @@ components:
         dashboard id — the dashboard does not exist yet while the user and the
         assistant are still agreeing on what it should show. Once it exists,
         editing it happens under AGENT_CONTEXT_TYPE_ANALYTICS_DASHBOARD instead.
+         - AGENT_CONTEXT_TYPE_LEAD_SCORE: A conversation about one visit and the lead score it produced. The context
+        id is the EVENT id, not the link id: two visits to the same link are two
+        different subjects, and sharing a thread between them lets one visitor's
+        details bleed into answers about another.
       enum:
       - AGENT_CONTEXT_TYPE_UNSPECIFIED
       - AGENT_CONTEXT_TYPE_ANALYTICS_DASHBOARD
@@ -4956,6 +4970,7 @@ components:
       - AGENT_CONTEXT_TYPE_QRCODE_DESIGN
       - AGENT_CONTEXT_TYPE_PAGE_THEME
       - AGENT_CONTEXT_TYPE_LINK_ANALYTICS
+      - AGENT_CONTEXT_TYPE_LEAD_SCORE
       title: Agent context types
       type: string
     AgentDisplayMessage:
@@ -5803,14 +5818,17 @@ components:
           type: string
         leadGoalDefinition:
           description: |-
-            The lead goal definition for the link.
-            This is a text field that can be used to describe the lead goal or purpose of the link.
+            Why this link exists, in the user's own words.
+            Lead scoring reads this to choose the weighting for the link, so a link
+            with neither goal nor target scores on neutral weights and gets no
+            profile fit.
           example: Capture contact information for sales outreach
           type: string
         leadTargetDefinition:
           description: |-
-            The lead target definition for the link.
-            This is a text field that can be used to describe the target lead criteria for the link.
+            Who counts as a good lead for this link.
+            Lead scoring matches visitor country and business signals against this
+            text, and leaves profile fit unscored when it is empty.
           example: Business contacts interested in our services
           type: string
         metadata:
@@ -6085,14 +6103,17 @@ components:
           type: string
         leadGoalDefinition:
           description: |-
-            The lead goal definition for the link.
-            This is a text field that can be used to describe the lead goal or purpose of the link.
+            Why this link exists, in the user's own words.
+            Lead scoring reads this to choose the weighting for the link, so a link
+            with neither goal nor target scores on neutral weights and gets no
+            profile fit.
           example: Increase newsletter signups
           type: string
         leadTargetDefinition:
           description: |-
-            The lead target definition for the link.
-            This is a text field that can be used to describe the target lead criteria for the link.
+            Who counts as a good lead for this link.
+            Lead scoring matches visitor country and business signals against this
+            text, and leaves profile fit unscored when it is empty.
           example: Marketing qualified leads with budget > $10k
           type: string
         metadata:
@@ -6338,14 +6359,17 @@ components:
           type: string
         leadGoalDefinition:
           description: |-
-            The lead goal definition for the link.
-            This is a text field that can be used to describe the lead goal or purpose of the link.
+            Why this link exists, in the user's own words.
+            Lead scoring reads this to choose the weighting for the link, so a link
+            with neither goal nor target scores on neutral weights and gets no
+            profile fit.
           example: Capture visitor appreciation and measure engagement
           type: string
         leadTargetDefinition:
           description: |-
-            The lead target definition for the link.
-            This is a text field that can be used to describe the target lead criteria for the link.
+            Who counts as a good lead for this link.
+            Lead scoring matches visitor country and business signals against this
+            text, and leaves profile fit unscored when it is empty.
           example: Visitors who completed a purchase or signup
           type: string
         metadata:
@@ -7792,7 +7816,6 @@ components:
         leadScore:
           brandSupportiveness: 0
           leadScore: 1
-          analysisText: analysisText
           profileFit: 5
           technologicalAptitude: 7
           createdAt: 2000-01-23T04:56:07.000+00:00
@@ -9036,29 +9059,39 @@ components:
           format: int32
           type: integer
       title: GetHourOfDayDistributionResponse contains 24 data points (one per hour)
-    GetLeadScoreExplanationResponse:
+    GetLeadScoreResponse:
       example:
         leadScore: 0
         breakdown: ""
-        explanation: explanation
+        scoringRationale: scoringRationale
+        scoringContext: scoringContext
         recurringScans: 6
       properties:
         breakdown:
           allOf:
           - $ref: "#/components/schemas/LeadScoreBreakdown"
-          title: Breakdown of the scoring factors
-        explanation:
-          title: Detailed explanation of how the lead score was calculated
-          type: string
+          description: |-
+            Breakdown of the scoring factors. A factor that is absent was not
+            measurable for this visitor and was excluded from the score.
         leadScore:
           format: int32
-          title: The lead score that was calculated for this event
+          title: The lead score recorded for this event
           type: integer
         recurringScans:
           format: int32
           title: Number of recurring scans from this device+link combination
           type: integer
-      title: Response containing the lead score explanation
+        scoringContext:
+          description: |-
+            How this link was classified when its weighting was derived, for example
+            "b2b_enterprise" or "community_social".
+          type: string
+        scoringRationale:
+          description: |-
+            Plain explanation of why the link is weighted the way it is. Empty when the
+            link scores on the deterministic weighting.
+          type: string
+      title: Response containing a stored lead score
     GetLinkResponse:
       example:
         link:
@@ -9492,7 +9525,6 @@ components:
       example:
         brandSupportiveness: 0
         leadScore: 1
-        analysisText: analysisText
         profileFit: 5
         technologicalAptitude: 7
         createdAt: 2000-01-23T04:56:07.000+00:00
@@ -9505,9 +9537,6 @@ components:
         visitorId: 4da3e6a2-2d54-4b0f-9e17-4b6c2af7e9c5
         workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
       properties:
-        analysisText:
-          title: Narrative explanation generated by the AI model
-          type: string
         brandSupportiveness:
           format: int32
           title: "Scaled signal indicating brand sentiment from form responses and\
@@ -9685,13 +9714,16 @@ components:
           type: string
         leadGoalDefinition:
           description: |-
-            The lead goal definition for the link.
-            This is a text field that can be used to describe the lead goal or purpose of the link.
+            Why this link exists, in the user's own words.
+            Lead scoring reads this to choose the weighting for the link, so a link
+            with neither goal nor target scores on neutral weights and gets no
+            profile fit.
           type: string
         leadTargetDefinition:
           description: |-
-            The lead target definition for the link.
-            This is a text field that can be used to describe the target lead criteria for the link.
+            Who counts as a good lead for this link.
+            Lead scoring matches visitor country and business signals against this
+            text, and leaves profile fit unscored when it is empty.
           type: string
         metadata:
           additionalProperties:
@@ -9859,14 +9891,17 @@ components:
           type: string
         leadGoalDefinition:
           description: |-
-            The lead goal definition for the link.
-            This is a text field that can be used to describe the lead goal or purpose of the link.
+            Why this link exists, in the user's own words.
+            Lead scoring reads this to choose the weighting for the link, so a link
+            with neither goal nor target scores on neutral weights and gets no
+            profile fit.
           example: Increase newsletter signups
           type: string
         leadTargetDefinition:
           description: |-
-            The lead target definition for the link.
-            This is a text field that can be used to describe the target lead criteria for the link.
+            Who counts as a good lead for this link.
+            Lead scoring matches visitor country and business signals against this
+            text, and leaves profile fit unscored when it is empty.
           example: Marketing qualified leads with budget > $10k
           type: string
         name:
@@ -10094,7 +10129,6 @@ components:
         - leadScore:
             brandSupportiveness: 0
             leadScore: 1
-            analysisText: analysisText
             profileFit: 5
             technologicalAptitude: 7
             createdAt: 2000-01-23T04:56:07.000+00:00
@@ -10275,7 +10309,6 @@ components:
         - leadScore:
             brandSupportiveness: 0
             leadScore: 1
-            analysisText: analysisText
             profileFit: 5
             technologicalAptitude: 7
             createdAt: 2000-01-23T04:56:07.000+00:00
@@ -10489,7 +10522,6 @@ components:
           - leadScore:
               brandSupportiveness: 0
               leadScore: 1
-              analysisText: analysisText
               profileFit: 5
               technologicalAptitude: 7
               createdAt: 2000-01-23T04:56:07.000+00:00
@@ -10672,7 +10704,6 @@ components:
           - leadScore:
               brandSupportiveness: 0
               leadScore: 1
-              analysisText: analysisText
               profileFit: 5
               technologicalAptitude: 7
               createdAt: 2000-01-23T04:56:07.000+00:00
