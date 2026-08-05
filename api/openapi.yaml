@@ -5,7 +5,7 @@ info:
     url: https://app.linkbreakers.com
   description: This is a documentation of all the APIs of Linkbreakers
   title: Linkbreakers API
-  version: 1.111.2
+  version: 1.111.8
 servers:
 - url: https://api.linkbreakers.com
 security:
@@ -592,6 +592,36 @@ paths:
       security:
       - bearerAuth: []
       summary: Get device distribution
+      tags:
+      - Analytics Data
+  /v1/analytics/funnel:
+    post:
+      description: "Returns the workflow steps visitors reached, in distinct visitors,\
+        \ ordered from arrival to exit, with the conversion rate and drop-off at each\
+        \ step."
+      operationId: AnalyticsDataService_GetStepFunnel
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GetStepFunnelRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetStepFunnelResponse"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth: []
+      summary: Get workflow step funnel
       tags:
       - Analytics Data
   /v1/analytics/geo:
@@ -8564,6 +8594,83 @@ components:
           type: string
         value:
           type: string
+    FunnelBranch:
+      description: |-
+        FunnelBranch is one choice within a step, such as a button on a multi-link
+        page.
+      example:
+        visits: visits
+        label: label
+        shareOfStep: 6.027456183070403
+      properties:
+        label:
+          title: "The button's label, as the visitor saw it"
+          type: string
+        shareOfStep:
+          format: double
+          title: Visits as a percentage of the journeys that reached the step
+          type: number
+        visits:
+          description: |-
+            Journeys that took this branch. Zero means it was offered and nobody took
+            it, which is worth seeing rather than hiding.
+          format: int64
+          type: string
+    FunnelStep:
+      description: "FunnelStep is one step of the journey, already placed in order."
+      example:
+        occurrences: occurrences
+        stepKind: stepKind
+        visits: visits
+        stepAction: stepAction
+        identifiedVisitors: identifiedVisitors
+        dropOffFromPrevious: dropOffFromPrevious
+        branches:
+        - visits: visits
+          label: label
+          shareOfStep: 6.027456183070403
+        - visits: visits
+          label: label
+          shareOfStep: 6.027456183070403
+        conversionRate: 1.4658129805029452
+      properties:
+        branches:
+          description: |-
+            Choices offered inside this step, where it offers one. A multi-link step is
+            a single row but several different things happened in it.
+          items:
+            $ref: "#/components/schemas/FunnelBranch"
+          type: array
+        conversionRate:
+          format: double
+          title: Visits as a percentage of those who arrived; the entry step is 100
+          type: number
+        dropOffFromPrevious:
+          format: int64
+          title: Journeys that did not get here from the step above
+          type: string
+        identifiedVisitors:
+          format: int64
+          title: How many of those journeys belong to a known visitor
+          type: string
+        occurrences:
+          format: int64
+          title: "Every trace recorded, so a step that repeats stays visible"
+          type: string
+        stepAction:
+          title: "Workflow step, e.g. \"LINK_VISIT\", \"FORM_SUBMIT\", \"CLIENT_REDIRECT\""
+          type: string
+        stepKind:
+          title: "\"ENTRY\", \"CONDITION\", \"INTERACTION\" or \"EXIT\""
+          type: string
+        visits:
+          description: |-
+            Journeys that reached this step, counted per event. Events are used rather
+            than visitors because visitor_id is NULL on most traces in practice, and
+            counting visitors makes later steps look wider than the arrival they came
+            from, which pushes conversion rates above 100%.
+          format: int64
+          type: string
     GenerateWidgetSummaryResponse:
       example:
         result:
@@ -9197,6 +9304,73 @@ components:
           title: The full Slack OAuth authorization URL to redirect the user to
           type: string
       title: GetSlackOAuthURLResponse returns the Slack OAuth authorization URL
+    GetStepFunnelRequest:
+      description: GetStepFunnelRequest asks how far visitors get through a link's
+        workflow.
+      example:
+        linkId: linkId
+        endDate: 2000-01-23T04:56:07.000+00:00
+        startDate: 2000-01-23T04:56:07.000+00:00
+      properties:
+        endDate:
+          format: date-time
+          title: Inclusive end timestamp
+          type: string
+        linkId:
+          title: Optional link filter (UUID); when omitted aggregates workspace-wide
+          type: string
+        startDate:
+          format: date-time
+          title: Inclusive start timestamp
+          type: string
+    GetStepFunnelResponse:
+      description: GetStepFunnelResponse contains the ordered funnel.
+      example:
+        completionRate: 0.8008281904610115
+        entryVisits: entryVisits
+        steps:
+        - occurrences: occurrences
+          stepKind: stepKind
+          visits: visits
+          stepAction: stepAction
+          identifiedVisitors: identifiedVisitors
+          dropOffFromPrevious: dropOffFromPrevious
+          branches:
+          - visits: visits
+            label: label
+            shareOfStep: 6.027456183070403
+          - visits: visits
+            label: label
+            shareOfStep: 6.027456183070403
+          conversionRate: 1.4658129805029452
+        - occurrences: occurrences
+          stepKind: stepKind
+          visits: visits
+          stepAction: stepAction
+          identifiedVisitors: identifiedVisitors
+          dropOffFromPrevious: dropOffFromPrevious
+          branches:
+          - visits: visits
+            label: label
+            shareOfStep: 6.027456183070403
+          - visits: visits
+            label: label
+            shareOfStep: 6.027456183070403
+          conversionRate: 1.4658129805029452
+      properties:
+        completionRate:
+          format: double
+          title: Conversion rate of the final step
+          type: number
+        entryVisits:
+          format: int64
+          title: Journeys that arrived; the denominator of every rate
+          type: string
+        steps:
+          items:
+            $ref: "#/components/schemas/FunnelStep"
+          title: "Steps in the order a visitor meets them, arrival first"
+          type: array
     GetTopLinksRequest:
       example:
         linkId: linkId
@@ -14636,7 +14810,7 @@ components:
       properties:
         chartType:
           title: "Chart type: \"bar\", \"horizontal_bar\", \"line\", \"area\", \"\
-            stacked_area\", \"pie\", \"number\""
+            stacked_area\", \"pie\", \"number\", \"list\", \"funnel\""
           type: string
         colors:
           items:

@@ -169,6 +169,8 @@ model_form_field_type.go
 model_form_payload.go
 model_form_trace_data.go
 model_form_trace_data_field.go
+model_funnel_branch.go
+model_funnel_step.go
 model_generate_widget_summary_response.go
 model_geo_data_point.go
 model_get_attribute_distribution_request.go
@@ -201,6 +203,8 @@ model_get_page_theme_response.go
 model_get_qrcode_design_response.go
 model_get_slack_integration_response.go
 model_get_slack_o_auth_url_response.go
+model_get_step_funnel_request.go
+model_get_step_funnel_response.go
 model_get_top_links_request.go
 model_get_top_links_response.go
 model_get_visitor_trends_request.go
