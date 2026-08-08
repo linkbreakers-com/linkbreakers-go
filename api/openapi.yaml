@@ -5,7 +5,7 @@ info:
     url: https://app.linkbreakers.com
   description: This is a documentation of all the APIs of Linkbreakers
   title: Linkbreakers API
-  version: 1.111.18
+  version: 1.111.19
 servers:
 - url: https://api.linkbreakers.com
 security:
@@ -4972,8 +4972,31 @@ components:
       type: string
     AddWorkflowStepRelationshipResponse:
       example:
+        disconnectedSteps:
+        - severity: severity
+          stepType: stepType
+          stepId: stepId
+          message: message
+        - severity: severity
+          stepType: stepType
+          stepId: stepId
+          message: message
         message: message
       properties:
+        disconnectedSteps:
+          description: |-
+            Steps that cannot be reached from Link Visit now that this connection
+            exists, reported without being asked for.
+
+            Rewiring a workflow detaches things: links_create seeds an exit redirect,
+            and the moment the entry routes through a condition instead, that redirect
+            is stranded. It happened on a real link, which shipped with a floating
+            redirect the builder never mentioned, because noticing depended on
+            remembering to run a separate validation call. The server knows at the
+            moment it happens, so it says so here. Empty means everything is connected.
+          items:
+            $ref: "#/components/schemas/WorkflowIssue"
+          type: array
         message:
           title: Confirmation message
           type: string
@@ -5180,6 +5203,7 @@ components:
         name: name
         id: id
         config:
+          gridColumns: 0
           widgets:
           - visualization: ""
             size: ""
@@ -5228,6 +5252,7 @@ components:
       example:
         name: name
         config:
+          gridColumns: 0
           widgets:
           - visualization: ""
             size: ""
@@ -6022,6 +6047,7 @@ components:
           name: name
           id: id
           config:
+            gridColumns: 0
             widgets:
             - visualization: ""
               size: ""
@@ -6719,6 +6745,7 @@ components:
       title: Request to update a custom domain
     DashboardConfig:
       example:
+        gridColumns: 0
         widgets:
         - visualization: ""
           size: ""
@@ -6733,6 +6760,13 @@ components:
           title: title
           dataSource: ""
       properties:
+        gridColumns:
+          description: |-
+            Width of the grid the widget positions and sizes are expressed in.
+            Absent or 0 means the legacy two-column grid, where w=1 is half-width and
+            w=2 is full-width. New dashboards use 8.
+          format: int32
+          type: integer
         widgets:
           items:
             $ref: "#/components/schemas/DashboardWidget"
@@ -8133,14 +8167,20 @@ components:
          - EVENT_ACTION_PASSWORD_VERIFY: Require visitors to enter a password before proceeding
          - EVENT_ACTION_FORM_SUBMIT: Present a data collection form to visitors
          - EVENT_ACTION_CONTACT_CARD: Generate a vCard (VCF) response with contact information
-         - EVENT_ACTION_MULTI_LINK: Present a multi-link page with multiple buttons for different destinations
+         - EVENT_ACTION_MULTI_LINK: A page of buttons where each one continues into more workflow: the button
+        leads to a next step, not straight out. Records which button the visitor
+        pressed, so use it over SOCIAL_LINKS_PAGE when that choice is worth
+        measuring or when a branch needs to do more than redirect.
          - EVENT_ACTION_VISIT_TYPE_CONDITION: Route visitors based on whether it's a first or returning visit
          - EVENT_ACTION_COUNTRY_CONDITION: Route visitors based on their country location
          - EVENT_ACTION_DAY_OF_WEEK_CONDITION: Route visitors based on day of week
          - EVENT_ACTION_TIME_OF_DAY_CONDITION: Route visitors based on time of day
          - EVENT_ACTION_DAY_OF_MONTH_CONDITION: Route visitors based on day of month
          - EVENT_ACTION_SPECIFIC_DATE_CONDITION: Route visitors based on specific calendar dates
-         - EVENT_ACTION_SOCIAL_LINKS_PAGE: Display a social links page (like Linktree)
+         - EVENT_ACTION_SOCIAL_LINKS_PAGE: A page of buttons that each leave for an external URL. Social profiles are
+        the common case, not the only one: app stores, docs, booking pages and
+        storefronts all work, and the name is the only thing about it that is
+        social. It is an exit step, so the visitor leaves from here.
          - EVENT_ACTION_DEVICE_TYPE_CONDITION: Route visitors based on device type (e.g. MOBILE, DESKTOP, TABLET)
          - EVENT_ACTION_DEVICE_PLATFORM_CONDITION: Route visitors based on device platform / operating system (e.g. iOS, Android, macOS)
          - EVENT_ACTION_DEVICE_BROWSER_CONDITION: Route visitors based on browser family (e.g. Chrome, Safari, Firefox)
@@ -8148,7 +8188,11 @@ components:
          - EVENT_ACTION_DEVICE_ACTOR_CONDITION: Route visitors based on actor classification (e.g. HUMAN, BOT, AGENT)
          - EVENT_ACTION_VISITOR_DATA_CONDITION: Route visitors based on their profile data or custom attributes
          - EVENT_ACTION_THANK_YOU_PAGE: Display a final thank you / completion message (exit step)
-         - EVENT_ACTION_MESSAGE_PAGE: Display an informational message with navigation (button or timer) to the next step
+         - EVENT_ACTION_MESSAGE_PAGE: Text with ONE way onward: a single button, or a timer that moves the
+        visitor automatically. It carries no list of destinations, so a page that
+        should offer a choice between two or more places is not this step. Use
+        SOCIAL_LINKS_PAGE when the choices leave for external URLs, or MULTI_LINK
+        when each choice continues into more workflow.
       enum:
       - EVENT_ACTION_UNSPECIFIED
       - EVENT_ACTION_CLIENT_REDIRECT
@@ -8624,6 +8668,7 @@ components:
         visits: visits
         stepAction: stepAction
         identifiedVisitors: identifiedVisitors
+        interactionRate: 5.962133916683182
         dropOffFromPrevious: dropOffFromPrevious
         branches:
         - visits: visits
@@ -8633,6 +8678,7 @@ components:
           label: label
           shareOfStep: 6.027456183070403
         conversionRate: 1.4658129805029452
+        interactions: interactions
       properties:
         branches:
           description: |-
@@ -8652,6 +8698,24 @@ components:
         identifiedVisitors:
           format: int64
           title: How many of those journeys belong to a known visitor
+          type: string
+        interactionRate:
+          description: |-
+            Interactions as a percentage of occurrences.
+
+            The action is recorded on the trace the step already opened, so both counts
+            come from the same rows and this cannot exceed 100, however many times one
+            visitor pressed. Branch shares can add up past 100, which is a different
+            and honest number: a social links page is not a fork, and one visitor may
+            open every link on it.
+          format: double
+          type: number
+        interactions:
+          description: |-
+            Journeys where the visitor acted on the step rather than only reaching it:
+            pressing a link on a social links page, choosing a button on a multi-link.
+            Zero on steps that offer nothing to act on.
+          format: int64
           type: string
         occurrences:
           format: int64
@@ -9334,6 +9398,7 @@ components:
           visits: visits
           stepAction: stepAction
           identifiedVisitors: identifiedVisitors
+          interactionRate: 5.962133916683182
           dropOffFromPrevious: dropOffFromPrevious
           branches:
           - visits: visits
@@ -9343,11 +9408,13 @@ components:
             label: label
             shareOfStep: 6.027456183070403
           conversionRate: 1.4658129805029452
+          interactions: interactions
         - occurrences: occurrences
           stepKind: stepKind
           visits: visits
           stepAction: stepAction
           identifiedVisitors: identifiedVisitors
+          interactionRate: 5.962133916683182
           dropOffFromPrevious: dropOffFromPrevious
           branches:
           - visits: visits
@@ -9357,6 +9424,7 @@ components:
             label: label
             shareOfStep: 6.027456183070403
           conversionRate: 1.4658129805029452
+          interactions: interactions
       properties:
         completionRate:
           format: double
@@ -10152,6 +10220,7 @@ components:
           name: name
           id: id
           config:
+            gridColumns: 0
             widgets:
             - visualization: ""
               size: ""
@@ -10180,6 +10249,7 @@ components:
           name: name
           id: id
           config:
+            gridColumns: 0
             widgets:
             - visualization: ""
               size: ""
@@ -13058,7 +13128,11 @@ components:
         platform:
           example: instagram
           title: |-
-            Platform type for icon display (auto-detected from URL if not provided)
+            Platform identifier picking the icon. Leave it empty and the API names it
+            from the URL, which is what you normally want. Known values: appstore,
+            playstore, instagram, tiktok, twitter, facebook, youtube, linkedin,
+            github, medium, whatsapp, telegram, discord, slack, spotify, applemusic,
+            twitch, snapchat, pinterest, reddit, calendly, website.
             Supported platforms: instagram, tiktok, twitter, facebook, website, youtube, linkedin, github, whatsapp
           type: string
         url:
@@ -13460,6 +13534,7 @@ components:
           name: name
           id: id
           config:
+            gridColumns: 0
             widgets:
             - visualization: ""
               size: ""
@@ -13904,10 +13979,13 @@ components:
     VCardSocialLink:
       properties:
         platform:
+          description: |-
+            Platform identifier picking the icon. Leave it empty and the API names it
+            from the URL, which is what you normally want. Known values: appstore,
+            playstore, instagram, tiktok, twitter, facebook, youtube, linkedin,
+            github, medium, whatsapp, telegram, discord, slack, spotify, applemusic,
+            twitch, snapchat, pinterest, reddit, calendly, website.
           example: linkedin
-          title: "Social platform identifier (e.g., \"instagram\", \"linkedin\", \"\
-            twitter\", \"facebook\", \"youtube\", \"tiktok\", \"github\", \"whatsapp\"\
-            , \"medium\", \"website\")"
           type: string
         url:
           example: https://linkedin.com/in/janedoe
@@ -14743,20 +14821,23 @@ components:
       properties:
         x:
           format: int32
+          title: "Leftmost column the widget occupies, 0-based"
           type: integer
         "y":
           format: int32
+          title: "Topmost row the widget occupies, 0-based"
           type: integer
       title: WidgetPosition defines where a widget sits in the grid
     WidgetSize:
       properties:
         h:
           format: int32
-          title: Row span
+          title: "Row span, one row being roughly 80px tall"
           type: integer
         w:
+          description: "Column span. In an 8-column config: 8 = full width, 4 = half,\
+            \ 2 = quarter."
           format: int32
-          title: "Column span (1 = half-width, 2 = full-width)"
           type: integer
       title: WidgetSize defines how many grid cells a widget spans
     WidgetTab:
@@ -14893,14 +14974,20 @@ components:
              - EVENT_ACTION_PASSWORD_VERIFY: Require visitors to enter a password before proceeding
              - EVENT_ACTION_FORM_SUBMIT: Present a data collection form to visitors
              - EVENT_ACTION_CONTACT_CARD: Generate a vCard (VCF) response with contact information
-             - EVENT_ACTION_MULTI_LINK: Present a multi-link page with multiple buttons for different destinations
+             - EVENT_ACTION_MULTI_LINK: A page of buttons where each one continues into more workflow: the button
+            leads to a next step, not straight out. Records which button the visitor
+            pressed, so use it over SOCIAL_LINKS_PAGE when that choice is worth
+            measuring or when a branch needs to do more than redirect.
              - EVENT_ACTION_VISIT_TYPE_CONDITION: Route visitors based on whether it's a first or returning visit
              - EVENT_ACTION_COUNTRY_CONDITION: Route visitors based on their country location
              - EVENT_ACTION_DAY_OF_WEEK_CONDITION: Route visitors based on day of week
              - EVENT_ACTION_TIME_OF_DAY_CONDITION: Route visitors based on time of day
              - EVENT_ACTION_DAY_OF_MONTH_CONDITION: Route visitors based on day of month
              - EVENT_ACTION_SPECIFIC_DATE_CONDITION: Route visitors based on specific calendar dates
-             - EVENT_ACTION_SOCIAL_LINKS_PAGE: Display a social links page (like Linktree)
+             - EVENT_ACTION_SOCIAL_LINKS_PAGE: A page of buttons that each leave for an external URL. Social profiles are
+            the common case, not the only one: app stores, docs, booking pages and
+            storefronts all work, and the name is the only thing about it that is
+            social. It is an exit step, so the visitor leaves from here.
              - EVENT_ACTION_DEVICE_TYPE_CONDITION: Route visitors based on device type (e.g. MOBILE, DESKTOP, TABLET)
              - EVENT_ACTION_DEVICE_PLATFORM_CONDITION: Route visitors based on device platform / operating system (e.g. iOS, Android, macOS)
              - EVENT_ACTION_DEVICE_BROWSER_CONDITION: Route visitors based on browser family (e.g. Chrome, Safari, Firefox)
@@ -14908,7 +14995,11 @@ components:
              - EVENT_ACTION_DEVICE_ACTOR_CONDITION: Route visitors based on actor classification (e.g. HUMAN, BOT, AGENT)
              - EVENT_ACTION_VISITOR_DATA_CONDITION: Route visitors based on their profile data or custom attributes
              - EVENT_ACTION_THANK_YOU_PAGE: Display a final thank you / completion message (exit step)
-             - EVENT_ACTION_MESSAGE_PAGE: Display an informational message with navigation (button or timer) to the next step
+             - EVENT_ACTION_MESSAGE_PAGE: Text with ONE way onward: a single button, or a timer that moves the
+            visitor automatically. It carries no list of destinations, so a page that
+            should offer a choice between two or more places is not this step. Use
+            SOCIAL_LINKS_PAGE when the choices leave for external URLs, or MULTI_LINK
+            when each choice continues into more workflow.
           enum:
           - EVENT_ACTION_UNSPECIFIED
           - EVENT_ACTION_CLIENT_REDIRECT
@@ -15154,14 +15245,20 @@ components:
              - EVENT_ACTION_PASSWORD_VERIFY: Require visitors to enter a password before proceeding
              - EVENT_ACTION_FORM_SUBMIT: Present a data collection form to visitors
              - EVENT_ACTION_CONTACT_CARD: Generate a vCard (VCF) response with contact information
-             - EVENT_ACTION_MULTI_LINK: Present a multi-link page with multiple buttons for different destinations
+             - EVENT_ACTION_MULTI_LINK: A page of buttons where each one continues into more workflow: the button
+            leads to a next step, not straight out. Records which button the visitor
+            pressed, so use it over SOCIAL_LINKS_PAGE when that choice is worth
+            measuring or when a branch needs to do more than redirect.
              - EVENT_ACTION_VISIT_TYPE_CONDITION: Route visitors based on whether it's a first or returning visit
              - EVENT_ACTION_COUNTRY_CONDITION: Route visitors based on their country location
              - EVENT_ACTION_DAY_OF_WEEK_CONDITION: Route visitors based on day of week
              - EVENT_ACTION_TIME_OF_DAY_CONDITION: Route visitors based on time of day
              - EVENT_ACTION_DAY_OF_MONTH_CONDITION: Route visitors based on day of month
              - EVENT_ACTION_SPECIFIC_DATE_CONDITION: Route visitors based on specific calendar dates
-             - EVENT_ACTION_SOCIAL_LINKS_PAGE: Display a social links page (like Linktree)
+             - EVENT_ACTION_SOCIAL_LINKS_PAGE: A page of buttons that each leave for an external URL. Social profiles are
+            the common case, not the only one: app stores, docs, booking pages and
+            storefronts all work, and the name is the only thing about it that is
+            social. It is an exit step, so the visitor leaves from here.
              - EVENT_ACTION_DEVICE_TYPE_CONDITION: Route visitors based on device type (e.g. MOBILE, DESKTOP, TABLET)
              - EVENT_ACTION_DEVICE_PLATFORM_CONDITION: Route visitors based on device platform / operating system (e.g. iOS, Android, macOS)
              - EVENT_ACTION_DEVICE_BROWSER_CONDITION: Route visitors based on browser family (e.g. Chrome, Safari, Firefox)
@@ -15169,7 +15266,11 @@ components:
              - EVENT_ACTION_DEVICE_ACTOR_CONDITION: Route visitors based on actor classification (e.g. HUMAN, BOT, AGENT)
              - EVENT_ACTION_VISITOR_DATA_CONDITION: Route visitors based on their profile data or custom attributes
              - EVENT_ACTION_THANK_YOU_PAGE: Display a final thank you / completion message (exit step)
-             - EVENT_ACTION_MESSAGE_PAGE: Display an informational message with navigation (button or timer) to the next step
+             - EVENT_ACTION_MESSAGE_PAGE: Text with ONE way onward: a single button, or a timer that moves the
+            visitor automatically. It carries no list of destinations, so a page that
+            should offer a choice between two or more places is not this step. Use
+            SOCIAL_LINKS_PAGE when the choices leave for external URLs, or MULTI_LINK
+            when each choice continues into more workflow.
           enum:
           - EVENT_ACTION_UNSPECIFIED
           - EVENT_ACTION_CLIENT_REDIRECT
