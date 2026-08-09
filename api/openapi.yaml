@@ -5,7 +5,7 @@ info:
     url: https://app.linkbreakers.com
   description: This is a documentation of all the APIs of Linkbreakers
   title: Linkbreakers API
-  version: 1.113.0
+  version: 1.114.0
 servers:
 - url: https://api.linkbreakers.com
 security:
@@ -5728,8 +5728,7 @@ components:
       description: Request to create links in bulk.
       example:
         links:
-        - leadGoalDefinition: leadGoalDefinition
-          qrcodeDesignId: a8c5e111-8894-4f8a-b5db-9efe0d12a210
+        - qrcodeDesignId: a8c5e111-8894-4f8a-b5db-9efe0d12a210
           metadata:
             key: metadata
           purpose: "Increase newsletter signups. Good leads: marketing qualified leads\
@@ -5738,7 +5737,6 @@ components:
           destination: https://example.com
           customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
           fallbackDestination: https://example.com/fallback
-          leadTargetDefinition: leadTargetDefinition
           tags:
           - tags
           - tags
@@ -5748,8 +5746,7 @@ components:
           id: 550e8400-e29b-41d4-a716-446655440000
           waitForQrcode: true
           shortlink: my-link
-        - leadGoalDefinition: leadGoalDefinition
-          qrcodeDesignId: a8c5e111-8894-4f8a-b5db-9efe0d12a210
+        - qrcodeDesignId: a8c5e111-8894-4f8a-b5db-9efe0d12a210
           metadata:
             key: metadata
           purpose: "Increase newsletter signups. Good leads: marketing qualified leads\
@@ -5758,7 +5755,6 @@ components:
           destination: https://example.com
           customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
           fallbackDestination: https://example.com/fallback
-          leadTargetDefinition: leadTargetDefinition
           tags:
           - tags
           - tags
@@ -5782,8 +5778,7 @@ components:
       description: Response containing all created links from a successful batch.
       example:
         links:
-        - leadGoalDefinition: leadGoalDefinition
-          qrcodeDesignId: a8c5e111-8894-4f8a-b5db-9efe0d12a210
+        - qrcodeDesignId: a8c5e111-8894-4f8a-b5db-9efe0d12a210
           qrcodePendingUpdateSince: 2000-01-23T04:56:07.000+00:00
           metadata:
             key: metadata
@@ -5793,7 +5788,6 @@ components:
           customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
           fallbackDestination: https://brand.example.com/fallback
           customDomain: ""
-          leadTargetDefinition: leadTargetDefinition
           tags:
           - createdAt: 2000-01-23T04:56:07.000+00:00
             name: name
@@ -5815,8 +5809,7 @@ components:
           shortlink: 4BnH-R19p
           updatedAt: 2000-01-23T04:56:07.000+00:00
           workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
-        - leadGoalDefinition: leadGoalDefinition
-          qrcodeDesignId: a8c5e111-8894-4f8a-b5db-9efe0d12a210
+        - qrcodeDesignId: a8c5e111-8894-4f8a-b5db-9efe0d12a210
           qrcodePendingUpdateSince: 2000-01-23T04:56:07.000+00:00
           metadata:
             key: metadata
@@ -5826,7 +5819,6 @@ components:
           customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
           fallbackDestination: https://brand.example.com/fallback
           customDomain: ""
-          leadTargetDefinition: leadTargetDefinition
           tags:
           - createdAt: 2000-01-23T04:56:07.000+00:00
             name: name
@@ -5856,23 +5848,21 @@ components:
     CreateContactLinkRequest:
       description: Request to create a new contact card link.
       example:
-        leadGoalDefinition: leadGoalDefinition
         qrcodeDesignId: a8c5e111-8894-4f8a-b5db-9efe0d12a210
         metadata:
           key: metadata
+        qrcodeTemplateId: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
         purpose: "Capture contact details for sales outreach. Good leads: business\
           \ contacts interested in our services."
-        customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
-        fallbackDestination: https://company.com/contact
-        leadTargetDefinition: leadTargetDefinition
-        tags:
-        - tags
-        - tags
-        qrcodeTemplateId: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
         vcardData: ""
         name: Jane Doe Contact Card
         waitForQrcode: true
+        customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
+        fallbackDestination: https://company.com/contact
         shortlink: jane-contact
+        tags:
+        - tags
+        - tags
       properties:
         customDomainId:
           description: |-
@@ -5885,15 +5875,6 @@ components:
           example: https://company.com/contact
           title: The fallback destination URL to use when vCard download fails or
             is not supported
-          type: string
-        leadGoalDefinition:
-          description: |-
-            Deprecated: superseded by purpose, which carries both the aim and the
-            audience in one field. Still read from storage so existing consumers keep
-            working, but nothing writes it any more.
-          type: string
-        leadTargetDefinition:
-          description: "Deprecated: superseded by purpose. See lead_goal_definition."
           type: string
         metadata:
           additionalProperties:
@@ -5954,7 +5935,6 @@ components:
     CreateContactLinkResponse:
       example:
         link:
-          leadGoalDefinition: leadGoalDefinition
           qrcodeDesignId: a8c5e111-8894-4f8a-b5db-9efe0d12a210
           qrcodePendingUpdateSince: 2000-01-23T04:56:07.000+00:00
           metadata:
@@ -5965,7 +5945,6 @@ components:
           customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
           fallbackDestination: https://brand.example.com/fallback
           customDomain: ""
-          leadTargetDefinition: leadTargetDefinition
           tags:
           - createdAt: 2000-01-23T04:56:07.000+00:00
             name: name
@@ -6131,7 +6110,6 @@ components:
     CreateLinkRequest:
       description: Request to create a new link.
       example:
-        leadGoalDefinition: leadGoalDefinition
         qrcodeDesignId: a8c5e111-8894-4f8a-b5db-9efe0d12a210
         metadata:
           key: metadata
@@ -6141,7 +6119,6 @@ components:
         destination: https://example.com
         customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
         fallbackDestination: https://example.com/fallback
-        leadTargetDefinition: leadTargetDefinition
         tags:
         - tags
         - tags
@@ -6181,15 +6158,6 @@ components:
             alias, so exposing it only invites the LLM to invent a raw UUID. The system
             generates the id and returns it as an alias in the response.
           example: 550e8400-e29b-41d4-a716-446655440000
-          type: string
-        leadGoalDefinition:
-          description: |-
-            Deprecated: superseded by purpose, which carries both the aim and the
-            audience in one field. Still read from storage so existing consumers keep
-            working, but nothing writes it any more.
-          type: string
-        leadTargetDefinition:
-          description: "Deprecated: superseded by purpose. See lead_goal_definition."
           type: string
         metadata:
           additionalProperties:
@@ -6269,7 +6237,6 @@ components:
           eventAction: EVENT_ACTION_CLIENT_REDIRECT
           updatedAt: 2000-01-23T04:56:07.000+00:00
         link:
-          leadGoalDefinition: leadGoalDefinition
           qrcodeDesignId: a8c5e111-8894-4f8a-b5db-9efe0d12a210
           qrcodePendingUpdateSince: 2000-01-23T04:56:07.000+00:00
           metadata:
@@ -6280,7 +6247,6 @@ components:
           customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
           fallbackDestination: https://brand.example.com/fallback
           customDomain: ""
-          leadTargetDefinition: leadTargetDefinition
           tags:
           - createdAt: 2000-01-23T04:56:07.000+00:00
             name: name
@@ -6409,24 +6375,22 @@ components:
     CreateThankYouLinkRequest:
       description: Request to create a new thank you page link.
       example:
-        leadGoalDefinition: leadGoalDefinition
         qrcodeDesignId: a8c5e111-8894-4f8a-b5db-9efe0d12a210
         metadata:
           key: metadata
+        qrcodeTemplateId: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
         purpose: "Thank visitors after a purchase and measure engagement. Good leads:\
           \ visitors who completed a purchase."
+        name: Thank You Page Link
         description: We appreciate your visit.
+        directoryId: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+        waitForQrcode: true
         customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
         title: Thank you!
-        leadTargetDefinition: leadTargetDefinition
+        shortlink: thank-you
         tags:
         - tags
         - tags
-        qrcodeTemplateId: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
-        name: Thank You Page Link
-        directoryId: a1b2c3d4-e5f6-7890-abcd-ef1234567890
-        waitForQrcode: true
-        shortlink: thank-you
       properties:
         customDomainId:
           description: |-
@@ -6443,15 +6407,6 @@ components:
           description: "Directory to organize this link into. If empty, link is created\
             \ at root level."
           example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
-          type: string
-        leadGoalDefinition:
-          description: |-
-            Deprecated: superseded by purpose, which carries both the aim and the
-            audience in one field. Still read from storage so existing consumers keep
-            working, but nothing writes it any more.
-          type: string
-        leadTargetDefinition:
-          description: "Deprecated: superseded by purpose. See lead_goal_definition."
           type: string
         metadata:
           additionalProperties:
@@ -6512,7 +6467,6 @@ components:
     CreateThankYouLinkResponse:
       example:
         link:
-          leadGoalDefinition: leadGoalDefinition
           qrcodeDesignId: a8c5e111-8894-4f8a-b5db-9efe0d12a210
           qrcodePendingUpdateSince: 2000-01-23T04:56:07.000+00:00
           metadata:
@@ -6523,7 +6477,6 @@ components:
           customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
           fallbackDestination: https://brand.example.com/fallback
           customDomain: ""
-          leadTargetDefinition: leadTargetDefinition
           tags:
           - createdAt: 2000-01-23T04:56:07.000+00:00
             name: name
@@ -9347,7 +9300,6 @@ components:
     GetLinkResponse:
       example:
         link:
-          leadGoalDefinition: leadGoalDefinition
           qrcodeDesignId: a8c5e111-8894-4f8a-b5db-9efe0d12a210
           qrcodePendingUpdateSince: 2000-01-23T04:56:07.000+00:00
           metadata:
@@ -9358,7 +9310,6 @@ components:
           customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
           fallbackDestination: https://brand.example.com/fallback
           customDomain: ""
-          leadTargetDefinition: leadTargetDefinition
           tags:
           - createdAt: 2000-01-23T04:56:07.000+00:00
             name: name
@@ -9953,7 +9904,6 @@ components:
         Core resource that ties a shortlink or QR entrypoint to its workflow, destination, and analytics metadata,
         letting Linkbreakers serve dynamic experiences while tracking scans for a workspace.
       example:
-        leadGoalDefinition: leadGoalDefinition
         qrcodeDesignId: a8c5e111-8894-4f8a-b5db-9efe0d12a210
         qrcodePendingUpdateSince: 2000-01-23T04:56:07.000+00:00
         metadata:
@@ -9964,7 +9914,6 @@ components:
         customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
         fallbackDestination: https://brand.example.com/fallback
         customDomain: ""
-        leadTargetDefinition: leadTargetDefinition
         tags:
         - createdAt: 2000-01-23T04:56:07.000+00:00
           name: name
@@ -10036,15 +9985,6 @@ components:
         id:
           example: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
           title: The unique identifier of the link (UUID)
-          type: string
-        leadGoalDefinition:
-          description: |-
-            Deprecated: superseded by purpose, which carries both the aim and the
-            audience in one field. Still returned so existing consumers keep working,
-            but nothing writes it any more.
-          type: string
-        leadTargetDefinition:
-          description: "Deprecated: superseded by purpose. See lead_goal_definition."
           type: string
         metadata:
           additionalProperties:
@@ -10187,7 +10127,6 @@ components:
       type: object
     LinksServiceUpdateBody:
       example:
-        leadGoalDefinition: leadGoalDefinition
         pageThemeId: f47ac10b-58cc-4372-a567-0e02b2c3d479
         qrcodeTemplateIdDelete: true
         tagsDelete: true
@@ -10198,7 +10137,6 @@ components:
         name: My Updated Link
         directoryId: d87a9b30-5c8b-4d4e-9fd3-5f5f5f5f5f5f
         fallbackDestination: https://example.com/fallback
-        leadTargetDefinition: leadTargetDefinition
         tags:
         - tags
         - tags
@@ -10215,15 +10153,6 @@ components:
         fallbackDestination:
           example: https://example.com/fallback
           title: The fallback destination URL to use when workflow steps are broken
-          type: string
-        leadGoalDefinition:
-          description: |-
-            Deprecated: superseded by purpose, which carries both the aim and the
-            audience in one field. Still read from storage so existing consumers keep
-            working, but nothing writes it any more.
-          type: string
-        leadTargetDefinition:
-          description: "Deprecated: superseded by purpose. See lead_goal_definition."
           type: string
         name:
           example: My Updated Link
@@ -11232,8 +11161,7 @@ components:
       example:
         nextPageToken: eyJsaW5rSWQiOiI0YmEifQ==
         links:
-        - leadGoalDefinition: leadGoalDefinition
-          qrcodeDesignId: a8c5e111-8894-4f8a-b5db-9efe0d12a210
+        - qrcodeDesignId: a8c5e111-8894-4f8a-b5db-9efe0d12a210
           qrcodePendingUpdateSince: 2000-01-23T04:56:07.000+00:00
           metadata:
             key: metadata
@@ -11243,7 +11171,6 @@ components:
           customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
           fallbackDestination: https://brand.example.com/fallback
           customDomain: ""
-          leadTargetDefinition: leadTargetDefinition
           tags:
           - createdAt: 2000-01-23T04:56:07.000+00:00
             name: name
@@ -11265,8 +11192,7 @@ components:
           shortlink: 4BnH-R19p
           updatedAt: 2000-01-23T04:56:07.000+00:00
           workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
-        - leadGoalDefinition: leadGoalDefinition
-          qrcodeDesignId: a8c5e111-8894-4f8a-b5db-9efe0d12a210
+        - qrcodeDesignId: a8c5e111-8894-4f8a-b5db-9efe0d12a210
           qrcodePendingUpdateSince: 2000-01-23T04:56:07.000+00:00
           metadata:
             key: metadata
@@ -11276,7 +11202,6 @@ components:
           customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
           fallbackDestination: https://brand.example.com/fallback
           customDomain: ""
-          leadTargetDefinition: leadTargetDefinition
           tags:
           - createdAt: 2000-01-23T04:56:07.000+00:00
             name: name
@@ -13701,7 +13626,6 @@ components:
     UpdateLinkResponse:
       example:
         link:
-          leadGoalDefinition: leadGoalDefinition
           qrcodeDesignId: a8c5e111-8894-4f8a-b5db-9efe0d12a210
           qrcodePendingUpdateSince: 2000-01-23T04:56:07.000+00:00
           metadata:
@@ -13712,7 +13636,6 @@ components:
           customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
           fallbackDestination: https://brand.example.com/fallback
           customDomain: ""
-          leadTargetDefinition: leadTargetDefinition
           tags:
           - createdAt: 2000-01-23T04:56:07.000+00:00
             name: name
