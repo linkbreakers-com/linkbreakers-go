@@ -5,7 +5,7 @@ info:
     url: https://app.linkbreakers.com
   description: This is a documentation of all the APIs of Linkbreakers
   title: Linkbreakers API
-  version: 1.112.0
+  version: 1.113.0
 servers:
 - url: https://api.linkbreakers.com
 security:
@@ -5728,15 +5728,17 @@ components:
       description: Request to create links in bulk.
       example:
         links:
-        - leadGoalDefinition: Increase newsletter signups
+        - leadGoalDefinition: leadGoalDefinition
           qrcodeDesignId: a8c5e111-8894-4f8a-b5db-9efe0d12a210
           metadata:
             key: metadata
+          purpose: "Increase newsletter signups. Good leads: marketing qualified leads\
+            \ with budget over $10k."
           conversionTracking: true
           destination: https://example.com
           customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
           fallbackDestination: https://example.com/fallback
-          leadTargetDefinition: Marketing qualified leads with budget > $10k
+          leadTargetDefinition: leadTargetDefinition
           tags:
           - tags
           - tags
@@ -5746,15 +5748,17 @@ components:
           id: 550e8400-e29b-41d4-a716-446655440000
           waitForQrcode: true
           shortlink: my-link
-        - leadGoalDefinition: Increase newsletter signups
+        - leadGoalDefinition: leadGoalDefinition
           qrcodeDesignId: a8c5e111-8894-4f8a-b5db-9efe0d12a210
           metadata:
             key: metadata
+          purpose: "Increase newsletter signups. Good leads: marketing qualified leads\
+            \ with budget over $10k."
           conversionTracking: true
           destination: https://example.com
           customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
           fallbackDestination: https://example.com/fallback
-          leadTargetDefinition: Marketing qualified leads with budget > $10k
+          leadTargetDefinition: leadTargetDefinition
           tags:
           - tags
           - tags
@@ -5784,6 +5788,7 @@ components:
           metadata:
             key: metadata
           qrcodeDesign: ""
+          purpose: purpose
           eventCount: 128
           customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
           fallbackDestination: https://brand.example.com/fallback
@@ -5816,6 +5821,7 @@ components:
           metadata:
             key: metadata
           qrcodeDesign: ""
+          purpose: purpose
           eventCount: 128
           customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
           fallbackDestination: https://brand.example.com/fallback
@@ -5850,21 +5856,23 @@ components:
     CreateContactLinkRequest:
       description: Request to create a new contact card link.
       example:
-        leadGoalDefinition: Capture contact information for sales outreach
+        leadGoalDefinition: leadGoalDefinition
         qrcodeDesignId: a8c5e111-8894-4f8a-b5db-9efe0d12a210
         metadata:
           key: metadata
+        purpose: "Capture contact details for sales outreach. Good leads: business\
+          \ contacts interested in our services."
+        customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
+        fallbackDestination: https://company.com/contact
+        leadTargetDefinition: leadTargetDefinition
+        tags:
+        - tags
+        - tags
         qrcodeTemplateId: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
         vcardData: ""
         name: Jane Doe Contact Card
         waitForQrcode: true
-        customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
-        fallbackDestination: https://company.com/contact
-        leadTargetDefinition: Business contacts interested in our services
         shortlink: jane-contact
-        tags:
-        - tags
-        - tags
       properties:
         customDomainId:
           description: |-
@@ -5880,18 +5888,12 @@ components:
           type: string
         leadGoalDefinition:
           description: |-
-            Why this link exists, in the user's own words.
-            Lead scoring reads this to choose the weighting for the link, so a link
-            with neither goal nor target scores on neutral weights and gets no
-            profile fit.
-          example: Capture contact information for sales outreach
+            Deprecated: superseded by purpose, which carries both the aim and the
+            audience in one field. Still read from storage so existing consumers keep
+            working, but nothing writes it any more.
           type: string
         leadTargetDefinition:
-          description: |-
-            Who counts as a good lead for this link.
-            Lead scoring matches visitor country and business signals against this
-            text, and leaves profile fit unscored when it is empty.
-          example: Business contacts interested in our services
+          description: "Deprecated: superseded by purpose. See lead_goal_definition."
           type: string
         metadata:
           additionalProperties:
@@ -5901,6 +5903,15 @@ components:
         name:
           example: Jane Doe Contact Card
           title: The name of the link
+          type: string
+        purpose:
+          description: |-
+            What the user is trying to achieve with this link, in one or two sentences.
+            Lead scoring weights the link from this, and the link's assistant
+            conversations read it as context, so it is restated whenever the workflow
+            changes shape.
+          example: "Capture contact details for sales outreach. Good leads: business\
+            \ contacts interested in our services."
           type: string
         qrcodeDesignId:
           description: |-
@@ -5949,6 +5960,7 @@ components:
           metadata:
             key: metadata
           qrcodeDesign: ""
+          purpose: purpose
           eventCount: 128
           customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
           fallbackDestination: https://brand.example.com/fallback
@@ -6119,15 +6131,17 @@ components:
     CreateLinkRequest:
       description: Request to create a new link.
       example:
-        leadGoalDefinition: Increase newsletter signups
+        leadGoalDefinition: leadGoalDefinition
         qrcodeDesignId: a8c5e111-8894-4f8a-b5db-9efe0d12a210
         metadata:
           key: metadata
+        purpose: "Increase newsletter signups. Good leads: marketing qualified leads\
+          \ with budget over $10k."
         conversionTracking: true
         destination: https://example.com
         customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
         fallbackDestination: https://example.com/fallback
-        leadTargetDefinition: Marketing qualified leads with budget > $10k
+        leadTargetDefinition: leadTargetDefinition
         tags:
         - tags
         - tags
@@ -6170,18 +6184,12 @@ components:
           type: string
         leadGoalDefinition:
           description: |-
-            Why this link exists, in the user's own words.
-            Lead scoring reads this to choose the weighting for the link, so a link
-            with neither goal nor target scores on neutral weights and gets no
-            profile fit.
-          example: Increase newsletter signups
+            Deprecated: superseded by purpose, which carries both the aim and the
+            audience in one field. Still read from storage so existing consumers keep
+            working, but nothing writes it any more.
           type: string
         leadTargetDefinition:
-          description: |-
-            Who counts as a good lead for this link.
-            Lead scoring matches visitor country and business signals against this
-            text, and leaves profile fit unscored when it is empty.
-          example: Marketing qualified leads with budget > $10k
+          description: "Deprecated: superseded by purpose. See lead_goal_definition."
           type: string
         metadata:
           additionalProperties:
@@ -6191,6 +6199,15 @@ components:
         name:
           example: My Link
           title: The name of the link
+          type: string
+        purpose:
+          description: |-
+            What the user is trying to achieve with this link, in one or two sentences.
+            Lead scoring weights the link from this, and the link's assistant
+            conversations read it as context, so it is restated whenever the workflow
+            changes shape.
+          example: "Increase newsletter signups. Good leads: marketing qualified leads\
+            \ with budget over $10k."
           type: string
         qrcodeDesignId:
           description: The QR Code design ID (UUID).
@@ -6258,6 +6275,7 @@ components:
           metadata:
             key: metadata
           qrcodeDesign: ""
+          purpose: purpose
           eventCount: 128
           customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
           fallbackDestination: https://brand.example.com/fallback
@@ -6391,14 +6409,16 @@ components:
     CreateThankYouLinkRequest:
       description: Request to create a new thank you page link.
       example:
-        leadGoalDefinition: Capture visitor appreciation and measure engagement
+        leadGoalDefinition: leadGoalDefinition
         qrcodeDesignId: a8c5e111-8894-4f8a-b5db-9efe0d12a210
         metadata:
           key: metadata
+        purpose: "Thank visitors after a purchase and measure engagement. Good leads:\
+          \ visitors who completed a purchase."
         description: We appreciate your visit.
         customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
         title: Thank you!
-        leadTargetDefinition: Visitors who completed a purchase or signup
+        leadTargetDefinition: leadTargetDefinition
         tags:
         - tags
         - tags
@@ -6426,18 +6446,12 @@ components:
           type: string
         leadGoalDefinition:
           description: |-
-            Why this link exists, in the user's own words.
-            Lead scoring reads this to choose the weighting for the link, so a link
-            with neither goal nor target scores on neutral weights and gets no
-            profile fit.
-          example: Capture visitor appreciation and measure engagement
+            Deprecated: superseded by purpose, which carries both the aim and the
+            audience in one field. Still read from storage so existing consumers keep
+            working, but nothing writes it any more.
           type: string
         leadTargetDefinition:
-          description: |-
-            Who counts as a good lead for this link.
-            Lead scoring matches visitor country and business signals against this
-            text, and leaves profile fit unscored when it is empty.
-          example: Visitors who completed a purchase or signup
+          description: "Deprecated: superseded by purpose. See lead_goal_definition."
           type: string
         metadata:
           additionalProperties:
@@ -6447,6 +6461,15 @@ components:
         name:
           example: Thank You Page Link
           title: The name of the link
+          type: string
+        purpose:
+          description: |-
+            What the user is trying to achieve with this link, in one or two sentences.
+            Lead scoring weights the link from this, and the link's assistant
+            conversations read it as context, so it is restated whenever the workflow
+            changes shape.
+          example: "Thank visitors after a purchase and measure engagement. Good leads:\
+            \ visitors who completed a purchase."
           type: string
         qrcodeDesignId:
           description: |-
@@ -6495,6 +6518,7 @@ components:
           metadata:
             key: metadata
           qrcodeDesign: ""
+          purpose: purpose
           eventCount: 128
           customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
           fallbackDestination: https://brand.example.com/fallback
@@ -9329,6 +9353,7 @@ components:
           metadata:
             key: metadata
           qrcodeDesign: ""
+          purpose: purpose
           eventCount: 128
           customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
           fallbackDestination: https://brand.example.com/fallback
@@ -9934,6 +9959,7 @@ components:
         metadata:
           key: metadata
         qrcodeDesign: ""
+        purpose: purpose
         eventCount: 128
         customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
         fallbackDestination: https://brand.example.com/fallback
@@ -10013,16 +10039,12 @@ components:
           type: string
         leadGoalDefinition:
           description: |-
-            Why this link exists, in the user's own words.
-            Lead scoring reads this to choose the weighting for the link, so a link
-            with neither goal nor target scores on neutral weights and gets no
-            profile fit.
+            Deprecated: superseded by purpose, which carries both the aim and the
+            audience in one field. Still returned so existing consumers keep working,
+            but nothing writes it any more.
           type: string
         leadTargetDefinition:
-          description: |-
-            Who counts as a good lead for this link.
-            Lead scoring matches visitor country and business signals against this
-            text, and leaves profile fit unscored when it is empty.
+          description: "Deprecated: superseded by purpose. See lead_goal_definition."
           type: string
         metadata:
           additionalProperties:
@@ -10041,6 +10063,10 @@ components:
         pageThemeId:
           description: The ID of the page theme for this link (UUID).
           example: f47ac10b-58cc-4372-a567-0e02b2c3d479
+          type: string
+        purpose:
+          description: "What the user is trying to achieve with this link, in one\
+            \ or two sentences."
           type: string
         qrcodeDesign:
           allOf:
@@ -10161,16 +10187,18 @@ components:
       type: object
     LinksServiceUpdateBody:
       example:
-        leadGoalDefinition: Increase newsletter signups
+        leadGoalDefinition: leadGoalDefinition
         pageThemeId: f47ac10b-58cc-4372-a567-0e02b2c3d479
         qrcodeTemplateIdDelete: true
         tagsDelete: true
         qrcodeTemplateId: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
+        purpose: "Increase newsletter signups. Good leads: marketing qualified leads\
+          \ with budget over $10k."
         directoryIdDelete: true
         name: My Updated Link
         directoryId: d87a9b30-5c8b-4d4e-9fd3-5f5f5f5f5f5f
         fallbackDestination: https://example.com/fallback
-        leadTargetDefinition: Marketing qualified leads with budget > $10k
+        leadTargetDefinition: leadTargetDefinition
         tags:
         - tags
         - tags
@@ -10190,18 +10218,12 @@ components:
           type: string
         leadGoalDefinition:
           description: |-
-            Why this link exists, in the user's own words.
-            Lead scoring reads this to choose the weighting for the link, so a link
-            with neither goal nor target scores on neutral weights and gets no
-            profile fit.
-          example: Increase newsletter signups
+            Deprecated: superseded by purpose, which carries both the aim and the
+            audience in one field. Still read from storage so existing consumers keep
+            working, but nothing writes it any more.
           type: string
         leadTargetDefinition:
-          description: |-
-            Who counts as a good lead for this link.
-            Lead scoring matches visitor country and business signals against this
-            text, and leaves profile fit unscored when it is empty.
-          example: Marketing qualified leads with budget > $10k
+          description: "Deprecated: superseded by purpose. See lead_goal_definition."
           type: string
         name:
           example: My Updated Link
@@ -10210,6 +10232,15 @@ components:
         pageThemeId:
           example: f47ac10b-58cc-4372-a567-0e02b2c3d479
           title: Page theme ID to assign to this link
+          type: string
+        purpose:
+          description: |-
+            What the user is trying to achieve with this link, in one or two sentences.
+            Lead scoring weights the link from this, and the link's assistant
+            conversations read it as context, so it is restated whenever the workflow
+            changes shape.
+          example: "Increase newsletter signups. Good leads: marketing qualified leads\
+            \ with budget over $10k."
           type: string
         qrcodeTemplateId:
           example: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
@@ -11207,6 +11238,7 @@ components:
           metadata:
             key: metadata
           qrcodeDesign: ""
+          purpose: purpose
           eventCount: 128
           customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
           fallbackDestination: https://brand.example.com/fallback
@@ -11239,6 +11271,7 @@ components:
           metadata:
             key: metadata
           qrcodeDesign: ""
+          purpose: purpose
           eventCount: 128
           customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
           fallbackDestination: https://brand.example.com/fallback
@@ -13674,6 +13707,7 @@ components:
           metadata:
             key: metadata
           qrcodeDesign: ""
+          purpose: purpose
           eventCount: 128
           customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
           fallbackDestination: https://brand.example.com/fallback
