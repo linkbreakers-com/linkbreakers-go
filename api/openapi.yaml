@@ -5,7 +5,7 @@ info:
     url: https://app.linkbreakers.com
   description: This is a documentation of all the APIs of Linkbreakers
   title: Linkbreakers API
-  version: 1.111.19
+  version: 1.112.0
 servers:
 - url: https://api.linkbreakers.com
 security:
@@ -782,6 +782,9 @@ paths:
            - STATUS_VERIFICATION_PENDING: The domain is pending verification. Please verify through TXT record.
            - STATUS_CERTIFICATE_PENDING: The domain is pending certificate. The SSL certificate is not yet ready.
            - STATUS_ACTIVE: The domain is fully active
+           - STATUS_RENEWAL_PENDING: The domain is still serving traffic on a valid certificate, but the renewal
+          of that certificate cannot be validated. It stops working at certificate_expires_at.
+           - STATUS_EXPIRED: The certificate expired or was withdrawn. The domain no longer serves HTTPS.
         explode: true
         in: query
         name: status
@@ -5466,10 +5469,14 @@ components:
     CheckCustomDomainResponse:
       example:
         customDomain:
+          cloudflareSslStatus: pending_validation
+          lastError: lastError
+          activatedAt: 2000-01-23T04:56:07.000+00:00
+          cloudflareHostnameStatus: active
           createdAt: 2000-01-23T04:56:07.000+00:00
           lastCheckedAt: 2000-01-23T04:56:07.000+00:00
           rootDestination: https://example.com
-          activatedAt: 2000-01-23T04:56:07.000+00:00
+          certificateExpiresAt: 2000-01-23T04:56:07.000+00:00
           name: example.com
           id: d290f1ee-6c54-4b01-90e6-d701748f0851
           status: STATUS_ACTIVE
@@ -5985,10 +5992,14 @@ components:
     CreateCustomDomainResponse:
       example:
         customDomain:
+          cloudflareSslStatus: pending_validation
+          lastError: lastError
+          activatedAt: 2000-01-23T04:56:07.000+00:00
+          cloudflareHostnameStatus: active
           createdAt: 2000-01-23T04:56:07.000+00:00
           lastCheckedAt: 2000-01-23T04:56:07.000+00:00
           rootDestination: https://example.com
-          activatedAt: 2000-01-23T04:56:07.000+00:00
+          certificateExpiresAt: 2000-01-23T04:56:07.000+00:00
           name: example.com
           id: d290f1ee-6c54-4b01-90e6-d701748f0851
           status: STATUS_ACTIVE
@@ -6633,10 +6644,14 @@ components:
         Captures a branded hostname that Linkbreakers provisions for a workspace so scans and shortlinks resolve
         under the customer's domain, including verification and certificate lifecycle state.
       example:
+        cloudflareSslStatus: pending_validation
+        lastError: lastError
+        activatedAt: 2000-01-23T04:56:07.000+00:00
+        cloudflareHostnameStatus: active
         createdAt: 2000-01-23T04:56:07.000+00:00
         lastCheckedAt: 2000-01-23T04:56:07.000+00:00
         rootDestination: https://example.com
-        activatedAt: 2000-01-23T04:56:07.000+00:00
+        certificateExpiresAt: 2000-01-23T04:56:07.000+00:00
         name: example.com
         id: d290f1ee-6c54-4b01-90e6-d701748f0851
         status: STATUS_ACTIVE
@@ -6653,6 +6668,28 @@ components:
           readOnly: true
           title: Timestamp when the domain was successfully set as active
           type: string
+        certificateExpiresAt:
+          description: "When the certificate currently serving this domain expires.\
+            \ While the status is STATUS_RENEWAL_PENDING the domain keeps working\
+            \ until this date, then stops."
+          format: date-time
+          readOnly: true
+          title: Expiry of the certificate currently serving this domain
+          type: string
+        cloudflareHostnameStatus:
+          description: "Raw hostname status reported by the certificate provider,\
+            \ recorded at the last check."
+          example: active
+          readOnly: true
+          title: Raw hostname status reported by the certificate provider
+          type: string
+        cloudflareSslStatus:
+          description: "Raw SSL status reported by the certificate provider, recorded\
+            \ at the last check."
+          example: pending_validation
+          readOnly: true
+          title: Raw SSL status reported by the certificate provider
+          type: string
         createdAt:
           format: date-time
           readOnly: true
@@ -6666,6 +6703,12 @@ components:
           format: date-time
           readOnly: true
           title: Timestamp of the last verification check
+          type: string
+        lastError:
+          description: "Human-readable reason the domain is not fully active, as reported\
+            \ at the last check. Empty when the domain is healthy."
+          readOnly: true
+          title: Why the domain is not fully active
           type: string
         name:
           example: example.com
@@ -6690,6 +6733,9 @@ components:
              - STATUS_VERIFICATION_PENDING: The domain is pending verification. Please verify through TXT record.
              - STATUS_CERTIFICATE_PENDING: The domain is pending certificate. The SSL certificate is not yet ready.
              - STATUS_ACTIVE: The domain is fully active
+             - STATUS_RENEWAL_PENDING: The domain is still serving traffic on a valid certificate, but the renewal
+            of that certificate cannot be validated. It stops working at certificate_expires_at.
+             - STATUS_EXPIRED: The certificate expired or was withdrawn. The domain no longer serves HTTPS.
           enum:
           - STATUS_UNSPECIFIED
           - STATUS_INACTIVE
@@ -6697,6 +6743,8 @@ components:
           - STATUS_VERIFICATION_PENDING
           - STATUS_CERTIFICATE_PENDING
           - STATUS_ACTIVE
+          - STATUS_RENEWAL_PENDING
+          - STATUS_EXPIRED
           example: STATUS_ACTIVE
           type: string
         updatedAt:
@@ -6720,6 +6768,9 @@ components:
          - STATUS_VERIFICATION_PENDING: The domain is pending verification. Please verify through TXT record.
          - STATUS_CERTIFICATE_PENDING: The domain is pending certificate. The SSL certificate is not yet ready.
          - STATUS_ACTIVE: The domain is fully active
+         - STATUS_RENEWAL_PENDING: The domain is still serving traffic on a valid certificate, but the renewal
+        of that certificate cannot be validated. It stops working at certificate_expires_at.
+         - STATUS_EXPIRED: The certificate expired or was withdrawn. The domain no longer serves HTTPS.
       enum:
       - STATUS_UNSPECIFIED
       - STATUS_INACTIVE
@@ -6727,6 +6778,8 @@ components:
       - STATUS_VERIFICATION_PENDING
       - STATUS_CERTIFICATE_PENDING
       - STATUS_ACTIVE
+      - STATUS_RENEWAL_PENDING
+      - STATUS_EXPIRED
       title: Status of a custom domain
       type: string
     CustomDomainsServiceUpdateBody:
@@ -8969,10 +9022,14 @@ components:
     GetCustomDomainResponse:
       example:
         customDomain:
+          cloudflareSslStatus: pending_validation
+          lastError: lastError
+          activatedAt: 2000-01-23T04:56:07.000+00:00
+          cloudflareHostnameStatus: active
           createdAt: 2000-01-23T04:56:07.000+00:00
           lastCheckedAt: 2000-01-23T04:56:07.000+00:00
           rootDestination: https://example.com
-          activatedAt: 2000-01-23T04:56:07.000+00:00
+          certificateExpiresAt: 2000-01-23T04:56:07.000+00:00
           name: example.com
           id: d290f1ee-6c54-4b01-90e6-d701748f0851
           status: STATUS_ACTIVE
@@ -10179,19 +10236,27 @@ components:
     ListCustomDomainsResponse:
       example:
         customDomains:
-        - createdAt: 2000-01-23T04:56:07.000+00:00
+        - cloudflareSslStatus: pending_validation
+          lastError: lastError
+          activatedAt: 2000-01-23T04:56:07.000+00:00
+          cloudflareHostnameStatus: active
+          createdAt: 2000-01-23T04:56:07.000+00:00
           lastCheckedAt: 2000-01-23T04:56:07.000+00:00
           rootDestination: https://example.com
-          activatedAt: 2000-01-23T04:56:07.000+00:00
+          certificateExpiresAt: 2000-01-23T04:56:07.000+00:00
           name: example.com
           id: d290f1ee-6c54-4b01-90e6-d701748f0851
           status: STATUS_ACTIVE
           updatedAt: 2000-01-23T04:56:07.000+00:00
           workspaceId: d290f1ee-6c54-4b01-90e6-d701748f0851
-        - createdAt: 2000-01-23T04:56:07.000+00:00
+        - cloudflareSslStatus: pending_validation
+          lastError: lastError
+          activatedAt: 2000-01-23T04:56:07.000+00:00
+          cloudflareHostnameStatus: active
+          createdAt: 2000-01-23T04:56:07.000+00:00
           lastCheckedAt: 2000-01-23T04:56:07.000+00:00
           rootDestination: https://example.com
-          activatedAt: 2000-01-23T04:56:07.000+00:00
+          certificateExpiresAt: 2000-01-23T04:56:07.000+00:00
           name: example.com
           id: d290f1ee-6c54-4b01-90e6-d701748f0851
           status: STATUS_ACTIVE
@@ -13504,10 +13569,14 @@ components:
     UpdateCustomDomainResponse:
       example:
         customDomain:
+          cloudflareSslStatus: pending_validation
+          lastError: lastError
+          activatedAt: 2000-01-23T04:56:07.000+00:00
+          cloudflareHostnameStatus: active
           createdAt: 2000-01-23T04:56:07.000+00:00
           lastCheckedAt: 2000-01-23T04:56:07.000+00:00
           rootDestination: https://example.com
-          activatedAt: 2000-01-23T04:56:07.000+00:00
+          certificateExpiresAt: 2000-01-23T04:56:07.000+00:00
           name: example.com
           id: d290f1ee-6c54-4b01-90e6-d701748f0851
           status: STATUS_ACTIVE
@@ -14053,9 +14122,11 @@ components:
       description: |-
         - TYPE_UNSPECIFIED: Record type not specified
          - TYPE_TXT: TXT DNS record used for validation
+         - TYPE_CNAME: CNAME DNS record used for validation
       enum:
       - TYPE_UNSPECIFIED
       - TYPE_TXT
+      - TYPE_CNAME
       title: The type of record (e.g. "txt")
       type: string
     ValidationPurpose:
@@ -14064,10 +14135,13 @@ components:
         - PURPOSE_UNSPECIFIED: Purpose not specified
          - PURPOSE_OWNERSHIP: DNS record proves ownership of the domain
          - PURPOSE_DOMAIN_VERIFICATION: DNS record enables TLS/domain verification with the provider
+         - PURPOSE_DCV_DELEGATION: DNS record delegates certificate validation to the provider so every
+        future renewal validates automatically without a new record
       enum:
       - PURPOSE_UNSPECIFIED
       - PURPOSE_OWNERSHIP
       - PURPOSE_DOMAIN_VERIFICATION
+      - PURPOSE_DCV_DELEGATION
       title: The purpose of this validation
       type: string
     VisitType:
