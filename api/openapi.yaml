@@ -5,7 +5,7 @@ info:
     url: https://app.linkbreakers.com
   description: This is a documentation of all the APIs of Linkbreakers
   title: Linkbreakers API
-  version: 1.114.0
+  version: 1.114.1
 servers:
 - url: https://api.linkbreakers.com
 security:
@@ -96,6 +96,10 @@ paths:
           id is the EVENT id, not the link id: two visits to the same link are two
           different subjects, and sharing a thread between them lets one visitor's
           details bleed into answers about another.
+           - AGENT_CONTEXT_TYPE_WORKSPACE: The workspace-wide assistant, with no resource selected. The context id is
+          the WORKSPACE id: this thread is not about any one link, dashboard or
+          design, and every capability the resource-scoped agents have is available
+          from it. One conversation per workspace, so it survives navigation.
         explode: true
         in: query
         name: contextType
@@ -141,6 +145,10 @@ paths:
           id is the EVENT id, not the link id: two visits to the same link are two
           different subjects, and sharing a thread between them lets one visitor's
           details bleed into answers about another.
+           - AGENT_CONTEXT_TYPE_WORKSPACE: The workspace-wide assistant, with no resource selected. The context id is
+          the WORKSPACE id: this thread is not about any one link, dashboard or
+          design, and every capability the resource-scoped agents have is available
+          from it. One conversation per workspace, so it survives navigation.
         explode: true
         in: query
         name: contextType
@@ -5018,6 +5026,10 @@ components:
         id is the EVENT id, not the link id: two visits to the same link are two
         different subjects, and sharing a thread between them lets one visitor's
         details bleed into answers about another.
+         - AGENT_CONTEXT_TYPE_WORKSPACE: The workspace-wide assistant, with no resource selected. The context id is
+        the WORKSPACE id: this thread is not about any one link, dashboard or
+        design, and every capability the resource-scoped agents have is available
+        from it. One conversation per workspace, so it survives navigation.
       enum:
       - AGENT_CONTEXT_TYPE_UNSPECIFIED
       - AGENT_CONTEXT_TYPE_ANALYTICS_DASHBOARD
@@ -5027,6 +5039,7 @@ components:
       - AGENT_CONTEXT_TYPE_PAGE_THEME
       - AGENT_CONTEXT_TYPE_LINK_ANALYTICS
       - AGENT_CONTEXT_TYPE_LEAD_SCORE
+      - AGENT_CONTEXT_TYPE_WORKSPACE
       title: Agent context types
       type: string
     AgentDisplayMessage:
