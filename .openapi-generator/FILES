@@ -32,7 +32,6 @@ git_push.sh
 go.mod
 go.sum
 model_action.go
-model_add_workflow_step_relationship_response.go
 model_agent_context_type.go
 model_agent_display_message.go
 model_agent_display_message_attachment.go
@@ -63,6 +62,7 @@ model_complete_google_forms_o_auth_request.go
 model_complete_google_forms_o_auth_response.go
 model_complete_slack_o_auth_request.go
 model_complete_slack_o_auth_response.go
+model_connect_workflow_step_response.go
 model_contact_card_trace_card.go
 model_contact_card_trace_data.go
 model_container_config.go
@@ -149,6 +149,7 @@ model_device_type_condition_value.go
 model_digest_frequency.go
 model_directories_service_update_body.go
 model_directory.go
+model_disconnect_workflow_step_response.go
 model_dots_options.go
 model_dots_type.go
 model_entry_access_trace_data.go
@@ -291,7 +292,6 @@ model_qrcode_design_service_update_body.go
 model_qrcode_template.go
 model_qrcode_templates_service_update_qrcode_template_body.go
 model_redirect_trace_data.go
-model_remove_workflow_step_relationship_response.go
 model_request_workspace_enrollment_request.go
 model_resolve_step_collisions_response.go
 model_response_format.go
@@ -386,10 +386,11 @@ model_widget_tab_view.go
 model_widget_visualization.go
 model_workflow_issue.go
 model_workflow_step.go
+model_workflow_step_branch.go
 model_workflow_step_kind.go
 model_workflow_step_node_type.go
 model_workflow_step_payload.go
-model_workflow_steps_service_add_relationship_body.go
+model_workflow_steps_service_connect_step_body.go
 model_workflow_steps_service_create_body.go
 model_workflow_steps_service_update_body.go
 model_workspace.go

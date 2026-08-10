@@ -5,7 +5,7 @@ info:
     url: https://app.linkbreakers.com
   description: This is a documentation of all the APIs of Linkbreakers
   title: Linkbreakers API
-  version: 1.114.1
+  version: 1.115.0
 servers:
 - url: https://api.linkbreakers.com
 security:
@@ -2191,9 +2191,6 @@ paths:
       - Workflow Steps
   /v1/links/{linkId}/workflow-steps/validate:
     get:
-      description: |-
-        Checks a workflow for disconnected steps, missing edges on composite nodes,
-        and orphan steps not reachable from the entry point. Returns a list of issues.
       operationId: WorkflowStepsService_ValidateWorkflow
       parameters:
       - explode: false
@@ -2218,7 +2215,6 @@ paths:
           description: Unexpected error
       security:
       - bearerAuth: []
-      summary: Validate workflow completeness
       tags:
       - Workflow Steps
   /v1/links/{linkId}/workflow-steps/{id}:
@@ -2343,18 +2339,12 @@ paths:
       summary: Update a workflow step
       tags:
       - Workflow Steps
-  /v1/links/{linkId}/workflow-steps/{parentStepId}/relationships:
-    post:
+  /v1/links/{linkId}/workflow-steps/{stepId}/branches/{branchId}/connection:
+    delete:
       description: |-
-        Creates a parent-child relationship between two workflow steps.
-
-        IMPORTANT: This endpoint cannot be used to create connections FROM composite nodes
-        (forms, multi-links, conditions). Composite nodes manage their own routing through
-        their payload structure (e.g., button.next_step_id, option.next_step_id).
-
-        Connections TO composite nodes are allowed.
-        Only atomic nodes (redirects, passwords, etc.) can use this endpoint as the parent.
-      operationId: WorkflowStepsService_AddRelationship
+        Leaves the branch with no destination. Clearing a branch that is already
+        clear succeeds. See ConnectStep for what a branch id is.
+      operationId: WorkflowStepsService_DisconnectStep
       parameters:
       - description: The ID of the link (UUID)
         explode: false
@@ -2364,10 +2354,76 @@ paths:
         schema:
           type: string
         style: simple
-      - description: The ID of the parent workflow step (UUID)
+      - description: The ID of the step the connection leaves from (UUID)
         explode: false
         in: path
-        name: parentStepId
+        name: stepId
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: Which exit of that step to clear. See ConnectWorkflowStepRequest.branch_id.
+        explode: false
+        in: path
+        name: branchId
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DisconnectWorkflowStepResponse"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth: []
+      summary: Clear one exit of a workflow step
+      tags:
+      - Workflow Steps
+    put:
+      description: |-
+        Every workflow step is connected the same way: name the branch it leaves
+        from, and the step it leads to.
+
+        Atomic steps (redirect, password, form, message page) have exactly one
+        branch, "next". Composite steps (multi-link, conditions) have one branch
+        per button, option or range, plus "else" for a condition's fallback. Exit
+        steps end the journey and have no branches at all.
+
+        Read a step to see its branches, their ids and their current destinations.
+        Idempotent: connecting a branch to the step it already leads to is a no-op.
+      operationId: WorkflowStepsService_ConnectStep
+      parameters:
+      - description: The ID of the link (UUID)
+        explode: false
+        in: path
+        name: linkId
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: The ID of the step the connection leaves from (UUID)
+        explode: false
+        in: path
+        name: stepId
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: |-
+          Which exit of that step to connect. "next" for atomic steps, or a button
+          id, option id, range id, country code, or "else" for composite steps.
+        explode: false
+        in: path
+        name: branchId
         required: true
         schema:
           type: string
@@ -2376,14 +2432,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/WorkflowStepsServiceAddRelationshipBody"
+              $ref: "#/components/schemas/WorkflowStepsServiceConnectStepBody"
         required: true
       responses:
         "200":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AddWorkflowStepRelationshipResponse"
+                $ref: "#/components/schemas/ConnectWorkflowStepResponse"
           description: Everything worked as expected.
         default:
           content:
@@ -2393,61 +2449,7 @@ paths:
           description: Unexpected error
       security:
       - bearerAuth: []
-      summary: Add relationship between workflow steps
-      tags:
-      - Workflow Steps
-  /v1/links/{linkId}/workflow-steps/{parentStepId}/relationships/{childStepId}:
-    delete:
-      description: |-
-        Removes a parent-child relationship between two workflow steps.
-
-        IMPORTANT: This endpoint cannot be used to remove connections FROM composite nodes
-        (multi-links, conditions). Composite nodes manage their own routing through
-        their payload structure. Use UpdateWorkflowStep to clear next_step_id in the payload instead.
-
-        Only atomic nodes (redirects, passwords, etc.) can use this endpoint as the parent.
-      operationId: WorkflowStepsService_RemoveRelationship
-      parameters:
-      - description: The ID of the link (UUID)
-        explode: false
-        in: path
-        name: linkId
-        required: true
-        schema:
-          type: string
-        style: simple
-      - description: The ID of the parent workflow step (UUID)
-        explode: false
-        in: path
-        name: parentStepId
-        required: true
-        schema:
-          type: string
-        style: simple
-      - description: The ID of the child workflow step (UUID)
-        explode: false
-        in: path
-        name: childStepId
-        required: true
-        schema:
-          type: string
-        style: simple
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/RemoveWorkflowStepRelationshipResponse"
-          description: Everything worked as expected.
-        default:
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-          description: Unexpected error
-      security:
-      - bearerAuth: []
-      summary: Remove relationship between workflow steps
+      summary: Connect one exit of a workflow step to another step
       tags:
       - Workflow Steps
   /v1/links/{linkId}/workflow-steps/{stepId}/resolve-collisions:
@@ -4981,37 +4983,6 @@ components:
       - ACTION_CLICK
       title: The type of event action
       type: string
-    AddWorkflowStepRelationshipResponse:
-      example:
-        disconnectedSteps:
-        - severity: severity
-          stepType: stepType
-          stepId: stepId
-          message: message
-        - severity: severity
-          stepType: stepType
-          stepId: stepId
-          message: message
-        message: message
-      properties:
-        disconnectedSteps:
-          description: |-
-            Steps that cannot be reached from Link Visit now that this connection
-            exists, reported without being asked for.
-
-            Rewiring a workflow detaches things: links_create seeds an exit redirect,
-            and the moment the entry routes through a condition instead, that redirect
-            is stranded. It happened on a real link, which shipped with a floating
-            redirect the builder never mentioned, because noticing depended on
-            remembering to run a separate validation call. The server knows at the
-            moment it happens, so it says so here. Empty means everything is connected.
-          items:
-            $ref: "#/components/schemas/WorkflowIssue"
-          type: array
-        message:
-          title: Confirmation message
-          type: string
-      title: Response for adding a workflow step relationship
     AgentClearConversationResponse:
       title: AgentClearConversationResponse is empty on success
       type: object
@@ -5563,6 +5534,47 @@ components:
           - $ref: "#/components/schemas/SlackIntegration"
           title: The newly created Slack integration
       title: CompleteSlackOAuthResponse returns the created Slack integration
+    ConnectWorkflowStepResponse:
+      example:
+        disconnectedSteps:
+        - severity: severity
+          stepType: stepType
+          stepId: stepId
+          message: message
+        - severity: severity
+          stepType: stepType
+          stepId: stepId
+          message: message
+        workflowStep: ""
+        unconnectedBranchIds:
+        - unconnectedBranchIds
+        - unconnectedBranchIds
+      properties:
+        disconnectedSteps:
+          description: |-
+            Steps that nothing can reach now that this connection changed. Empty means
+            the whole workflow is still connected.
+          items:
+            $ref: "#/components/schemas/WorkflowIssue"
+          type: array
+        unconnectedBranchIds:
+          description: |-
+            Branches of this step that still lead nowhere, reported without being
+            asked for.
+
+            Wiring one branch of a condition and forgetting the rest is the most
+            common way a workflow ships broken: the visitor who takes an unwired
+            branch falls through to the fallback URL. Nothing here is unreachable, so
+            a graph-level check would not catch it — only the step itself knows.
+            Empty means every exit of this step leads somewhere.
+          items:
+            type: string
+          type: array
+        workflowStep:
+          allOf:
+          - $ref: "#/components/schemas/WorkflowStep"
+          title: "The step the connection leaves from, as it now stands"
+      title: Response for connecting a workflow step branch
     ContactCardTraceCard:
       description: ContactCardTraceCard stores vCard metadata captured for contact
         cards.
@@ -6228,6 +6240,13 @@ components:
           - childStepIds
           - childStepIds
           id: a5f7b184-9d74-4f2a-9ed9-8f6a98cb12f4
+          branches:
+          - branchId: branchId
+            nextStepId: nextStepId
+            label: label
+          - branchId: branchId
+            nextStepId: nextStepId
+            label: label
           nodeType: NODE_TYPE_COMPOSITE
           parentStepIds:
           - parentStepIds
@@ -6243,6 +6262,13 @@ components:
           - childStepIds
           - childStepIds
           id: a5f7b184-9d74-4f2a-9ed9-8f6a98cb12f4
+          branches:
+          - branchId: branchId
+            nextStepId: nextStepId
+            label: label
+          - branchId: branchId
+            nextStepId: nextStepId
+            label: label
           nodeType: NODE_TYPE_COMPOSITE
           parentStepIds:
           - parentStepIds
@@ -6587,6 +6613,13 @@ components:
           - childStepIds
           - childStepIds
           id: a5f7b184-9d74-4f2a-9ed9-8f6a98cb12f4
+          branches:
+          - branchId: branchId
+            nextStepId: nextStepId
+            label: label
+          - branchId: branchId
+            nextStepId: nextStepId
+            label: label
           nodeType: NODE_TYPE_COMPOSITE
           parentStepIds:
           - parentStepIds
@@ -7834,6 +7867,38 @@ components:
           title: The workspace ID the directory belongs to (UUID)
           type: string
       title: Directory
+    DisconnectWorkflowStepResponse:
+      example:
+        disconnectedSteps:
+        - severity: severity
+          stepType: stepType
+          stepId: stepId
+          message: message
+        - severity: severity
+          stepType: stepType
+          stepId: stepId
+          message: message
+        workflowStep: ""
+        unconnectedBranchIds:
+        - unconnectedBranchIds
+        - unconnectedBranchIds
+      properties:
+        disconnectedSteps:
+          items:
+            $ref: "#/components/schemas/WorkflowIssue"
+          title: Steps that nothing can reach now that this connection was cleared
+          type: array
+        unconnectedBranchIds:
+          items:
+            type: string
+          title: "Branches of this step that lead nowhere, including the one just\
+            \ cleared"
+          type: array
+        workflowStep:
+          allOf:
+          - $ref: "#/components/schemas/WorkflowStep"
+          title: "The step the connection left from, as it now stands"
+      title: Response for clearing a workflow step branch
     DotsOptions:
       properties:
         themeColor:
@@ -9603,6 +9668,13 @@ components:
           - childStepIds
           - childStepIds
           id: a5f7b184-9d74-4f2a-9ed9-8f6a98cb12f4
+          branches:
+          - branchId: branchId
+            nextStepId: nextStepId
+            label: label
+          - branchId: branchId
+            nextStepId: nextStepId
+            label: label
           nodeType: NODE_TYPE_COMPOSITE
           parentStepIds:
           - parentStepIds
@@ -11628,6 +11700,13 @@ components:
           - childStepIds
           - childStepIds
           id: a5f7b184-9d74-4f2a-9ed9-8f6a98cb12f4
+          branches:
+          - branchId: branchId
+            nextStepId: nextStepId
+            label: label
+          - branchId: branchId
+            nextStepId: nextStepId
+            label: label
           nodeType: NODE_TYPE_COMPOSITE
           parentStepIds:
           - parentStepIds
@@ -11643,6 +11722,13 @@ components:
           - childStepIds
           - childStepIds
           id: a5f7b184-9d74-4f2a-9ed9-8f6a98cb12f4
+          branches:
+          - branchId: branchId
+            nextStepId: nextStepId
+            label: label
+          - branchId: branchId
+            nextStepId: nextStepId
+            label: label
           nodeType: NODE_TYPE_COMPOSITE
           parentStepIds:
           - parentStepIds
@@ -12939,14 +13025,6 @@ components:
           type: string
         fallback:
           type: boolean
-    RemoveWorkflowStepRelationshipResponse:
-      example:
-        message: message
-      properties:
-        message:
-          title: Confirmation message
-          type: string
-      title: Response for removing a workflow step relationship
     RequestWorkspaceEnrollmentRequest:
       example:
         message: message
@@ -13807,6 +13885,13 @@ components:
           - childStepIds
           - childStepIds
           id: a5f7b184-9d74-4f2a-9ed9-8f6a98cb12f4
+          branches:
+          - branchId: branchId
+            nextStepId: nextStepId
+            label: label
+          - branchId: branchId
+            nextStepId: nextStepId
+            label: label
           nodeType: NODE_TYPE_COMPOSITE
           parentStepIds:
           - parentStepIds
@@ -14984,6 +15069,13 @@ components:
         - childStepIds
         - childStepIds
         id: a5f7b184-9d74-4f2a-9ed9-8f6a98cb12f4
+        branches:
+        - branchId: branchId
+          nextStepId: nextStepId
+          label: label
+        - branchId: branchId
+          nextStepId: nextStepId
+          label: label
         nodeType: NODE_TYPE_COMPOSITE
         parentStepIds:
         - parentStepIds
@@ -14994,6 +15086,18 @@ components:
         description: Learn more about workflows in Linkbreakers
         url: https://linkbreakers.com/help/article/whats-a-workflow
       properties:
+        branches:
+          description: |-
+            Every exit of this step, with its current destination.
+
+            This is the vocabulary for connecting the step: pass one of these
+            branch_ids to workflow_steps_connect. An atomic step has exactly one
+            branch, "next". A composite step has one per button, option or range,
+            plus "else" for a condition's fallback. An exit step has none.
+          items:
+            $ref: "#/components/schemas/WorkflowStepBranch"
+          readOnly: true
+          type: array
         canvasPosition:
           allOf:
           - $ref: "#/components/schemas/CanvasPosition"
@@ -15098,37 +15202,25 @@ components:
           type: string
         nodeType:
           description: |-
-            Node types define how workflow steps manage their outbound connections:
+            The node type says how many exits a step has. Whatever the answer, you
+            connect every one of them the same way, with workflow_steps_connect: name
+            the branch, name the step it leads to. Read a step's branches field for its
+            branch ids.
 
-            COMPOSITE nodes manage their own exit paths through their payload structure.
-            They have multiple possible next steps defined within the payload itself:
-            - Forms: Can have skip and submit paths
-            - Multi-links: Each button has its own next_step_id
-            - Conditions: Each condition outcome routes to a different next_step_id
-
-            ATOMIC nodes are simple steps with a single, direct connection to the next step.
-            They use the standard parent-child relationship mechanism.
-
-            Connection Rules:
-            - ✅ Connections TO any node type are allowed
-            - ✅ Connections FROM atomic nodes are allowed
-            - ❌ Direct connections FROM composite nodes are NOT allowed
-              (They manage routing through their payload instead)
-
-            Example: A multi-link node with 3 buttons defines 3 possible next steps in its
-            payload.buttons[].next_step_id fields, not through direct parent-child relationships.
+            Example: a multi-link with 3 buttons has 3 branches, with the buttons' ids.
+            A redirect has one branch, "next". A country condition has one branch per
+            country plus "else".
 
              - NODE_TYPE_UNSPECIFIED: Workflow step node type not specified
-             - NODE_TYPE_COMPOSITE: Composite nodes manage multiple exit paths through their payload structure.
-            Examples: FORM_SUBMIT, MULTI_LINK, VISIT_TYPE_CONDITION, COUNTRY_CONDITION,
-            DAY_OF_WEEK_CONDITION, TIME_OF_DAY_CONDITION, DAY_OF_MONTH_CONDITION, SPECIFIC_DATE_CONDITION
-
-            Connection behavior: Cannot create direct parent-child connections FROM these nodes.
-            They define their next steps within the payload (e.g., button.next_step_id, option.next_step_id).
-             - NODE_TYPE_ATOMIC: Atomic nodes are simple steps with no internal routing logic.
-            Examples: LINK_VISIT, CLIENT_REDIRECT, PASSWORD_VERIFY, CONTACT_CARD
-
-            Connection behavior: Can create standard parent-child connections to any other node.
+             - NODE_TYPE_COMPOSITE: Composite steps have one exit per button, option or range, plus "else"
+            for a condition's fallback.
+            Examples: MULTI_LINK, VISIT_TYPE_CONDITION, COUNTRY_CONDITION,
+            DAY_OF_WEEK_CONDITION, TIME_OF_DAY_CONDITION, DAY_OF_MONTH_CONDITION,
+            SPECIFIC_DATE_CONDITION, DEVICE_*_CONDITION, VISITOR_DATA_CONDITION
+             - NODE_TYPE_ATOMIC: Atomic steps have exactly one exit, branch id "next". Exit steps
+            (THANK_YOU_PAGE, CONTACT_CARD, SOCIAL_LINKS_PAGE, CLIENT_REDIRECT) are
+            atomic but end the journey, so they have no branches at all.
+            Examples: LINK_VISIT, PASSWORD_VERIFY, FORM_SUBMIT, MESSAGE_PAGE
           enum:
           - NODE_TYPE_UNSPECIFIED
           - NODE_TYPE_COMPOSITE
@@ -15155,6 +15247,28 @@ components:
           title: When the workflow step was last updated
           type: string
       title: WorkflowStep
+    WorkflowStepBranch:
+      description: "One exit of a workflow step. Server-derived, returned on every\
+        \ step read."
+      example:
+        branchId: branchId
+        nextStepId: nextStepId
+        label: label
+      properties:
+        branchId:
+          description: |-
+            The id this branch is addressed by: "next" for an atomic step's single
+            exit, "else" for a condition's fallback, or the id the branch carries in
+            the step's payload — a button id, option id, range id, or country code.
+          type: string
+        label:
+          description: |-
+            Human-readable name of the branch: a button's label, a country code, a
+            condition option's name, "fallback", "next step".
+          type: string
+        nextStepId:
+          description: The step this branch leads to. Empty when the branch is unconnected.
+          type: string
     WorkflowStepKind:
       default: KIND_UNSPECIFIED
       description: |-
@@ -15174,37 +15288,25 @@ components:
     WorkflowStepNodeType:
       default: NODE_TYPE_UNSPECIFIED
       description: |-
-        Node types define how workflow steps manage their outbound connections:
+        The node type says how many exits a step has. Whatever the answer, you
+        connect every one of them the same way, with workflow_steps_connect: name
+        the branch, name the step it leads to. Read a step's branches field for its
+        branch ids.
 
-        COMPOSITE nodes manage their own exit paths through their payload structure.
-        They have multiple possible next steps defined within the payload itself:
-        - Forms: Can have skip and submit paths
-        - Multi-links: Each button has its own next_step_id
-        - Conditions: Each condition outcome routes to a different next_step_id
-
-        ATOMIC nodes are simple steps with a single, direct connection to the next step.
-        They use the standard parent-child relationship mechanism.
-
-        Connection Rules:
-        - ✅ Connections TO any node type are allowed
-        - ✅ Connections FROM atomic nodes are allowed
-        - ❌ Direct connections FROM composite nodes are NOT allowed
-          (They manage routing through their payload instead)
-
-        Example: A multi-link node with 3 buttons defines 3 possible next steps in its
-        payload.buttons[].next_step_id fields, not through direct parent-child relationships.
+        Example: a multi-link with 3 buttons has 3 branches, with the buttons' ids.
+        A redirect has one branch, "next". A country condition has one branch per
+        country plus "else".
 
          - NODE_TYPE_UNSPECIFIED: Workflow step node type not specified
-         - NODE_TYPE_COMPOSITE: Composite nodes manage multiple exit paths through their payload structure.
-        Examples: FORM_SUBMIT, MULTI_LINK, VISIT_TYPE_CONDITION, COUNTRY_CONDITION,
-        DAY_OF_WEEK_CONDITION, TIME_OF_DAY_CONDITION, DAY_OF_MONTH_CONDITION, SPECIFIC_DATE_CONDITION
-
-        Connection behavior: Cannot create direct parent-child connections FROM these nodes.
-        They define their next steps within the payload (e.g., button.next_step_id, option.next_step_id).
-         - NODE_TYPE_ATOMIC: Atomic nodes are simple steps with no internal routing logic.
-        Examples: LINK_VISIT, CLIENT_REDIRECT, PASSWORD_VERIFY, CONTACT_CARD
-
-        Connection behavior: Can create standard parent-child connections to any other node.
+         - NODE_TYPE_COMPOSITE: Composite steps have one exit per button, option or range, plus "else"
+        for a condition's fallback.
+        Examples: MULTI_LINK, VISIT_TYPE_CONDITION, COUNTRY_CONDITION,
+        DAY_OF_WEEK_CONDITION, TIME_OF_DAY_CONDITION, DAY_OF_MONTH_CONDITION,
+        SPECIFIC_DATE_CONDITION, DEVICE_*_CONDITION, VISITOR_DATA_CONDITION
+         - NODE_TYPE_ATOMIC: Atomic steps have exactly one exit, branch id "next". Exit steps
+        (THANK_YOU_PAGE, CONTACT_CARD, SOCIAL_LINKS_PAGE, CLIENT_REDIRECT) are
+        atomic but end the journey, so they have no branches at all.
+        Examples: LINK_VISIT, PASSWORD_VERIFY, FORM_SUBMIT, MESSAGE_PAGE
       enum:
       - NODE_TYPE_UNSPECIFIED
       - NODE_TYPE_COMPOSITE
@@ -15259,17 +15361,17 @@ components:
         visitorDataCondition:
           $ref: "#/components/schemas/VisitorDataConditionPayload"
       title: Workflow step payload - uses oneof for type safety based on EventAction
-    WorkflowStepsServiceAddRelationshipBody:
-      example:
-        childStepId: 456789ab-cdef-1234-5678-9abcdef01234
-      properties:
-        childStepId:
-          example: 456789ab-cdef-1234-5678-9abcdef01234
-          title: The ID of the child workflow step (UUID)
-          type: string
-      title: Request to add a relationship between workflow steps
     WorkflowStepsServiceAutoLayoutWorkflowBody:
       type: object
+    WorkflowStepsServiceConnectStepBody:
+      example:
+        nextStepId: 456789ab-cdef-1234-5678-9abcdef01234
+      properties:
+        nextStepId:
+          example: 456789ab-cdef-1234-5678-9abcdef01234
+          title: The ID of the step this branch leads to (UUID)
+          type: string
+      title: Request to connect one exit of a workflow step to another step
     WorkflowStepsServiceCreateBody:
       example:
         payload: ""
