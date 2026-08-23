@@ -5,7 +5,7 @@ info:
     url: https://app.linkbreakers.com
   description: This is a documentation of all the APIs of Linkbreakers
   title: Linkbreakers API
-  version: 1.115.0
+  version: 1.118.0
 servers:
 - url: https://api.linkbreakers.com
 security:
@@ -5876,18 +5876,20 @@ components:
         qrcodeDesignId: a8c5e111-8894-4f8a-b5db-9efe0d12a210
         metadata:
           key: metadata
-        qrcodeTemplateId: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
         purpose: "Capture contact details for sales outreach. Good leads: business\
           \ contacts interested in our services."
-        vcardData: ""
-        name: Jane Doe Contact Card
-        waitForQrcode: true
         customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
         fallbackDestination: https://company.com/contact
-        shortlink: jane-contact
         tags:
         - tags
         - tags
+        qrcodeTemplateId: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
+        vcardData: ""
+        name: Jane Doe Contact Card
+        directoryId: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+        id: 550e8400-e29b-41d4-a716-446655440000
+        waitForQrcode: true
+        shortlink: jane-contact
       properties:
         customDomainId:
           description: |-
@@ -5895,11 +5897,26 @@ components:
             Only provide if the user explicitly asks for a specific custom domain.
           example: d290f1ee-6c54-4b01-90e6-d701748f0851
           type: string
+        directoryId:
+          description: "Directory to organize this link into. If empty, link is created\
+            \ at root level."
+          example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+          type: string
         fallbackDestination:
           description: Optional fallback URL if vCard download fails or is not supported.
           example: https://company.com/contact
           title: The fallback destination URL to use when vCard download fails or
             is not supported
+          type: string
+        id:
+          description: |-
+            Optional pre-generated link ID (UUID).
+            The create wizard generates the id up front and navigates to it, so the
+            link has to be created with that id or the page waits on a link that never
+            arrives. Skipped from the AI tool schema for the same reason as on
+            CreateLinkRequest: on a create there is nothing to alias, and exposing it
+            only invites the model to invent a UUID.
+          example: 550e8400-e29b-41d4-a716-446655440000
           type: string
         metadata:
           additionalProperties:
@@ -6169,8 +6186,9 @@ components:
           title: The destination URL to shorten (required)
           type: string
         directoryId:
+          description: "Directory to organize this link into. If empty, link is created\
+            \ at root level."
           example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
-          title: The ID of the directory to create this link in (UUID)
           type: string
         fallbackDestination:
           example: https://example.com/fallback
@@ -6417,19 +6435,20 @@ components:
         qrcodeDesignId: a8c5e111-8894-4f8a-b5db-9efe0d12a210
         metadata:
           key: metadata
-        qrcodeTemplateId: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
         purpose: "Thank visitors after a purchase and measure engagement. Good leads:\
           \ visitors who completed a purchase."
-        name: Thank You Page Link
         description: We appreciate your visit.
-        directoryId: a1b2c3d4-e5f6-7890-abcd-ef1234567890
-        waitForQrcode: true
         customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
         title: Thank you!
-        shortlink: thank-you
         tags:
         - tags
         - tags
+        qrcodeTemplateId: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
+        name: Thank You Page Link
+        directoryId: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+        id: 550e8400-e29b-41d4-a716-446655440000
+        waitForQrcode: true
+        shortlink: thank-you
       properties:
         customDomainId:
           description: |-
@@ -6446,6 +6465,14 @@ components:
           description: "Directory to organize this link into. If empty, link is created\
             \ at root level."
           example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+          type: string
+        id:
+          description: |-
+            Optional pre-generated link ID (UUID).
+            Same contract as on CreateLinkRequest: the caller may pick the id so a page
+            can navigate to the link before it exists, and it is skipped from the AI
+            tool schema so the model is never invited to invent one.
+          example: 550e8400-e29b-41d4-a716-446655440000
           type: string
         metadata:
           additionalProperties:
@@ -11509,6 +11536,7 @@ components:
           accessRevokedAt: 2000-01-23T04:56:07.000+00:00
           createdAt: 2000-01-23T04:56:07.000+00:00
           firstName: Sam
+          emailVerifiedAt: 2000-01-23T04:56:07.000+00:00
           id: 123e4567-e89b-12d3-a456-426614174000
           lastKnownLanguage: "en-US,en;q=0.9"
           email: sam.member@example.com
@@ -11525,6 +11553,7 @@ components:
           accessRevokedAt: 2000-01-23T04:56:07.000+00:00
           createdAt: 2000-01-23T04:56:07.000+00:00
           firstName: Sam
+          emailVerifiedAt: 2000-01-23T04:56:07.000+00:00
           id: 123e4567-e89b-12d3-a456-426614174000
           lastKnownLanguage: "en-US,en;q=0.9"
           email: sam.member@example.com
@@ -11897,6 +11926,7 @@ components:
         accessRevokedAt: 2000-01-23T04:56:07.000+00:00
         createdAt: 2000-01-23T04:56:07.000+00:00
         firstName: Sam
+        emailVerifiedAt: 2000-01-23T04:56:07.000+00:00
         id: 123e4567-e89b-12d3-a456-426614174000
         lastKnownLanguage: "en-US,en;q=0.9"
         email: sam.member@example.com
@@ -11924,6 +11954,11 @@ components:
         email:
           example: sam.member@example.com
           title: Email address used as the member's login identifier
+          type: string
+        emailVerifiedAt:
+          format: date-time
+          title: When the member confirmed ownership of their email address (null
+            means unverified)
           type: string
         firstName:
           example: Sam
