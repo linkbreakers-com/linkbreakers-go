@@ -5,7 +5,7 @@ info:
     url: https://app.linkbreakers.com
   description: This is a documentation of all the APIs of Linkbreakers
   title: Linkbreakers API
-  version: 1.118.3
+  version: 1.119.1
 servers:
 - url: https://api.linkbreakers.com
 security:
@@ -5762,6 +5762,8 @@ components:
           destination: https://example.com
           customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
           fallbackDestination: https://example.com/fallback
+          expiredDestination: https://example.com/campaign-over
+          expiresAt: 2026-12-31T23:59:59Z
           tags:
           - tags
           - tags
@@ -5780,6 +5782,8 @@ components:
           destination: https://example.com
           customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
           fallbackDestination: https://example.com/fallback
+          expiredDestination: https://example.com/campaign-over
+          expiresAt: 2026-12-31T23:59:59Z
           tags:
           - tags
           - tags
@@ -5813,6 +5817,8 @@ components:
           customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
           fallbackDestination: https://brand.example.com/fallback
           customDomain: ""
+          expiredDestination: https://example.com/campaign-over
+          expiresAt: 2026-12-31T23:59:59Z
           tags:
           - createdAt: 2000-01-23T04:56:07.000+00:00
             name: name
@@ -5844,6 +5850,8 @@ components:
           customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
           fallbackDestination: https://brand.example.com/fallback
           customDomain: ""
+          expiredDestination: https://example.com/campaign-over
+          expiresAt: 2026-12-31T23:59:59Z
           tags:
           - createdAt: 2000-01-23T04:56:07.000+00:00
             name: name
@@ -5880,6 +5888,8 @@ components:
           \ contacts interested in our services."
         customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
         fallbackDestination: https://company.com/contact
+        expiredDestination: https://example.com/campaign-over
+        expiresAt: 2026-12-31T23:59:59Z
         tags:
         - tags
         - tags
@@ -5901,6 +5911,20 @@ components:
           description: "Directory to organize this link into. If empty, link is created\
             \ at root level."
           example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+          type: string
+        expiredDestination:
+          description: |-
+            Where visitors are sent once the link has expired.
+            Empty serves the built-in expired page instead.
+          example: https://example.com/campaign-over
+          type: string
+        expiresAt:
+          description: |-
+            When the link stops resolving. Empty means it never expires.
+            Must be in the future. Once it passes the link is removed from the
+            workspace and only the expired destination is served.
+          example: 2026-12-31T23:59:59Z
+          format: date-time
           type: string
         fallbackDestination:
           description: Optional fallback URL if vCard download fails or is not supported.
@@ -5987,6 +6011,8 @@ components:
           customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
           fallbackDestination: https://brand.example.com/fallback
           customDomain: ""
+          expiredDestination: https://example.com/campaign-over
+          expiresAt: 2026-12-31T23:59:59Z
           tags:
           - createdAt: 2000-01-23T04:56:07.000+00:00
             name: name
@@ -6161,6 +6187,8 @@ components:
         destination: https://example.com
         customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
         fallbackDestination: https://example.com/fallback
+        expiredDestination: https://example.com/campaign-over
+        expiresAt: 2026-12-31T23:59:59Z
         tags:
         - tags
         - tags
@@ -6189,6 +6217,20 @@ components:
           description: "Directory to organize this link into. If empty, link is created\
             \ at root level."
           example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+          type: string
+        expiredDestination:
+          description: |-
+            Where visitors are sent once the link has expired.
+            Empty serves the built-in expired page instead.
+          example: https://example.com/campaign-over
+          type: string
+        expiresAt:
+          description: |-
+            When the link stops resolving. Empty means it never expires.
+            Must be in the future. Once it passes the link is removed from the
+            workspace and only the expired destination is served.
+          example: 2026-12-31T23:59:59Z
+          format: date-time
           type: string
         fallbackDestination:
           example: https://example.com/fallback
@@ -6304,6 +6346,8 @@ components:
           customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
           fallbackDestination: https://brand.example.com/fallback
           customDomain: ""
+          expiredDestination: https://example.com/campaign-over
+          expiresAt: 2026-12-31T23:59:59Z
           tags:
           - createdAt: 2000-01-23T04:56:07.000+00:00
             name: name
@@ -6440,6 +6484,8 @@ components:
         description: We appreciate your visit.
         customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
         title: Thank you!
+        expiredDestination: https://example.com/campaign-over
+        expiresAt: 2026-12-31T23:59:59Z
         tags:
         - tags
         - tags
@@ -6465,6 +6511,20 @@ components:
           description: "Directory to organize this link into. If empty, link is created\
             \ at root level."
           example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+          type: string
+        expiredDestination:
+          description: |-
+            Where visitors are sent once the link has expired.
+            Empty serves the built-in expired page instead.
+          example: https://example.com/campaign-over
+          type: string
+        expiresAt:
+          description: |-
+            When the link stops resolving. Empty means it never expires.
+            Must be in the future. Once it passes the link is removed from the
+            workspace and only the expired destination is served.
+          example: 2026-12-31T23:59:59Z
+          format: date-time
           type: string
         id:
           description: |-
@@ -6543,6 +6603,8 @@ components:
           customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
           fallbackDestination: https://brand.example.com/fallback
           customDomain: ""
+          expiredDestination: https://example.com/campaign-over
+          expiresAt: 2026-12-31T23:59:59Z
           tags:
           - createdAt: 2000-01-23T04:56:07.000+00:00
             name: name
@@ -9415,6 +9477,8 @@ components:
           customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
           fallbackDestination: https://brand.example.com/fallback
           customDomain: ""
+          expiredDestination: https://example.com/campaign-over
+          expiresAt: 2026-12-31T23:59:59Z
           tags:
           - createdAt: 2000-01-23T04:56:07.000+00:00
             name: name
@@ -10026,6 +10090,8 @@ components:
         customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
         fallbackDestination: https://brand.example.com/fallback
         customDomain: ""
+        expiredDestination: https://example.com/campaign-over
+        expiresAt: 2026-12-31T23:59:59Z
         tags:
         - createdAt: 2000-01-23T04:56:07.000+00:00
           name: name
@@ -10089,6 +10155,20 @@ components:
           example: 128
           format: int64
           readOnly: true
+          type: string
+        expiredDestination:
+          description: |-
+            Where visitors are sent once the link has expired.
+            Empty serves the built-in expired page instead.
+          example: https://example.com/campaign-over
+          type: string
+        expiresAt:
+          description: |-
+            When the link stops resolving. Empty means it never expires.
+            Must be in the future. Once it passes the link is removed from the
+            workspace and only the expired destination is served.
+          example: 2026-12-31T23:59:59Z
+          format: date-time
           type: string
         fallbackDestination:
           example: https://brand.example.com/fallback
@@ -10239,19 +10319,23 @@ components:
       type: object
     LinksServiceUpdateBody:
       example:
-        pageThemeId: f47ac10b-58cc-4372-a567-0e02b2c3d479
-        qrcodeTemplateIdDelete: true
+        expiresAtDelete: true
         tagsDelete: true
-        qrcodeTemplateId: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
         purpose: "Increase newsletter signups. Good leads: marketing qualified leads\
           \ with budget over $10k."
         directoryIdDelete: true
-        name: My Updated Link
-        directoryId: d87a9b30-5c8b-4d4e-9fd3-5f5f5f5f5f5f
         fallbackDestination: https://example.com/fallback
+        expiredDestination: https://example.com/campaign-over
+        expiresAt: 2026-12-31T23:59:59Z
         tags:
         - tags
         - tags
+        pageThemeId: f47ac10b-58cc-4372-a567-0e02b2c3d479
+        qrcodeTemplateIdDelete: true
+        qrcodeTemplateId: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
+        expiredDestinationDelete: true
+        name: My Updated Link
+        directoryId: d87a9b30-5c8b-4d4e-9fd3-5f5f5f5f5f5f
       properties:
         directoryId:
           example: d87a9b30-5c8b-4d4e-9fd3-5f5f5f5f5f5f
@@ -10261,6 +10345,31 @@ components:
           title: |-
             Remove the link from its directory (move to root)
             If true, the directory_id will be set to null
+          type: boolean
+        expiredDestination:
+          description: |-
+            Where visitors are sent once the link has expired.
+            Empty serves the built-in expired page instead.
+          example: https://example.com/campaign-over
+          type: string
+        expiredDestinationDelete:
+          description: |-
+            Remove the expired destination from this link.
+            If true, expired_destination is cleared and expired visitors see the
+            built-in expired page instead.
+          type: boolean
+        expiresAt:
+          description: |-
+            When the link stops resolving. Empty leaves the current value untouched.
+            Must be in the future. Once it passes the link is removed from the
+            workspace and only the expired destination is served.
+          example: 2026-12-31T23:59:59Z
+          format: date-time
+          type: string
+        expiresAtDelete:
+          description: |-
+            Remove the expiration from this link.
+            If true, expires_at is cleared and the link stops expiring.
           type: boolean
         fallbackDestination:
           example: https://example.com/fallback
@@ -11283,6 +11392,8 @@ components:
           customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
           fallbackDestination: https://brand.example.com/fallback
           customDomain: ""
+          expiredDestination: https://example.com/campaign-over
+          expiresAt: 2026-12-31T23:59:59Z
           tags:
           - createdAt: 2000-01-23T04:56:07.000+00:00
             name: name
@@ -11314,6 +11425,8 @@ components:
           customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
           fallbackDestination: https://brand.example.com/fallback
           customDomain: ""
+          expiredDestination: https://example.com/campaign-over
+          expiresAt: 2026-12-31T23:59:59Z
           tags:
           - createdAt: 2000-01-23T04:56:07.000+00:00
             name: name
@@ -13762,6 +13875,8 @@ components:
           customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
           fallbackDestination: https://brand.example.com/fallback
           customDomain: ""
+          expiredDestination: https://example.com/campaign-over
+          expiresAt: 2026-12-31T23:59:59Z
           tags:
           - createdAt: 2000-01-23T04:56:07.000+00:00
             name: name
