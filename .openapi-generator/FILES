@@ -292,6 +292,7 @@ model_publish_qrcode_template_response.go
 model_qrcode_design.go
 model_qrcode_design_service_update_body.go
 model_qrcode_template.go
+model_qrcode_template_scope.go
 model_qrcode_templates_service_update_qrcode_template_body.go
 model_redirect_trace_data.go
 model_request_workspace_enrollment_request.go

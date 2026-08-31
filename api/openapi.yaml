@@ -5,7 +5,7 @@ info:
     url: https://app.linkbreakers.com
   description: This is a documentation of all the APIs of Linkbreakers
   title: Linkbreakers API
-  version: 1.120.0
+  version: 1.121.0
 servers:
 - url: https://api.linkbreakers.com
 security:
@@ -3540,6 +3540,20 @@ paths:
       - explode: true
         in: query
         name: pageToken
+        required: false
+        schema:
+          type: string
+        style: form
+      - description: |-
+          Which templates to return. WORKSPACE (default) returns only templates owned by the caller's workspace. AVAILABLE also returns built-in templates and templates other workspaces have published, ordered by the workspace's own usage first, then its own templates, then the rest.
+
+           - QRCODE_TEMPLATE_SCOPE_UNSPECIFIED: Defaults to QRCODE_TEMPLATE_SCOPE_WORKSPACE.
+           - QRCODE_TEMPLATE_SCOPE_WORKSPACE: Only templates owned by the caller's workspace.
+           - QRCODE_TEMPLATE_SCOPE_AVAILABLE: Every template the workspace may use: its own, built-in ones, and
+          templates published by other workspaces.
+        explode: true
+        in: query
+        name: scope
         required: false
         schema:
           type: string
@@ -11640,10 +11654,12 @@ components:
           thumbnailSignedUrl: thumbnailSignedUrl
           description: description
           duplicatedFrom: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
+          usageCount: usageCount
           tags: tags
           thumbnailPendingUpdateSince: 2000-01-23T04:56:07.000+00:00
           createdAt: 2000-01-23T04:56:07.000+00:00
           learnMore: learnMore
+          owned: true
           faq: faq
           name: name
           id: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
@@ -11673,10 +11689,12 @@ components:
           thumbnailSignedUrl: thumbnailSignedUrl
           description: description
           duplicatedFrom: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
+          usageCount: usageCount
           tags: tags
           thumbnailPendingUpdateSince: 2000-01-23T04:56:07.000+00:00
           createdAt: 2000-01-23T04:56:07.000+00:00
           learnMore: learnMore
+          owned: true
           faq: faq
           name: name
           id: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
@@ -13107,10 +13125,12 @@ components:
         thumbnailSignedUrl: thumbnailSignedUrl
         description: description
         duplicatedFrom: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
+        usageCount: usageCount
         tags: tags
         thumbnailPendingUpdateSince: 2000-01-23T04:56:07.000+00:00
         createdAt: 2000-01-23T04:56:07.000+00:00
         learnMore: learnMore
+        owned: true
         faq: faq
         name: name
         id: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
@@ -13155,6 +13175,11 @@ components:
         name:
           title: Human-readable name shown in the gallery
           type: string
+        owned:
+          description: True when the template belongs to the caller's workspace. False
+            for built-in templates and for community templates published by other
+            workspaces.
+          type: boolean
         publishedAt:
           description: "When the template was published. Null means private template,\
             \ only visible to creating workspace."
@@ -13187,12 +13212,31 @@ components:
           format: date-time
           title: When the template metadata was last updated
           type: string
+        usageCount:
+          description: Number of links in the caller's workspace that were created
+            from this template. Drives the 'most used' ordering in the template picker.
+          format: int64
+          type: string
         workspaceId:
           example: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
           title: Workspace that owns the template; empty for built-in templates (UUID
             when present)
           type: string
       title: QrcodeTemplate
+    QrcodeTemplateScope:
+      default: QRCODE_TEMPLATE_SCOPE_UNSPECIFIED
+      description: |-
+        QrcodeTemplateScope selects which templates a list call returns.
+
+         - QRCODE_TEMPLATE_SCOPE_UNSPECIFIED: Defaults to QRCODE_TEMPLATE_SCOPE_WORKSPACE.
+         - QRCODE_TEMPLATE_SCOPE_WORKSPACE: Only templates owned by the caller's workspace.
+         - QRCODE_TEMPLATE_SCOPE_AVAILABLE: Every template the workspace may use: its own, built-in ones, and
+        templates published by other workspaces.
+      enum:
+      - QRCODE_TEMPLATE_SCOPE_UNSPECIFIED
+      - QRCODE_TEMPLATE_SCOPE_WORKSPACE
+      - QRCODE_TEMPLATE_SCOPE_AVAILABLE
+      type: string
     QrcodeTemplatesServicePublishQrcodeTemplateBody:
       title: PublishQrcodeTemplateRequest represents a request to publish a QR code
         template
