@@ -36,6 +36,8 @@ model_agent_context_type.go
 model_agent_display_message.go
 model_agent_display_message_attachment.go
 model_agent_get_conversation_response.go
+model_agent_mark_conversation_read_request.go
+model_agent_mark_conversation_read_response.go
 model_agent_send_message_request.go
 model_agent_send_message_response.go
 model_agent_upload_file_request.go

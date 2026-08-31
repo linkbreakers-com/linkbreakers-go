@@ -5,7 +5,7 @@ info:
     url: https://app.linkbreakers.com
   description: This is a documentation of all the APIs of Linkbreakers
   title: Linkbreakers API
-  version: 1.119.1
+  version: 1.120.0
 servers:
 - url: https://api.linkbreakers.com
 security:
@@ -179,6 +179,36 @@ paths:
       security:
       - bearerAuth: []
       summary: Get agent conversation
+      tags:
+      - Agent
+  /v1/agent/conversation/read:
+    post:
+      description: "Record that the member has seen every assistant reply in this\
+        \ conversation. Call it when the thread is actually on screen, not when history\
+        \ is fetched."
+      operationId: AgentService_MarkConversationRead
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AgentMarkConversationReadRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentMarkConversationReadResponse"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth: []
+      summary: Mark agent conversation read
       tags:
       - Agent
   /v1/agent/message:
@@ -5023,6 +5053,7 @@ components:
         sender: sender
         id: id
         text: text
+        readAt: 2000-01-23T04:56:07.000+00:00
         timestamp: 2000-01-23T04:56:07.000+00:00
       properties:
         attachments:
@@ -5030,6 +5061,12 @@ components:
             $ref: "#/components/schemas/AgentDisplayMessageAttachment"
           type: array
         id:
+          type: string
+        readAt:
+          description: |-
+            When the member had this assistant message on screen. Unset while an
+            assistant message has not been seen, and on every user message.
+          format: date-time
           type: string
         sender:
           type: string
@@ -5060,6 +5097,7 @@ components:
           sender: sender
           id: id
           text: text
+          readAt: 2000-01-23T04:56:07.000+00:00
           timestamp: 2000-01-23T04:56:07.000+00:00
         - attachments:
           - name: name
@@ -5069,13 +5107,39 @@ components:
           sender: sender
           id: id
           text: text
+          readAt: 2000-01-23T04:56:07.000+00:00
           timestamp: 2000-01-23T04:56:07.000+00:00
+        unreadCount: 0
       properties:
         messages:
           items:
             $ref: "#/components/schemas/AgentDisplayMessage"
           type: array
+        unreadCount:
+          description: Assistant messages in this conversation the member has not
+            seen yet.
+          format: int32
+          type: integer
       title: AgentGetConversationResponse contains the display-ready messages
+    AgentMarkConversationReadRequest:
+      example:
+        contextType: AGENT_CONTEXT_TYPE_UNSPECIFIED
+        contextId: contextId
+      properties:
+        contextId:
+          type: string
+        contextType:
+          $ref: "#/components/schemas/AgentContextType"
+      title: AgentMarkConversationReadRequest marks a conversation's replies as seen
+    AgentMarkConversationReadResponse:
+      example:
+        markedCount: 0
+      properties:
+        markedCount:
+          format: int32
+          type: integer
+      title: AgentMarkConversationReadResponse reports how many replies this call
+        marked
     AgentSendMessageRequest:
       example:
         contextType: ""
@@ -8041,7 +8105,7 @@ components:
           type: string
     ErrorResponse:
       example:
-        code: 0
+        code: 6
         codeType: UNKNOWN
         details:
         - "{}"
