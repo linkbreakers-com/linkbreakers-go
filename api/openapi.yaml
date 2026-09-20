@@ -5,7 +5,7 @@ info:
     url: https://app.linkbreakers.com
   description: This is a documentation of all the APIs of Linkbreakers
   title: Linkbreakers API
-  version: 1.124.0
+  version: 1.125.0
 servers:
 - url: https://api.linkbreakers.com
 security:
@@ -5915,19 +5915,31 @@ components:
         to an existing link's QR code.
       example:
         linkId: 550e8400-e29b-41d4-a716-446655440000
+        qrcodeTemplateId: 550e8400-e29b-41d4-a716-446655440000
         templateSlug: google-dinosaur
       properties:
         linkId:
           example: 550e8400-e29b-41d4-a716-446655440000
           title: The ID of the link to apply the template to (UUID)
           type: string
+        qrcodeTemplateId:
+          description: |-
+            Template to apply, addressed by ID. Use this for workspace templates that
+            have never been published and therefore have no slug.
+          example: 550e8400-e29b-41d4-a716-446655440000
+          type: string
         templateSlug:
+          description: |-
+            Slug of the QR code template to apply.
+
+            Only published and built-in templates carry a slug: it is the public
+            identifier the gallery and the marketing site address them by. Supply
+            qrcode_template_id instead for a workspace's own templates, which have
+            none. Exactly one of the two is required.
           example: google-dinosaur
-          title: The slug of the QR code template to apply
           type: string
       required:
       - linkId
-      - templateSlug
     ApplyQrcodeTemplateResponse:
       description: ApplyQrcodeTemplateResponse returns the updated QR code design
         after applying the template.
