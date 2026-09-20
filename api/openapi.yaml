@@ -5,7 +5,7 @@ info:
     url: https://app.linkbreakers.com
   description: This is a documentation of all the APIs of Linkbreakers
   title: Linkbreakers API
-  version: 1.123.1
+  version: 1.124.0
 servers:
 - url: https://api.linkbreakers.com
 security:
@@ -44,6 +44,10 @@ tags:
 - description: "Endpoints for analyzing workspace activity within Linkbreakers, covering\
     \ rolling event totals, audience reach, and calendar heatmaps."
   name: Workspace Metrics
+- description: "Endpoints for managing Page Theme Templates in Linkbreakers. These\
+    \ endpoints allow you to create, retrieve, update, publish, import, and delete\
+    \ reusable page styling."
+  name: Page Theme Templates
 - description: "Endpoints for managing page visual themes. These endpoints allow you\
     \ to create, read, and update themes for canvas, cover, badge, container, typography,\
     \ and interactive elements."
@@ -3087,6 +3091,321 @@ paths:
       summary: Get workspace insight
       tags:
       - Workspace Metrics
+  /v1/page-theme-templates:
+    get:
+      description: Retrieve page theme templates that belong to the authenticated
+        caller's workspace.
+      operationId: PageThemeTemplatesService_ListPageThemeTemplates
+      parameters:
+      - explode: true
+        in: query
+        name: include
+        required: false
+        schema:
+          items:
+            type: string
+          type: array
+        style: form
+      - explode: true
+        in: query
+        name: search
+        required: false
+        schema:
+          type: string
+        style: form
+      - explode: true
+        in: query
+        name: pageSize
+        required: false
+        schema:
+          format: int64
+          type: integer
+        style: form
+      - explode: true
+        in: query
+        name: pageToken
+        required: false
+        schema:
+          type: string
+        style: form
+      - description: |-
+          Which templates to return. WORKSPACE (default) returns only templates owned by the caller's workspace. AVAILABLE also returns built-in templates and templates other workspaces have published, ordered by the workspace's own usage first, then its own templates, then the rest.
+
+           - PAGE_THEME_TEMPLATE_SCOPE_UNSPECIFIED: Defaults to PAGE_THEME_TEMPLATE_SCOPE_WORKSPACE.
+           - PAGE_THEME_TEMPLATE_SCOPE_WORKSPACE: Only templates owned by the caller's workspace.
+           - PAGE_THEME_TEMPLATE_SCOPE_AVAILABLE: Every template the workspace may use: its own, built-in ones, and
+          templates published by other workspaces.
+        explode: true
+        in: query
+        name: scope
+        required: false
+        schema:
+          type: string
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListPageThemeTemplatesResponse"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth: []
+      summary: List my page theme templates
+      tags:
+      - Page Theme Templates
+    post:
+      description: Create a page theme template by copying the styling of an existing
+        page theme into a fresh detached theme owned by the template.
+      operationId: PageThemeTemplatesService_CreatePageThemeTemplate
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePageThemeTemplateRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreatePageThemeTemplateResponse"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth: []
+      summary: Create a new page theme template
+      tags:
+      - Page Theme Templates
+  /v1/page-theme-templates/import:
+    post:
+      description: Import a public page theme template into your workspace by slug.
+        Creates a private copy owned by your workspace.
+      operationId: PageThemeTemplatesService_ImportPageThemeTemplate
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ImportPageThemeTemplateRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportPageThemeTemplateResponse"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth: []
+      summary: Import a public page theme template
+      tags:
+      - Page Theme Templates
+  /v1/page-theme-templates/{id}:
+    delete:
+      description: Remove a page theme template belonging to the authenticated caller's
+        workspace. Pages already styled from it are unaffected.
+      operationId: PageThemeTemplatesService_DeletePageThemeTemplate
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeletePageThemeTemplateResponse"
+          description: Everything worked as expected.
+        "204":
+          content:
+            application/json:
+              schema: {}
+          description: Page theme template deleted successfully
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth: []
+      summary: Delete a workspace page theme template
+      tags:
+      - Page Theme Templates
+    get:
+      description: Retrieve a page theme template that belongs to the authenticated
+        caller's workspace.
+      operationId: PageThemeTemplatesService_GetPageThemeTemplate
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        style: simple
+      - explode: true
+        in: query
+        name: include
+        required: false
+        schema:
+          items:
+            type: string
+          type: array
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PageThemeTemplate"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth: []
+      summary: Get a workspace page theme template
+      tags:
+      - Page Theme Templates
+    patch:
+      description: Modify the metadata of a page theme template owned by the authenticated
+        workspace.
+      operationId: PageThemeTemplatesService_UpdatePageThemeTemplate
+      parameters:
+      - description: The ID of the page theme template to update (UUID)
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PageThemeTemplatesServiceUpdatePageThemeTemplateBody"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpdatePageThemeTemplateResponse"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth: []
+      summary: Update a workspace page theme template
+      tags:
+      - Page Theme Templates
+  /v1/page-theme-templates/{id}/publish:
+    post:
+      description: "Publish a page theme template to make it available in the public\
+        \ gallery. Requires workspace to be public and template to have slug, description,\
+        \ and name."
+      operationId: PageThemeTemplatesService_PublishPageThemeTemplate
+      parameters:
+      - description: The ID of the page theme template to publish (UUID)
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PageThemeTemplatesServicePublishPageThemeTemplateBody"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublishPageThemeTemplateResponse"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth: []
+      summary: Publish a workspace page theme template
+      tags:
+      - Page Theme Templates
+  /v1/page-theme-templates/{id}/styling:
+    patch:
+      description: "Edit the colours, typography, container and media of a page theme\
+        \ template. Queues a thumbnail regeneration."
+      operationId: PageThemeTemplatesService_UpdatePageThemeTemplateStyling
+      parameters:
+      - description: The ID of the page theme template whose styling to update (UUID)
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpdatePageThemeTemplateStylingResponse"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth: []
+      summary: Update a page theme template's styling
+      tags:
+      - Page Theme Templates
   /v1/page-themes:
     get:
       description: Retrieves all page themes belonging to the caller's workspace.
@@ -3107,6 +3426,76 @@ paths:
       security:
       - bearerAuth: []
       summary: List page themes for the current workspace
+      tags:
+      - Page Themes
+  /v1/page-themes/apply-template:
+    post:
+      description: |-
+        Copies a template's styling into the link's own page theme. The link keeps its
+        own theme row, so the template can later be edited or deleted without changing
+        any page that was styled from it. Cover and badge media are copied into the
+        caller's workspace when the template carries them.
+      operationId: PageThemesService_ApplyPageThemeTemplate
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApplyPageThemeTemplateRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApplyPageThemeTemplateResponse"
+          description: Everything worked as expected.
+        "404":
+          content:
+            application/json:
+              schema: {}
+          description: The requested resource doesn't exist.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth: []
+      summary: Apply a page theme template to a link
+      tags:
+      - Page Themes
+  /v1/page-themes/matching-template:
+    get:
+      description: "Returns the page theme template available to the workspace whose\
+        \ styling is identical to the link's current page theme, if one exists. Saving\
+        \ the theme as a template again would only duplicate it."
+      operationId: PageThemeTemplatesService_FindMatchingPageThemeTemplate
+      parameters:
+      - description: Link whose current page theme should be matched
+        explode: true
+        in: query
+        name: linkId
+        required: true
+        schema:
+          type: string
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FindMatchingPageThemeTemplateResponse"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth: []
+      summary: Find a page theme template matching a link's styling
       tags:
       - Page Themes
   /v1/page-themes/{id}:
@@ -3193,6 +3582,123 @@ paths:
       summary: Update a page theme
       tags:
       - Page Themes
+  /v1/public/page-theme-templates:
+    get:
+      description: "Retrieve available public page theme templates, optionally filtered\
+        \ by search terms."
+      operationId: PageThemeTemplatesService_PublicListPageThemeTemplates
+      parameters:
+      - description: |-
+          Related objects to include in the response
+
+          List of related objects to include. Supported values: 'workspace'
+        explode: true
+        in: query
+        name: include
+        required: false
+        schema:
+          items:
+            type: string
+          type: array
+        style: form
+      - description: Search query applied to template name/description
+        explode: true
+        in: query
+        name: search
+        required: false
+        schema:
+          type: string
+        style: form
+      - description: Maximum number of templates to return (defaults to 20)
+        explode: true
+        in: query
+        name: pageSize
+        required: false
+        schema:
+          format: int64
+          type: integer
+        style: form
+      - description: Cursor token to retrieve the next page of results
+        explode: true
+        in: query
+        name: pageToken
+        required: false
+        schema:
+          type: string
+        style: form
+      - description: |-
+          Optional workspace ID to filter templates by workspace
+
+          Filter public templates by workspace. Only published templates for that workspace will be returned.
+        explode: true
+        in: query
+        name: workspaceId
+        required: false
+        schema:
+          type: string
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicListPageThemeTemplatesResponse"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth: []
+      summary: List page theme templates
+      tags:
+      - Page Theme Templates
+  /v1/public/page-theme-templates/{slug}:
+    get:
+      description: Retrieve a single published page theme template that is visible
+        in the public gallery.
+      operationId: PageThemeTemplatesService_PublicGetPageThemeTemplate
+      parameters:
+      - explode: false
+        in: path
+        name: slug
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: |-
+          Related objects to include in the response
+
+          List of related objects to include. Supported values: 'workspace'
+        explode: true
+        in: query
+        name: include
+        required: false
+        schema:
+          items:
+            type: string
+          type: array
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicPageThemeTemplate"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth: []
+      summary: Get a public page theme template
+      tags:
+      - Page Theme Templates
   /v1/public/qrcode-designs:
     post:
       description: Provision a QR code styling preset that can be reused across links
@@ -5369,6 +5875,41 @@ components:
           type: string
         widgetId:
           type: string
+    ApplyPageThemeTemplateRequest:
+      example:
+        linkId: linkId
+        pageThemeTemplateId: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
+        slug: slug
+      properties:
+        linkId:
+          title: Link whose page theme should be restyled
+          type: string
+        pageThemeTemplateId:
+          description: "Template to apply, addressed by ID. Use this for workspace\
+            \ templates that have not been published and therefore have no slug."
+          example: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
+          type: string
+        slug:
+          description: |-
+            Slug of the page theme template to apply.
+
+            Only published and built-in templates carry a slug: it is the public
+            identifier the gallery and the marketing site address them by. Supply
+            page_theme_template_id instead for a workspace's own drafts, which have
+            none. Exactly one of the two is required.
+          type: string
+      required:
+      - linkId
+      title: Request to apply a page theme template to a link
+    ApplyPageThemeTemplateResponse:
+      example:
+        pageTheme: ""
+      properties:
+        pageTheme:
+          allOf:
+          - $ref: "#/components/schemas/PageTheme"
+          title: "The link's page theme, with the template's styling applied"
+      title: Response after applying a page theme template
     ApplyQrcodeTemplateRequest:
       description: ApplyQrcodeTemplateRequest applies a community template's design
         to an existing link's QR code.
@@ -5689,6 +6230,13 @@ components:
         card:
           $ref: "#/components/schemas/ContactCardTraceCard"
     ContainerConfig:
+      example:
+        backgroundColor: ""
+        borderColor: ""
+        borderSize: 6
+        variant: PAGE_THEME_CONTAINER_VARIANT_UNSPECIFIED
+        borderStyle: PAGE_THEME_BORDER_STYLE_UNSPECIFIED
+        opacity: 1
       properties:
         backgroundColor:
           allOf:
@@ -5892,8 +6440,15 @@ components:
           qrcodeDesign: ""
           purpose: purpose
           eventCount: 128
-          customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
           fallbackDestination: https://brand.example.com/fallback
+          createdAt: 2000-01-23T04:56:07.000+00:00
+          entrypoint: https://linkbreak.ing/4BnH-R19p
+          id: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
+          shortlink: 4BnH-R19p
+          updatedAt: 2000-01-23T04:56:07.000+00:00
+          workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
+          pageThemeTemplateId: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
+          customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
           customDomain: ""
           expiredDestination: https://example.com/campaign-over
           expiresAt: 2026-12-31T23:59:59Z
@@ -5906,18 +6461,12 @@ components:
             name: name
             id: d87a9b30-5c8b-4d4e-9fd3-5f5f5f5f5f5f
             updatedAt: 2000-01-23T04:56:07.000+00:00
-          createdAt: 2000-01-23T04:56:07.000+00:00
           pageThemeId: f47ac10b-58cc-4372-a567-0e02b2c3d479
           pageTheme: ""
           qrcodeTemplateId: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
-          entrypoint: https://linkbreak.ing/4BnH-R19p
           name: name
           directoryId: d87a9b30-5c8b-4d4e-9fd3-5f5f5f5f5f5f
           qrcodeSignedUrl: https://cdn.linkbreakers.com/qrcodes/1b9d6bcd.png?signature=abc123
-          id: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
-          shortlink: 4BnH-R19p
-          updatedAt: 2000-01-23T04:56:07.000+00:00
-          workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
         - qrcodeDesignId: a8c5e111-8894-4f8a-b5db-9efe0d12a210
           qrcodePendingUpdateSince: 2000-01-23T04:56:07.000+00:00
           metadata:
@@ -5925,8 +6474,15 @@ components:
           qrcodeDesign: ""
           purpose: purpose
           eventCount: 128
-          customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
           fallbackDestination: https://brand.example.com/fallback
+          createdAt: 2000-01-23T04:56:07.000+00:00
+          entrypoint: https://linkbreak.ing/4BnH-R19p
+          id: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
+          shortlink: 4BnH-R19p
+          updatedAt: 2000-01-23T04:56:07.000+00:00
+          workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
+          pageThemeTemplateId: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
+          customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
           customDomain: ""
           expiredDestination: https://example.com/campaign-over
           expiresAt: 2026-12-31T23:59:59Z
@@ -5939,18 +6495,12 @@ components:
             name: name
             id: d87a9b30-5c8b-4d4e-9fd3-5f5f5f5f5f5f
             updatedAt: 2000-01-23T04:56:07.000+00:00
-          createdAt: 2000-01-23T04:56:07.000+00:00
           pageThemeId: f47ac10b-58cc-4372-a567-0e02b2c3d479
           pageTheme: ""
           qrcodeTemplateId: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
-          entrypoint: https://linkbreak.ing/4BnH-R19p
           name: name
           directoryId: d87a9b30-5c8b-4d4e-9fd3-5f5f5f5f5f5f
           qrcodeSignedUrl: https://cdn.linkbreakers.com/qrcodes/1b9d6bcd.png?signature=abc123
-          id: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
-          shortlink: 4BnH-R19p
-          updatedAt: 2000-01-23T04:56:07.000+00:00
-          workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
       properties:
         links:
           items:
@@ -6086,8 +6636,15 @@ components:
           qrcodeDesign: ""
           purpose: purpose
           eventCount: 128
-          customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
           fallbackDestination: https://brand.example.com/fallback
+          createdAt: 2000-01-23T04:56:07.000+00:00
+          entrypoint: https://linkbreak.ing/4BnH-R19p
+          id: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
+          shortlink: 4BnH-R19p
+          updatedAt: 2000-01-23T04:56:07.000+00:00
+          workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
+          pageThemeTemplateId: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
+          customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
           customDomain: ""
           expiredDestination: https://example.com/campaign-over
           expiresAt: 2026-12-31T23:59:59Z
@@ -6100,18 +6657,12 @@ components:
             name: name
             id: d87a9b30-5c8b-4d4e-9fd3-5f5f5f5f5f5f
             updatedAt: 2000-01-23T04:56:07.000+00:00
-          createdAt: 2000-01-23T04:56:07.000+00:00
           pageThemeId: f47ac10b-58cc-4372-a567-0e02b2c3d479
           pageTheme: ""
           qrcodeTemplateId: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
-          entrypoint: https://linkbreak.ing/4BnH-R19p
           name: name
           directoryId: d87a9b30-5c8b-4d4e-9fd3-5f5f5f5f5f5f
           qrcodeSignedUrl: https://cdn.linkbreakers.com/qrcodes/1b9d6bcd.png?signature=abc123
-          id: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
-          shortlink: 4BnH-R19p
-          updatedAt: 2000-01-23T04:56:07.000+00:00
-          workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
       properties:
         link:
           $ref: "#/components/schemas/Link"
@@ -6421,8 +6972,15 @@ components:
           qrcodeDesign: ""
           purpose: purpose
           eventCount: 128
-          customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
           fallbackDestination: https://brand.example.com/fallback
+          createdAt: 2000-01-23T04:56:07.000+00:00
+          entrypoint: https://linkbreak.ing/4BnH-R19p
+          id: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
+          shortlink: 4BnH-R19p
+          updatedAt: 2000-01-23T04:56:07.000+00:00
+          workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
+          pageThemeTemplateId: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
+          customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
           customDomain: ""
           expiredDestination: https://example.com/campaign-over
           expiresAt: 2026-12-31T23:59:59Z
@@ -6435,18 +6993,12 @@ components:
             name: name
             id: d87a9b30-5c8b-4d4e-9fd3-5f5f5f5f5f5f
             updatedAt: 2000-01-23T04:56:07.000+00:00
-          createdAt: 2000-01-23T04:56:07.000+00:00
           pageThemeId: f47ac10b-58cc-4372-a567-0e02b2c3d479
           pageTheme: ""
           qrcodeTemplateId: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
-          entrypoint: https://linkbreak.ing/4BnH-R19p
           name: name
           directoryId: d87a9b30-5c8b-4d4e-9fd3-5f5f5f5f5f5f
           qrcodeSignedUrl: https://cdn.linkbreakers.com/qrcodes/1b9d6bcd.png?signature=abc123
-          id: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
-          shortlink: 4BnH-R19p
-          updatedAt: 2000-01-23T04:56:07.000+00:00
-          workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
       properties:
         link:
           $ref: "#/components/schemas/Link"
@@ -6502,6 +7054,60 @@ components:
           - $ref: "#/components/schemas/Media"
           title: Newly stored media record with signed download URL
       title: Response containing the created media file
+    CreatePageThemeTemplateRequest:
+      description: |-
+        CreatePageThemeTemplateRequest represents a request to create a new page theme template.
+
+        The template's styling is copied from an existing page theme, which is normally a
+        link's theme the user wants to reuse. The copy is detached, so editing the link
+        afterwards does not change the template.
+      example:
+        sourcePageThemeId: a8c5e111-8894-4f8a-b5db-9efe0d12a210
+        learnMore: learnMore
+        styling: ""
+        faq: faq
+        name: name
+        description: description
+        tags: tags
+      properties:
+        description:
+          title: The description of the page theme template
+          type: string
+        faq:
+          title: FAQ data stored as JSON
+          type: string
+        learnMore:
+          title: Extended markdown-supported content for "learn more" section
+          type: string
+        name:
+          title: The name of the page theme template
+          type: string
+        sourcePageThemeId:
+          description: "Page theme to copy the styling from, usually a link's own\
+            \ theme. Omit to start from the default styling."
+          example: a8c5e111-8894-4f8a-b5db-9efe0d12a210
+          type: string
+        styling:
+          allOf:
+          - $ref: "#/components/schemas/PageThemeStyling"
+          description: |-
+            Styling to capture, taking precedence over source_page_theme_id.
+
+            The editor sends what is on screen, so saving a theme as a template records
+            the look the user is actually looking at rather than the last saved one.
+        tags:
+          title: Tags for categorizing and filtering templates (comma-separated)
+          type: string
+    CreatePageThemeTemplateResponse:
+      example:
+        pageThemeTemplate: ""
+      properties:
+        pageThemeTemplate:
+          allOf:
+          - $ref: "#/components/schemas/PageThemeTemplate"
+          title: The created page theme template
+      title: CreatePageThemeTemplateResponse represents the response for creating
+        a page theme template
     CreateQrcodeTemplateRequest:
       description: |-
         IMPORTANT: When creating a template, the provided QR code design must be a fresh design
@@ -6678,8 +7284,15 @@ components:
           qrcodeDesign: ""
           purpose: purpose
           eventCount: 128
-          customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
           fallbackDestination: https://brand.example.com/fallback
+          createdAt: 2000-01-23T04:56:07.000+00:00
+          entrypoint: https://linkbreak.ing/4BnH-R19p
+          id: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
+          shortlink: 4BnH-R19p
+          updatedAt: 2000-01-23T04:56:07.000+00:00
+          workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
+          pageThemeTemplateId: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
+          customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
           customDomain: ""
           expiredDestination: https://example.com/campaign-over
           expiresAt: 2026-12-31T23:59:59Z
@@ -6692,18 +7305,12 @@ components:
             name: name
             id: d87a9b30-5c8b-4d4e-9fd3-5f5f5f5f5f5f
             updatedAt: 2000-01-23T04:56:07.000+00:00
-          createdAt: 2000-01-23T04:56:07.000+00:00
           pageThemeId: f47ac10b-58cc-4372-a567-0e02b2c3d479
           pageTheme: ""
           qrcodeTemplateId: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
-          entrypoint: https://linkbreak.ing/4BnH-R19p
           name: name
           directoryId: d87a9b30-5c8b-4d4e-9fd3-5f5f5f5f5f5f
           qrcodeSignedUrl: https://cdn.linkbreakers.com/qrcodes/1b9d6bcd.png?signature=abc123
-          id: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
-          shortlink: 4BnH-R19p
-          updatedAt: 2000-01-23T04:56:07.000+00:00
-          workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
       properties:
         link:
           $ref: "#/components/schemas/Link"
@@ -7213,6 +7820,10 @@ components:
       type: object
     DeleteMediaResponse:
       title: Response for media file deletion
+      type: object
+    DeletePageThemeTemplateResponse:
+      description: DeletePageThemeTemplateResponse confirms deletion of a workspace
+        template.
       type: object
     DeleteQrcodeDesignResponse:
       description: |-
@@ -8720,7 +9331,29 @@ components:
           title: Start timestamp of the interval
           type: string
       title: EventsTimeSeriesData represents a single data point in the time series
+    FindMatchingPageThemeTemplateResponse:
+      example:
+        pageThemeTemplate: ""
+        matched: true
+      properties:
+        matched:
+          title: Whether the link's styling already exists as a template
+          type: boolean
+        pageThemeTemplate:
+          allOf:
+          - $ref: "#/components/schemas/PageThemeTemplate"
+          description: |-
+            The matching template. Absent when matched is false. Its backing theme is
+            not included: this answers identity, not styling.
+      title: "Response naming the matching template, when there is one"
     FontConfig:
+      example:
+        familyStack: "\"Gill Sans\", \"Trebuchet MS\", sans-serif"
+        color: ""
+        fontSize: 0
+        bold: true
+        family: PAGE_THEME_FONT_FAMILY_UNSPECIFIED
+        italic: true
       properties:
         bold:
           title: Bold styling
@@ -8741,6 +9374,10 @@ components:
           - PAGE_THEME_FONT_FAMILY_GEORGIA
           - PAGE_THEME_FONT_FAMILY_TIMES_NEW_ROMAN
           - PAGE_THEME_FONT_FAMILY_COURIER_NEW
+          type: string
+        familyStack:
+          description: Exact CSS font stack. Takes precedence over family when writing.
+          example: "\"Gill Sans\", \"Trebuchet MS\", sans-serif"
           type: string
         fontSize:
           format: int32
@@ -9552,8 +10189,15 @@ components:
           qrcodeDesign: ""
           purpose: purpose
           eventCount: 128
-          customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
           fallbackDestination: https://brand.example.com/fallback
+          createdAt: 2000-01-23T04:56:07.000+00:00
+          entrypoint: https://linkbreak.ing/4BnH-R19p
+          id: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
+          shortlink: 4BnH-R19p
+          updatedAt: 2000-01-23T04:56:07.000+00:00
+          workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
+          pageThemeTemplateId: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
+          customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
           customDomain: ""
           expiredDestination: https://example.com/campaign-over
           expiresAt: 2026-12-31T23:59:59Z
@@ -9566,18 +10210,12 @@ components:
             name: name
             id: d87a9b30-5c8b-4d4e-9fd3-5f5f5f5f5f5f
             updatedAt: 2000-01-23T04:56:07.000+00:00
-          createdAt: 2000-01-23T04:56:07.000+00:00
           pageThemeId: f47ac10b-58cc-4372-a567-0e02b2c3d479
           pageTheme: ""
           qrcodeTemplateId: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
-          entrypoint: https://linkbreak.ing/4BnH-R19p
           name: name
           directoryId: d87a9b30-5c8b-4d4e-9fd3-5f5f5f5f5f5f
           qrcodeSignedUrl: https://cdn.linkbreakers.com/qrcodes/1b9d6bcd.png?signature=abc123
-          id: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
-          shortlink: 4BnH-R19p
-          updatedAt: 2000-01-23T04:56:07.000+00:00
-          workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
       properties:
         link:
           $ref: "#/components/schemas/Link"
@@ -10008,6 +10646,28 @@ components:
           items:
             type: string
           type: array
+    ImportPageThemeTemplateRequest:
+      example:
+        slug: midnight-glass
+      properties:
+        slug:
+          description: The slug of the public page theme template to import into your
+            workspace
+          example: midnight-glass
+          title: The slug of the public template to import
+          type: string
+      title: ImportPageThemeTemplateRequest represents a request to import a public
+        template by slug
+    ImportPageThemeTemplateResponse:
+      example:
+        pageThemeTemplate: ""
+      properties:
+        pageThemeTemplate:
+          allOf:
+          - $ref: "#/components/schemas/PageThemeTemplate"
+          title: The imported page theme template (now owned by the importing workspace)
+      title: ImportPageThemeTemplateResponse represents the response after importing
+        a template
     ImportQrcodeTemplateRequest:
       example:
         slug: minimalist-corporate
@@ -10165,8 +10825,15 @@ components:
         qrcodeDesign: ""
         purpose: purpose
         eventCount: 128
-        customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
         fallbackDestination: https://brand.example.com/fallback
+        createdAt: 2000-01-23T04:56:07.000+00:00
+        entrypoint: https://linkbreak.ing/4BnH-R19p
+        id: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
+        shortlink: 4BnH-R19p
+        updatedAt: 2000-01-23T04:56:07.000+00:00
+        workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
+        pageThemeTemplateId: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
+        customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
         customDomain: ""
         expiredDestination: https://example.com/campaign-over
         expiresAt: 2026-12-31T23:59:59Z
@@ -10179,18 +10846,12 @@ components:
           name: name
           id: d87a9b30-5c8b-4d4e-9fd3-5f5f5f5f5f5f
           updatedAt: 2000-01-23T04:56:07.000+00:00
-        createdAt: 2000-01-23T04:56:07.000+00:00
         pageThemeId: f47ac10b-58cc-4372-a567-0e02b2c3d479
         pageTheme: ""
         qrcodeTemplateId: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
-        entrypoint: https://linkbreak.ing/4BnH-R19p
         name: name
         directoryId: d87a9b30-5c8b-4d4e-9fd3-5f5f5f5f5f5f
         qrcodeSignedUrl: https://cdn.linkbreakers.com/qrcodes/1b9d6bcd.png?signature=abc123
-        id: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
-        shortlink: 4BnH-R19p
-        updatedAt: 2000-01-23T04:56:07.000+00:00
-        workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
       externalDocs:
         description: Learn more about links in Linkbreakers
         url: https://linkbreakers.com/help/article/whats-a-link
@@ -10273,6 +10934,15 @@ components:
         pageThemeId:
           description: The ID of the page theme for this link (UUID).
           example: f47ac10b-58cc-4372-a567-0e02b2c3d479
+          type: string
+        pageThemeTemplateId:
+          description: |-
+            The page theme template this link's styling was applied from (UUID).
+
+            Empty when the theme was styled by hand rather than taken from a template.
+            Set when a template is applied, and unchanged by later edits, so it records
+            where the look came from rather than what it is now.
+          example: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
           type: string
         purpose:
           description: "What the user is trying to achieve with this link, in one\
@@ -11467,8 +12137,15 @@ components:
           qrcodeDesign: ""
           purpose: purpose
           eventCount: 128
-          customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
           fallbackDestination: https://brand.example.com/fallback
+          createdAt: 2000-01-23T04:56:07.000+00:00
+          entrypoint: https://linkbreak.ing/4BnH-R19p
+          id: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
+          shortlink: 4BnH-R19p
+          updatedAt: 2000-01-23T04:56:07.000+00:00
+          workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
+          pageThemeTemplateId: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
+          customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
           customDomain: ""
           expiredDestination: https://example.com/campaign-over
           expiresAt: 2026-12-31T23:59:59Z
@@ -11481,18 +12158,12 @@ components:
             name: name
             id: d87a9b30-5c8b-4d4e-9fd3-5f5f5f5f5f5f
             updatedAt: 2000-01-23T04:56:07.000+00:00
-          createdAt: 2000-01-23T04:56:07.000+00:00
           pageThemeId: f47ac10b-58cc-4372-a567-0e02b2c3d479
           pageTheme: ""
           qrcodeTemplateId: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
-          entrypoint: https://linkbreak.ing/4BnH-R19p
           name: name
           directoryId: d87a9b30-5c8b-4d4e-9fd3-5f5f5f5f5f5f
           qrcodeSignedUrl: https://cdn.linkbreakers.com/qrcodes/1b9d6bcd.png?signature=abc123
-          id: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
-          shortlink: 4BnH-R19p
-          updatedAt: 2000-01-23T04:56:07.000+00:00
-          workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
         - qrcodeDesignId: a8c5e111-8894-4f8a-b5db-9efe0d12a210
           qrcodePendingUpdateSince: 2000-01-23T04:56:07.000+00:00
           metadata:
@@ -11500,8 +12171,15 @@ components:
           qrcodeDesign: ""
           purpose: purpose
           eventCount: 128
-          customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
           fallbackDestination: https://brand.example.com/fallback
+          createdAt: 2000-01-23T04:56:07.000+00:00
+          entrypoint: https://linkbreak.ing/4BnH-R19p
+          id: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
+          shortlink: 4BnH-R19p
+          updatedAt: 2000-01-23T04:56:07.000+00:00
+          workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
+          pageThemeTemplateId: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
+          customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
           customDomain: ""
           expiredDestination: https://example.com/campaign-over
           expiresAt: 2026-12-31T23:59:59Z
@@ -11514,18 +12192,12 @@ components:
             name: name
             id: d87a9b30-5c8b-4d4e-9fd3-5f5f5f5f5f5f
             updatedAt: 2000-01-23T04:56:07.000+00:00
-          createdAt: 2000-01-23T04:56:07.000+00:00
           pageThemeId: f47ac10b-58cc-4372-a567-0e02b2c3d479
           pageTheme: ""
           qrcodeTemplateId: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
-          entrypoint: https://linkbreak.ing/4BnH-R19p
           name: name
           directoryId: d87a9b30-5c8b-4d4e-9fd3-5f5f5f5f5f5f
           qrcodeSignedUrl: https://cdn.linkbreakers.com/qrcodes/1b9d6bcd.png?signature=abc123
-          id: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
-          shortlink: 4BnH-R19p
-          updatedAt: 2000-01-23T04:56:07.000+00:00
-          workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
         totalCount: 42
       properties:
         links:
@@ -11582,6 +12254,101 @@ components:
           title: Token for retrieving the next page of results
           type: string
       title: Response containing a list of media files
+    ListPageThemeTemplatesResponse:
+      example:
+        nextPageToken: nextPageToken
+        hasMore: true
+        pageThemeTemplates:
+        - publishedAt: 2000-01-23T04:56:07.000+00:00
+          builtIn: true
+          thumbnailSignedUrl: thumbnailSignedUrl
+          description: description
+          duplicatedFrom: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
+          usageCount: usageCount
+          tags: tags
+          thumbnailPendingUpdateSince: 2000-01-23T04:56:07.000+00:00
+          createdAt: 2000-01-23T04:56:07.000+00:00
+          pageThemeId: a8c5e111-8894-4f8a-b5db-9efe0d12a210
+          learnMore: learnMore
+          pageTheme:
+            badgeShape: PAGE_THEME_BADGE_SHAPE_UNSPECIFIED
+            containerConfig: ""
+            badgeId: badgeId
+            canvasCoverMode: PAGE_THEME_BACKGROUND_COVER_MODE_UNSPECIFIED
+            bodyFont: ""
+            titleFont: ""
+            elementColor: ""
+            elementFont: ""
+            containerEnabled: true
+            createdAt: 2000-01-23T04:56:07.000+00:00
+            canvasCoverId: canvasCoverId
+            badgeIconColor: ""
+            id: id
+            badgeEnabled: true
+            canvasColor: ""
+            updatedAt: 2000-01-23T04:56:07.000+00:00
+            workspaceId: workspaceId
+          owned: true
+          faq: faq
+          name: name
+          coverSignedUrl: coverSignedUrl
+          id: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
+          slug: slug
+          badgeSignedUrl: badgeSignedUrl
+          updatedAt: 2000-01-23T04:56:07.000+00:00
+          workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
+        - publishedAt: 2000-01-23T04:56:07.000+00:00
+          builtIn: true
+          thumbnailSignedUrl: thumbnailSignedUrl
+          description: description
+          duplicatedFrom: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
+          usageCount: usageCount
+          tags: tags
+          thumbnailPendingUpdateSince: 2000-01-23T04:56:07.000+00:00
+          createdAt: 2000-01-23T04:56:07.000+00:00
+          pageThemeId: a8c5e111-8894-4f8a-b5db-9efe0d12a210
+          learnMore: learnMore
+          pageTheme:
+            badgeShape: PAGE_THEME_BADGE_SHAPE_UNSPECIFIED
+            containerConfig: ""
+            badgeId: badgeId
+            canvasCoverMode: PAGE_THEME_BACKGROUND_COVER_MODE_UNSPECIFIED
+            bodyFont: ""
+            titleFont: ""
+            elementColor: ""
+            elementFont: ""
+            containerEnabled: true
+            createdAt: 2000-01-23T04:56:07.000+00:00
+            canvasCoverId: canvasCoverId
+            badgeIconColor: ""
+            id: id
+            badgeEnabled: true
+            canvasColor: ""
+            updatedAt: 2000-01-23T04:56:07.000+00:00
+            workspaceId: workspaceId
+          owned: true
+          faq: faq
+          name: name
+          coverSignedUrl: coverSignedUrl
+          id: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
+          slug: slug
+          badgeSignedUrl: badgeSignedUrl
+          updatedAt: 2000-01-23T04:56:07.000+00:00
+          workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
+      properties:
+        hasMore:
+          title: Whether another page exists after this result set
+          type: boolean
+        nextPageToken:
+          description: Cursor token returned when another page is available
+          title: "Cursor token for the next page, if any"
+          type: string
+        pageThemeTemplates:
+          items:
+            $ref: "#/components/schemas/PageThemeTemplate"
+          type: array
+      title: ListPageThemeTemplatesResponse represents the response for listing page
+        theme templates
     ListPageThemesResponse:
       example:
         pageThemes:
@@ -12073,6 +12840,9 @@ components:
           type: string
       title: Media
     MediaSelection:
+      example:
+        id: id
+        delete: "{}"
       properties:
         delete:
           properties: {}
@@ -12519,6 +13289,340 @@ components:
       - PAGE_THEME_FONT_FAMILY_TIMES_NEW_ROMAN
       - PAGE_THEME_FONT_FAMILY_COURIER_NEW
       type: string
+    PageThemeStyling:
+      description: |-
+        PageThemeStyling is the set of visual values a page theme carries.
+
+        It exists so styling can travel on its own, detached from any stored theme:
+        the editor sends what is currently on screen, which is what the user means by
+        "this look", whether or not it has been saved yet.
+      properties:
+        badge:
+          $ref: "#/components/schemas/MediaSelection"
+        badgeEnabled:
+          title: '--- Badge Section ---'
+          type: boolean
+        badgeIconColor:
+          $ref: "#/components/schemas/ThemeColor"
+        badgeShape:
+          enum:
+          - PAGE_THEME_BADGE_SHAPE_UNSPECIFIED
+          - PAGE_THEME_BADGE_SHAPE_CIRCLE
+          - PAGE_THEME_BADGE_SHAPE_SQUARE
+          - PAGE_THEME_BADGE_SHAPE_ROUNDED
+          type: string
+        bodyFont:
+          $ref: "#/components/schemas/FontConfig"
+        canvasColor:
+          allOf:
+          - $ref: "#/components/schemas/ThemeColor"
+          title: '--- Background Section ---'
+        canvasCover:
+          $ref: "#/components/schemas/MediaSelection"
+        canvasCoverMode:
+          enum:
+          - PAGE_THEME_BACKGROUND_COVER_MODE_UNSPECIFIED
+          - PAGE_THEME_BACKGROUND_COVER_MODE_FULL
+          - PAGE_THEME_BACKGROUND_COVER_MODE_PROGRESSIVE_TOP
+          - PAGE_THEME_BACKGROUND_COVER_MODE_PROGRESSIVE_BOTTOM
+          type: string
+        containerConfig:
+          $ref: "#/components/schemas/ContainerConfig"
+        containerEnabled:
+          type: boolean
+        elementColor:
+          $ref: "#/components/schemas/ThemeColor"
+        elementFont:
+          $ref: "#/components/schemas/FontConfig"
+        titleFont:
+          allOf:
+          - $ref: "#/components/schemas/FontConfig"
+          title: '--- Typography Section ---'
+    PageThemeTemplate:
+      description: Reusable page styling presets that help teams give every link page
+        a consistent look.
+      example:
+        publishedAt: 2000-01-23T04:56:07.000+00:00
+        builtIn: true
+        thumbnailSignedUrl: thumbnailSignedUrl
+        description: description
+        duplicatedFrom: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
+        usageCount: usageCount
+        tags: tags
+        thumbnailPendingUpdateSince: 2000-01-23T04:56:07.000+00:00
+        createdAt: 2000-01-23T04:56:07.000+00:00
+        pageThemeId: a8c5e111-8894-4f8a-b5db-9efe0d12a210
+        learnMore: learnMore
+        pageTheme:
+          badgeShape: PAGE_THEME_BADGE_SHAPE_UNSPECIFIED
+          containerConfig: ""
+          badgeId: badgeId
+          canvasCoverMode: PAGE_THEME_BACKGROUND_COVER_MODE_UNSPECIFIED
+          bodyFont: ""
+          titleFont: ""
+          elementColor: ""
+          elementFont: ""
+          containerEnabled: true
+          createdAt: 2000-01-23T04:56:07.000+00:00
+          canvasCoverId: canvasCoverId
+          badgeIconColor: ""
+          id: id
+          badgeEnabled: true
+          canvasColor: ""
+          updatedAt: 2000-01-23T04:56:07.000+00:00
+          workspaceId: workspaceId
+        owned: true
+        faq: faq
+        name: name
+        coverSignedUrl: coverSignedUrl
+        id: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
+        slug: slug
+        badgeSignedUrl: badgeSignedUrl
+        updatedAt: 2000-01-23T04:56:07.000+00:00
+        workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
+      externalDocs:
+        description: Learn more about page theme templates in Linkbreakers
+        url: https://linkbreakers.com/help/article/whats-a-page-theme-template
+      properties:
+        badgeSignedUrl:
+          description: Signed URL for the template's badge image. Empty when the template
+            has no badge.
+          type: string
+        builtIn:
+          title: Whether the template is maintained by Linkbreakers (available to
+            every workspace)
+          type: boolean
+        coverSignedUrl:
+          description: Signed URL for the template's cover image. Empty when the template
+            has no cover.
+          type: string
+        createdAt:
+          format: date-time
+          title: When the template was created
+          type: string
+        description:
+          title: Short marketing description displayed in the template picker
+          type: string
+        duplicatedFrom:
+          description: Reference to the original public template when this template
+            was created via import. Null for original templates.
+          example: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
+          title: Reference to the original template if this is a duplicate from import
+            (UUID)
+          type: string
+        faq:
+          description: Frequently Asked Questions about this template stored as JSON
+          title: FAQ data stored as JSON
+          type: string
+        id:
+          example: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
+          title: Unique identifier of the template (UUID)
+          type: string
+        learnMore:
+          description: Extended markdown-supported content providing detailed information
+            about the template
+          title: Extended markdown-supported content for "learn more" section
+          type: string
+        name:
+          title: Human-readable name shown in the gallery
+          type: string
+        owned:
+          description: True when the template belongs to the caller's workspace. False
+            for built-in templates and for community templates published by other
+            workspaces.
+          type: boolean
+        pageTheme:
+          $ref: "#/components/schemas/PageTheme"
+        pageThemeId:
+          example: a8c5e111-8894-4f8a-b5db-9efe0d12a210
+          title: Backing page theme that carries the styling (UUID)
+          type: string
+        publishedAt:
+          description: "When the template was published. Null means private template,\
+            \ only visible to creating workspace."
+          format: date-time
+          title: |-
+            When the template was published and made available to all workspaces
+            If null, template is private and only visible to the creating workspace
+            Built-in templates are always considered published regardless of this field
+          type: string
+        slug:
+          title: Slug used in public template selection URLs
+          type: string
+        tags:
+          title: Tags for categorizing and filtering templates (comma-separated)
+          type: string
+        thumbnailPendingUpdateSince:
+          format: date-time
+          title: When the template thumbnail entered the regeneration queue
+          type: string
+        thumbnailSignedUrl:
+          title: Signed thumbnail preview of the template styling
+          type: string
+        updatedAt:
+          format: date-time
+          title: When the template metadata was last updated
+          type: string
+        usageCount:
+          description: Number of links in the caller's workspace whose theme was applied
+            from this template. Drives the 'most used' ordering in the template picker.
+          format: int64
+          type: string
+        workspaceId:
+          example: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
+          title: Workspace that owns the template; empty for built-in templates (UUID
+            when present)
+          type: string
+      title: PageThemeTemplate
+    PageThemeTemplateScope:
+      default: PAGE_THEME_TEMPLATE_SCOPE_UNSPECIFIED
+      description: |-
+        PageThemeTemplateScope selects which templates a list call returns.
+
+         - PAGE_THEME_TEMPLATE_SCOPE_UNSPECIFIED: Defaults to PAGE_THEME_TEMPLATE_SCOPE_WORKSPACE.
+         - PAGE_THEME_TEMPLATE_SCOPE_WORKSPACE: Only templates owned by the caller's workspace.
+         - PAGE_THEME_TEMPLATE_SCOPE_AVAILABLE: Every template the workspace may use: its own, built-in ones, and
+        templates published by other workspaces.
+      enum:
+      - PAGE_THEME_TEMPLATE_SCOPE_UNSPECIFIED
+      - PAGE_THEME_TEMPLATE_SCOPE_WORKSPACE
+      - PAGE_THEME_TEMPLATE_SCOPE_AVAILABLE
+      type: string
+    PageThemeTemplatesServicePublishPageThemeTemplateBody:
+      title: PublishPageThemeTemplateRequest represents a request to publish a page
+        theme template
+      type: object
+    PageThemeTemplatesServiceUpdatePageThemeTemplateBody:
+      example:
+        learnMore: learnMore
+        faq: faq
+        name: name
+        description: description
+        slug: slug
+        tags: tags
+      properties:
+        description:
+          title: The new description of the page theme template
+          type: string
+        faq:
+          title: FAQ data to update (JSON string)
+          type: string
+        learnMore:
+          title: Extended markdown-supported content for "learn more" section
+          type: string
+        name:
+          title: The new name of the page theme template
+          type: string
+        slug:
+          title: The new slug for the page theme template (must be unique globally)
+          type: string
+        tags:
+          title: The new tags for the page theme template (comma-separated)
+          type: string
+      title: UpdatePageThemeTemplateRequest represents a request to update an existing
+        page theme template
+    PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody:
+      description: |-
+        UpdatePageThemeTemplateStylingRequest updates the styling of the template's own
+        backing theme.
+
+        Template styling is edited through this RPC rather than through UpdatePageTheme so
+        the template's thumbnail is marked for regeneration in the same place the styling
+        changes. Editing the backing theme directly would leave a stale thumbnail.
+      example:
+        badgeShape: PAGE_THEME_BADGE_SHAPE_UNSPECIFIED
+        containerConfig:
+          backgroundColor: ""
+          borderColor: ""
+          borderSize: 6
+          variant: PAGE_THEME_CONTAINER_VARIANT_UNSPECIFIED
+          borderStyle: PAGE_THEME_BORDER_STYLE_UNSPECIFIED
+          opacity: 1
+        canvasCoverMode: PAGE_THEME_BACKGROUND_COVER_MODE_UNSPECIFIED
+        bodyFont:
+          familyStack: "\"Gill Sans\", \"Trebuchet MS\", sans-serif"
+          color: ""
+          fontSize: 0
+          bold: true
+          family: PAGE_THEME_FONT_FAMILY_UNSPECIFIED
+          italic: true
+        canvasCover:
+          id: id
+          delete: "{}"
+        titleFont: ""
+        elementColor:
+          stops:
+          - stops
+          - stops
+          type: THEME_COLOR_TYPE_UNSPECIFIED
+          colors:
+          - colors
+          - colors
+          direction: direction
+        elementFont:
+          familyStack: "\"Gill Sans\", \"Trebuchet MS\", sans-serif"
+          color: ""
+          fontSize: 0
+          bold: true
+          family: PAGE_THEME_FONT_FAMILY_UNSPECIFIED
+          italic: true
+        containerEnabled: true
+        badge:
+          id: id
+          delete: "{}"
+        badgeIconColor:
+          stops:
+          - stops
+          - stops
+          type: THEME_COLOR_TYPE_UNSPECIFIED
+          colors:
+          - colors
+          - colors
+          direction: direction
+        badgeEnabled: true
+        canvasColor: ""
+      properties:
+        badge:
+          $ref: "#/components/schemas/MediaSelection"
+        badgeEnabled:
+          title: '--- Badge Section ---'
+          type: boolean
+        badgeIconColor:
+          $ref: "#/components/schemas/ThemeColor"
+        badgeShape:
+          enum:
+          - PAGE_THEME_BADGE_SHAPE_UNSPECIFIED
+          - PAGE_THEME_BADGE_SHAPE_CIRCLE
+          - PAGE_THEME_BADGE_SHAPE_SQUARE
+          - PAGE_THEME_BADGE_SHAPE_ROUNDED
+          type: string
+        bodyFont:
+          $ref: "#/components/schemas/FontConfig"
+        canvasColor:
+          allOf:
+          - $ref: "#/components/schemas/ThemeColor"
+          title: '--- Background Section ---'
+        canvasCover:
+          $ref: "#/components/schemas/MediaSelection"
+        canvasCoverMode:
+          enum:
+          - PAGE_THEME_BACKGROUND_COVER_MODE_UNSPECIFIED
+          - PAGE_THEME_BACKGROUND_COVER_MODE_FULL
+          - PAGE_THEME_BACKGROUND_COVER_MODE_PROGRESSIVE_TOP
+          - PAGE_THEME_BACKGROUND_COVER_MODE_PROGRESSIVE_BOTTOM
+          type: string
+        containerConfig:
+          $ref: "#/components/schemas/ContainerConfig"
+        containerEnabled:
+          type: boolean
+        elementColor:
+          $ref: "#/components/schemas/ThemeColor"
+        elementFont:
+          $ref: "#/components/schemas/FontConfig"
+        titleFont:
+          allOf:
+          - $ref: "#/components/schemas/FontConfig"
+          title: '--- Typography Section ---'
     PageThemesServiceUpdatePageThemeBody:
       example:
         badgeShape: PAGE_THEME_BADGE_SHAPE_UNSPECIFIED
@@ -12736,6 +13840,50 @@ components:
           allOf:
           - $ref: "#/components/schemas/QrcodeDesign"
           title: The created QR code design
+    PublicListPageThemeTemplatesResponse:
+      example:
+        nextPageToken: nextPageToken
+        hasMore: true
+        pageThemeTemplates:
+        - workspace: ""
+          publishedAt: 2000-01-23T04:56:07.000+00:00
+          builtIn: true
+          thumbnailSignedUrl: thumbnailSignedUrl
+          description: description
+          tags: tags
+          learnMore: learnMore
+          pageTheme: ""
+          faq: faq
+          name: name
+          coverSignedUrl: coverSignedUrl
+          slug: slug
+          badgeSignedUrl: badgeSignedUrl
+        - workspace: ""
+          publishedAt: 2000-01-23T04:56:07.000+00:00
+          builtIn: true
+          thumbnailSignedUrl: thumbnailSignedUrl
+          description: description
+          tags: tags
+          learnMore: learnMore
+          pageTheme: ""
+          faq: faq
+          name: name
+          coverSignedUrl: coverSignedUrl
+          slug: slug
+          badgeSignedUrl: badgeSignedUrl
+      properties:
+        hasMore:
+          title: Whether another page exists after this result set
+          type: boolean
+        nextPageToken:
+          title: "Cursor token for the next page, if any"
+          type: string
+        pageThemeTemplates:
+          items:
+            $ref: "#/components/schemas/PublicPageThemeTemplate"
+          type: array
+      title: PublicListPageThemeTemplatesResponse represents the response for listing
+        public page theme templates
     PublicListQrcodeTemplatesResponse:
       example:
         nextPageToken: eyJxdHMiOiJxdGVtcGxhdGUifQ==
@@ -12776,6 +13924,81 @@ components:
           type: array
       title: PublicListQrcodeTemplatesResponse represents the response for listing
         QR code templates
+    PublicPageThemeTemplate:
+      example:
+        workspace: ""
+        publishedAt: 2000-01-23T04:56:07.000+00:00
+        builtIn: true
+        thumbnailSignedUrl: thumbnailSignedUrl
+        description: description
+        tags: tags
+        learnMore: learnMore
+        pageTheme: ""
+        faq: faq
+        name: name
+        coverSignedUrl: coverSignedUrl
+        slug: slug
+        badgeSignedUrl: badgeSignedUrl
+      externalDocs:
+        description: Learn more about page theme templates in Linkbreakers
+        url: https://linkbreakers.com/help/article/whats-a-page-theme-template
+      properties:
+        badgeSignedUrl:
+          description: Signed URL for the template's badge image. Empty when it has
+            no badge.
+          type: string
+        builtIn:
+          title: Whether the template is maintained by Linkbreakers (available to
+            every workspace)
+          type: boolean
+        coverSignedUrl:
+          description: Signed URL for the template's cover image. Empty when it has
+            no cover.
+          type: string
+        description:
+          title: Short marketing description displayed in the template picker
+          type: string
+        faq:
+          description: Frequently Asked Questions about this template stored as JSON
+          title: FAQ data stored as JSON
+          type: string
+        learnMore:
+          description: Extended markdown-supported content providing detailed information
+            about the template
+          title: Extended markdown-supported content for "learn more" section
+          type: string
+        name:
+          title: Human-readable name shown in the gallery
+          type: string
+        pageTheme:
+          allOf:
+          - $ref: "#/components/schemas/PageTheme"
+          description: |-
+            The styling itself, so a public gallery can render a live preview rather
+            than only the rasterized thumbnail.
+        publishedAt:
+          format: date-time
+          title: When the template was published and made available to all workspaces
+          type: string
+        slug:
+          title: Slug used in public template selection URLs
+          type: string
+        tags:
+          title: Tags for categorizing and filtering templates (comma-separated)
+          type: string
+        thumbnailSignedUrl:
+          title: Signed thumbnail preview of the template styling
+          type: string
+        workspace:
+          allOf:
+          - $ref: "#/components/schemas/PublicWorkspace"
+          description: Public information about the workspace that created this template.
+            Empty for built-in templates. Only included when 'workspace' is specified
+            in the include parameter.
+          title: Workspace that created this template (only included when requested
+            via include parameter)
+      title: PublicPageThemeTemplate represents a page theme template with limited
+        public information
     PublicQrcodeTemplate:
       example:
         workspace: ""
@@ -12876,6 +14099,16 @@ components:
           type: string
       title: PublicWorkspace represents a publicly visible workspace with limited
         data
+    PublishPageThemeTemplateResponse:
+      example:
+        pageThemeTemplate: ""
+      properties:
+        pageThemeTemplate:
+          allOf:
+          - $ref: "#/components/schemas/PageThemeTemplate"
+          title: The published page theme template
+      title: PublishPageThemeTemplateResponse represents the response after publishing
+        a page theme template
     PublishQrcodeTemplateResponse:
       example:
         qrcodeTemplate: ""
@@ -13718,6 +14951,15 @@ components:
       description: |-
         Reusable color payload used across design-oriented APIs (page themes, QR code designs, etc.).
         It supports solid colors and gradients with optional direction and per-stop offsets.
+      example:
+        stops:
+        - stops
+        - stops
+        type: THEME_COLOR_TYPE_UNSPECIFIED
+        colors:
+        - colors
+        - colors
+        direction: direction
       properties:
         colors:
           description: "Color values in render order (hex, rgb/rgba, hsl/hsla)."
@@ -13980,8 +15222,15 @@ components:
           qrcodeDesign: ""
           purpose: purpose
           eventCount: 128
-          customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
           fallbackDestination: https://brand.example.com/fallback
+          createdAt: 2000-01-23T04:56:07.000+00:00
+          entrypoint: https://linkbreak.ing/4BnH-R19p
+          id: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
+          shortlink: 4BnH-R19p
+          updatedAt: 2000-01-23T04:56:07.000+00:00
+          workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
+          pageThemeTemplateId: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
+          customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
           customDomain: ""
           expiredDestination: https://example.com/campaign-over
           expiresAt: 2026-12-31T23:59:59Z
@@ -13994,18 +15243,12 @@ components:
             name: name
             id: d87a9b30-5c8b-4d4e-9fd3-5f5f5f5f5f5f
             updatedAt: 2000-01-23T04:56:07.000+00:00
-          createdAt: 2000-01-23T04:56:07.000+00:00
           pageThemeId: f47ac10b-58cc-4372-a567-0e02b2c3d479
           pageTheme: ""
           qrcodeTemplateId: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
-          entrypoint: https://linkbreak.ing/4BnH-R19p
           name: name
           directoryId: d87a9b30-5c8b-4d4e-9fd3-5f5f5f5f5f5f
           qrcodeSignedUrl: https://cdn.linkbreakers.com/qrcodes/1b9d6bcd.png?signature=abc123
-          id: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
-          shortlink: 4BnH-R19p
-          updatedAt: 2000-01-23T04:56:07.000+00:00
-          workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
       properties:
         link:
           $ref: "#/components/schemas/Link"
@@ -14052,6 +15295,62 @@ components:
           - $ref: "#/components/schemas/PageTheme"
           title: The updated page theme
       title: Response after updating a page theme
+    UpdatePageThemeTemplateResponse:
+      example:
+        pageThemeTemplate: ""
+      properties:
+        pageThemeTemplate:
+          allOf:
+          - $ref: "#/components/schemas/PageThemeTemplate"
+          title: The updated page theme template
+      title: UpdatePageThemeTemplateResponse represents the response after updating
+        a page theme template
+    UpdatePageThemeTemplateStylingResponse:
+      description: UpdatePageThemeTemplateStylingResponse returns the template with
+        its updated theme.
+      example:
+        pageThemeTemplate:
+          publishedAt: 2000-01-23T04:56:07.000+00:00
+          builtIn: true
+          thumbnailSignedUrl: thumbnailSignedUrl
+          description: description
+          duplicatedFrom: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
+          usageCount: usageCount
+          tags: tags
+          thumbnailPendingUpdateSince: 2000-01-23T04:56:07.000+00:00
+          createdAt: 2000-01-23T04:56:07.000+00:00
+          pageThemeId: a8c5e111-8894-4f8a-b5db-9efe0d12a210
+          learnMore: learnMore
+          pageTheme:
+            badgeShape: PAGE_THEME_BADGE_SHAPE_UNSPECIFIED
+            containerConfig: ""
+            badgeId: badgeId
+            canvasCoverMode: PAGE_THEME_BACKGROUND_COVER_MODE_UNSPECIFIED
+            bodyFont: ""
+            titleFont: ""
+            elementColor: ""
+            elementFont: ""
+            containerEnabled: true
+            createdAt: 2000-01-23T04:56:07.000+00:00
+            canvasCoverId: canvasCoverId
+            badgeIconColor: ""
+            id: id
+            badgeEnabled: true
+            canvasColor: ""
+            updatedAt: 2000-01-23T04:56:07.000+00:00
+            workspaceId: workspaceId
+          owned: true
+          faq: faq
+          name: name
+          coverSignedUrl: coverSignedUrl
+          id: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
+          slug: slug
+          badgeSignedUrl: badgeSignedUrl
+          updatedAt: 2000-01-23T04:56:07.000+00:00
+          workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
+      properties:
+        pageThemeTemplate:
+          $ref: "#/components/schemas/PageThemeTemplate"
     UpdateQrcodeDesignResponse:
       description: UpdateQrcodeDesignResponse returns the refreshed design after applying
         edits.
@@ -15886,7 +17185,8 @@ components:
         totalDirectories: 5
         tokenCreditsLimit: 0
         topupCreditsLimit: 1
-        totalQrcodeTemplates: 2
+        totalPageThemeTemplates: 2
+        totalQrcodeTemplates: 4
       properties:
         tokenCreditsLimit:
           format: int32
@@ -15923,6 +17223,10 @@ components:
         totalMonthlyEvents:
           format: int32
           title: Events created within the current rolling month window
+          type: integer
+        totalPageThemeTemplates:
+          format: int32
+          title: Number of page theme templates owned by the workspace
           type: integer
         totalQrcodeTemplates:
           format: int32

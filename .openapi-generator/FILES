@@ -14,6 +14,7 @@ api_link_settings.go
 api_links.go
 api_media.go
 api_members.go
+api_page_theme_templates.go
 api_page_themes.go
 api_qr_code_designs.go
 api_qr_code_templates.go
@@ -47,6 +48,8 @@ model_analytics_dashboard_service_generate_widget_summary_body.go
 model_analytics_dashboard_service_update_dashboard_body.go
 model_analytics_widget_result.go
 model_api_tag.go
+model_apply_page_theme_template_request.go
+model_apply_page_theme_template_response.go
 model_apply_qrcode_template_request.go
 model_apply_qrcode_template_response.go
 model_attribute_value_data_point.go
@@ -91,6 +94,8 @@ model_create_link_request.go
 model_create_link_response.go
 model_create_media_request.go
 model_create_media_response.go
+model_create_page_theme_template_request.go
+model_create_page_theme_template_response.go
 model_create_qrcode_template_request.go
 model_create_qrcode_template_response.go
 model_create_thank_you_link_request.go
@@ -165,6 +170,7 @@ model_events_service_create_event_trace_body.go
 model_events_service_update_device_body.go
 model_events_time_series.go
 model_events_time_series_data.go
+model_find_matching_page_theme_template_response.go
 model_font_config.go
 model_form_field.go
 model_form_field_option.go
@@ -225,6 +231,8 @@ model_http_method.go
 model_identify_request.go
 model_identify_response.go
 model_identify_visitor_trace_data.go
+model_import_page_theme_template_request.go
+model_import_page_theme_template_response.go
 model_import_qrcode_template_request.go
 model_import_qrcode_template_response.go
 model_invite_member_request.go
@@ -245,6 +253,7 @@ model_list_events_json_response.go
 model_list_events_response.go
 model_list_links_response.go
 model_list_media_response.go
+model_list_page_theme_templates_response.go
 model_list_page_themes_response.go
 model_list_qrcode_templates_response.go
 model_list_response.go
@@ -277,6 +286,11 @@ model_page_theme_border_style.go
 model_page_theme_canvas_cover_mode.go
 model_page_theme_container_variant.go
 model_page_theme_font_family.go
+model_page_theme_styling.go
+model_page_theme_template.go
+model_page_theme_template_scope.go
+model_page_theme_templates_service_update_page_theme_template_body.go
+model_page_theme_templates_service_update_page_theme_template_styling_body.go
 model_page_themes_service_update_page_theme_body.go
 model_password_payload.go
 model_password_trace_data.go
@@ -285,9 +299,12 @@ model_protobuf_any.go
 model_protobuf_null_value.go
 model_public_create_qrcode_design_request.go
 model_public_create_qrcode_design_response.go
+model_public_list_page_theme_templates_response.go
 model_public_list_qrcode_templates_response.go
+model_public_page_theme_template.go
 model_public_qrcode_template.go
 model_public_workspace.go
+model_publish_page_theme_template_response.go
 model_publish_qrcode_template_response.go
 model_qrcode_design.go
 model_qrcode_design_service_update_body.go
@@ -340,6 +357,8 @@ model_update_link_response.go
 model_update_link_setting_response.go
 model_update_me_request.go
 model_update_page_theme_response.go
+model_update_page_theme_template_response.go
+model_update_page_theme_template_styling_response.go
 model_update_qrcode_design_response.go
 model_update_qrcode_template_response.go
 model_update_slack_integration_request.go
