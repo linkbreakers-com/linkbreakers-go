@@ -5,7 +5,7 @@ info:
     url: https://app.linkbreakers.com
   description: This is a documentation of all the APIs of Linkbreakers
   title: Linkbreakers API
-  version: 1.126.1
+  version: 1.127.1
 servers:
 - url: https://api.linkbreakers.com
 security:
@@ -75,6 +75,8 @@ tags:
 - description: "Endpoints for managing webhooks in Linkbreakers. These endpoints allow\
     \ you to create, list, and delete webhooks for event notifications."
   name: Webhooks
+- description: Not part of the public API.
+  name: Internal
 - description: "Endpoints for managing workflow steps in Linkbreakers. Workflow steps\
     \ define the behavior of links, such as redirection destinations and data collection\
     \ flows."
@@ -213,35 +215,6 @@ paths:
       security:
       - bearerAuth: []
       summary: Mark agent conversation read
-      tags:
-      - Agent
-  /v1/agent/message:
-    post:
-      description: Send a message to the agent. The context type determines which
-        specialized sub-agent handles the request.
-      operationId: AgentService_SendMessage
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/AgentSendMessageRequest"
-        required: true
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AgentSendMessageResponse"
-          description: Everything worked as expected.
-        default:
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-          description: Unexpected error
-      security:
-      - bearerAuth: []
-      summary: Send agent message
       tags:
       - Agent
   /v1/agent/upload:
@@ -412,6 +385,26 @@ paths:
         explode: true
         in: query
         name: scope
+        required: false
+        schema:
+          type: string
+        style: form
+      - description: "Maximum number to return. Defaults to 100, capped at 1000."
+        explode: true
+        in: query
+        name: pageSize
+        required: false
+        schema:
+          format: int64
+          type: integer
+        style: form
+      - description: |-
+          Cursor from a previous response's next_page_token. Empty starts at the
+          first page. Pages are ordered by (created_at, id), which never change, so a
+          record cannot move between pages while a client is walking them.
+        explode: true
+        in: query
+        name: pageToken
         required: false
         schema:
           type: string
@@ -830,6 +823,27 @@ paths:
         explode: true
         in: query
         name: status
+        required: false
+        schema:
+          type: string
+        style: form
+      - description: "Maximum number of custom domains to return. Defaults to 100,\
+          \ capped at 1000."
+        explode: true
+        in: query
+        name: pageSize
+        required: false
+        schema:
+          format: int64
+          type: integer
+        style: form
+      - description: |-
+          Cursor from a previous response's next_page_token. Empty starts at the
+          first page. Pages are ordered by (created_at, id), which never change, so a
+          record cannot move between pages while a client is walking them.
+        explode: true
+        in: query
+        name: pageToken
         required: false
         schema:
           type: string
@@ -1851,6 +1865,36 @@ paths:
       summary: Create a new contact card link
       tags:
       - Links
+  /v1/links/qrcode-images:resolve:
+    post:
+      description: "Return freshly signed QR code image URLs for the given links.\
+        \ The URLs expire, so callers fetch them when they need to render rather than\
+        \ storing them."
+      operationId: LinksService_ResolveQrcodeImages
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResolveQrcodeImagesRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResolveQrcodeImagesResponse"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth: []
+      summary: Resolve QR code image URLs
+      tags:
+      - Links
   /v1/links/shortlink-availability:
     get:
       description: |-
@@ -2727,6 +2771,28 @@ paths:
     get:
       description: Retrieve a paginated list of members in the current workspace.
       operationId: MembersService_List
+      parameters:
+      - description: "Maximum number of members to return. Defaults to 100, capped\
+          \ at 1000."
+        explode: true
+        in: query
+        name: pageSize
+        required: false
+        schema:
+          format: int64
+          type: integer
+        style: form
+      - description: |-
+          Cursor from a previous response's next_page_token. Empty starts at the
+          first page. Pages are ordered by (created_at, id), which never change, so a
+          record cannot move between pages while a client is walking them.
+        explode: true
+        in: query
+        name: pageToken
+        required: false
+        schema:
+          type: string
+        style: form
       responses:
         "200":
           content:
@@ -3188,6 +3254,36 @@ paths:
       summary: Create a new page theme template
       tags:
       - Page Theme Templates
+  /v1/page-theme-templates/images:resolve:
+    post:
+      description: "Return freshly signed thumbnail, cover and badge URLs for the\
+        \ given templates. The URLs expire, so callers fetch them when they need to\
+        \ render rather than storing them."
+      operationId: PageThemeTemplatesService_ResolvePageThemeTemplateImages
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResolvePageThemeTemplateImagesRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResolvePageThemeTemplateImagesResponse"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth: []
+      summary: Resolve page theme template images
+      tags:
+      - Page Theme Templates
   /v1/page-theme-templates/import:
     post:
       description: Import a public page theme template into your workspace by slug.
@@ -3410,6 +3506,28 @@ paths:
     get:
       description: Retrieves all page themes belonging to the caller's workspace.
       operationId: PageThemesService_ListPageThemes
+      parameters:
+      - description: "Maximum number of page themes to return. Defaults to 100, capped\
+          \ at 1000."
+        explode: true
+        in: query
+        name: pageSize
+        required: false
+        schema:
+          format: int64
+          type: integer
+        style: form
+      - description: |-
+          Cursor from a previous response's next_page_token. Empty starts at the
+          first page. Pages are ordered by (created_at, id), which never change, so a
+          record cannot move between pages while a client is walking them.
+        explode: true
+        in: query
+        name: pageToken
+        required: false
+        schema:
+          type: string
+        style: form
       responses:
         "200":
           content:
@@ -4108,6 +4226,36 @@ paths:
       security:
       - bearerAuth: []
       summary: Create a new QR code template
+      tags:
+      - QR Code Templates
+  /v1/qrcode-templates/images:resolve:
+    post:
+      description: "Return freshly signed thumbnail URLs for the given templates.\
+        \ The URLs expire, so callers fetch them when they need to render rather than\
+        \ storing them."
+      operationId: QrcodeTemplatesService_ResolveQrcodeTemplateImages
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResolveQrcodeTemplateImagesRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResolveQrcodeTemplateImagesResponse"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth: []
+      summary: Resolve QR code template thumbnails
       tags:
       - QR Code Templates
   /v1/qrcode-templates/import:
@@ -4988,6 +5136,27 @@ paths:
         schema:
           type: string
         style: form
+      - description: "Maximum number of webhooks to return. Defaults to 100, capped\
+          \ at 1000."
+        explode: true
+        in: query
+        name: pageSize
+        required: false
+        schema:
+          format: int64
+          type: integer
+        style: form
+      - description: |-
+          Cursor from a previous response's next_page_token. Empty starts at the
+          first page. Pages are ordered by (created_at, id), which never change, so a
+          record cannot move between pages while a client is walking them.
+        explode: true
+        in: query
+        name: pageToken
+        required: false
+        schema:
+          type: string
+        style: form
       responses:
         "200":
           content:
@@ -5132,6 +5301,7 @@ paths:
       summary: Update a webhook
       tags:
       - Webhooks
+  /v1/websocket/contract: {}
   /v1/workspace:
     delete:
       description: Soft-delete the workspace associated with the authenticated member's
@@ -5210,6 +5380,27 @@ paths:
     get:
       description: Enumerate all active workspace tokens for auditing and management.
       operationId: WorkspaceTokensService_List
+      parameters:
+      - description: "Maximum number to return. Defaults to 100, capped at 1000."
+        explode: true
+        in: query
+        name: pageSize
+        required: false
+        schema:
+          format: int64
+          type: integer
+        style: form
+      - description: |-
+          Cursor from a previous response's next_page_token. Empty starts at the
+          first page. Pages are ordered by (created_at, id), which never change, so a
+          record cannot move between pages while a client is walking them.
+        explode: true
+        in: query
+        name: pageToken
+        required: false
+        schema:
+          type: string
+        style: form
       responses:
         "200":
           content:
@@ -5660,72 +5851,6 @@ components:
           type: integer
       title: AgentMarkConversationReadResponse reports how many replies this call
         marked
-    AgentSendMessageRequest:
-      example:
-        contextType: ""
-        contextId: contextId
-        message: message
-        contextMetadata: contextMetadata
-      properties:
-        contextId:
-          title: "ID of the resource being edited (dashboard ID, workflow ID, link\
-            \ ID)"
-          type: string
-        contextMetadata:
-          title: Optional pre-existing data from the UI (e.g. wizard form state) injected
-            as context
-          type: string
-        contextType:
-          allOf:
-          - $ref: "#/components/schemas/AgentContextType"
-          title: Context type determines which agent(s) to activate
-        message:
-          title: The user's message
-          type: string
-      title: AgentSendMessageRequest sends a message to the agent in a specific context
-    AgentSendMessageResponse:
-      example:
-        uiActions:
-        - options:
-          - description: description
-            label: label
-            value: value
-          - description: description
-            label: label
-            value: value
-          label: label
-          type: type
-          value: value
-        - options:
-          - description: description
-            label: label
-            value: value
-          - description: description
-            label: label
-            value: value
-          label: label
-          type: type
-          value: value
-        responseText: responseText
-        contextUpdated: true
-        appliedActions:
-        - appliedActions
-        - appliedActions
-      properties:
-        appliedActions:
-          items:
-            type: string
-          type: array
-        contextUpdated:
-          title: True if the agent modified the resource (frontend should refresh)
-          type: boolean
-        responseText:
-          type: string
-        uiActions:
-          items:
-            $ref: "#/components/schemas/ChatUIAction"
-          type: array
-      title: AgentSendMessageResponse contains the agent response
     AgentUploadFileRequest:
       example:
         name: name
@@ -6046,17 +6171,6 @@ components:
       title: ChatDisplayMessage is a user-visible chat message for rendering in the
         UI
     ChatUIAction:
-      example:
-        options:
-        - description: description
-          label: label
-          value: value
-        - description: description
-          label: label
-          value: value
-        label: label
-        type: type
-        value: value
       properties:
         label:
           type: string
@@ -6070,10 +6184,6 @@ components:
           type: string
       title: ChatUIAction represents an interactive element rendered in the chat
     ChatUIOption:
-      example:
-        description: description
-        label: label
-        value: value
       properties:
         description:
           type: string
@@ -11203,14 +11313,31 @@ components:
           status: STATUS_ACTIVE
           updatedAt: 2000-01-23T04:56:07.000+00:00
           workspaceId: d290f1ee-6c54-4b01-90e6-d701748f0851
+        nextPageToken: nextPageToken
+        totalCount: totalCount
       properties:
         customDomains:
           items:
             $ref: "#/components/schemas/CustomDomain"
           type: array
+        nextPageToken:
+          description: Cursor to continue listing custom domains. Empty on the last
+            page.
+          type: string
+        totalCount:
+          description: |-
+            How many records exist in total, so a client can tell a complete answer
+            from a page of one. A local-first client reads absence from this list as
+            deletion, and may only do so when the count it was given matches what it
+            received: without that, one page would look like the whole model and
+            everything beyond it would be removed locally.
+          format: int64
+          type: string
       title: Response containing a list of custom domains
     ListDashboardsResponse:
       example:
+        nextPageToken: nextPageToken
+        totalCount: totalCount
         dashboards:
         - createdAt: 2000-01-23T04:56:07.000+00:00
           linkId: linkId
@@ -11275,6 +11402,18 @@ components:
           items:
             $ref: "#/components/schemas/AnalyticsDashboard"
           type: array
+        nextPageToken:
+          description: Cursor to continue listing dashboards. Empty on the last page.
+          type: string
+        totalCount:
+          description: |-
+            How many records exist in total, so a client can tell a complete answer
+            from a page of one. A local-first client reads absence from this list as
+            deletion, and may only do so when the count it was given matches what it
+            received: without that, one page would look like the whole model and
+            everything beyond it would be removed locally.
+          format: int64
+          type: string
     ListDetectedGoogleFormsResponse:
       example:
         forms:
@@ -11311,6 +11450,7 @@ components:
           parentDirectoryId: a1b2c3d4-e5f6-7890-abcd-ef1234567890
           updatedAt: 2000-01-23T04:56:07.000+00:00
           workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
+        totalCount: totalCount
       properties:
         directories:
           items:
@@ -11321,6 +11461,15 @@ components:
           description: Cursor to continue listing directories
           example: eyJkaXJlY3RvcnlJZCI6IjEwIn0=
           title: Token for retrieving the next page of results
+          type: string
+        totalCount:
+          description: |-
+            How many records exist in total, so a client can tell a complete answer
+            from a page of one. A local-first client reads absence from this list as
+            deletion, and may only do so when the count it was given matches what it
+            received: without that, one page would look like the whole model and
+            everything beyond it would be removed locally.
+          format: int64
           type: string
       title: Response containing a list of directories
     ListEventTracesResponse:
@@ -12270,6 +12419,7 @@ components:
       example:
         nextPageToken: nextPageToken
         hasMore: true
+        totalCount: totalCount
         pageThemeTemplates:
         - publishedAt: 2000-01-23T04:56:07.000+00:00
           builtIn: true
@@ -12359,10 +12509,20 @@ components:
           items:
             $ref: "#/components/schemas/PageThemeTemplate"
           type: array
+        totalCount:
+          description: |-
+            How many records exist in total, so a client can tell a complete answer
+            from a page of one. A local-first client reads absence from this list as
+            deletion, and may only do so when the count it was given matches what it
+            received: without that, one page would look like the whole model and
+            everything beyond it would be removed locally.
+          format: int64
+          type: string
       title: ListPageThemeTemplatesResponse represents the response for listing page
         theme templates
     ListPageThemesResponse:
       example:
+        nextPageToken: nextPageToken
         pageThemes:
         - badgeShape: PAGE_THEME_BADGE_SHAPE_UNSPECIFIED
           containerConfig: ""
@@ -12398,12 +12558,25 @@ components:
           canvasColor: ""
           updatedAt: 2000-01-23T04:56:07.000+00:00
           workspaceId: workspaceId
+        totalCount: totalCount
       properties:
+        nextPageToken:
+          description: Cursor to continue listing page themes. Empty on the last page.
+          type: string
         pageThemes:
           items:
             $ref: "#/components/schemas/PageTheme"
           title: List of page themes
           type: array
+        totalCount:
+          description: |-
+            How many records exist in total, so a client can tell a complete answer
+            from a page of one. A local-first client reads absence from this list as
+            deletion, and may only do so when the count it was given matches what it
+            received: without that, one page would look like the whole model and
+            everything beyond it would be removed locally.
+          format: int64
+          type: string
       title: Response containing page themes
     ListQrcodeTemplatesResponse:
       example:
@@ -12480,6 +12653,7 @@ components:
           slug: slug
           updatedAt: 2000-01-23T04:56:07.000+00:00
           workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
+        totalCount: totalCount
       properties:
         hasMore:
           title: Whether another page exists after this result set
@@ -12493,12 +12667,22 @@ components:
           items:
             $ref: "#/components/schemas/QrcodeTemplate"
           type: array
+        totalCount:
+          description: |-
+            How many records exist in total, so a client can tell a complete answer
+            from a page of one. A local-first client reads absence from this list as
+            deletion, and may only do so when the count it was given matches what it
+            received: without that, one page would look like the whole model and
+            everything beyond it would be removed locally.
+          format: int64
+          type: string
       title: ListQrcodeTemplatesResponse represents the response for listing QR code
         templates
     ListResponse:
       description: ListResponse wraps the current page of teammates for the workspace
         directory.
       example:
+        nextPageToken: nextPageToken
         members:
         - lastName: Rivera
           lastKnownTimezone: Europe/London
@@ -12534,12 +12718,24 @@ components:
           lastKnownCountry: US
           updatedAt: 2000-01-23T04:56:07.000+00:00
           workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
+        totalCount: totalCount
       properties:
         members:
           items:
             $ref: "#/components/schemas/Member"
           title: Members included in the current page
           type: array
+        nextPageToken:
+          description: Cursor to continue listing members. Empty on the last page.
+          type: string
+        totalCount:
+          description: |-
+            How many members exist in total, so a client can tell a complete answer
+            from a page of one. A local-first client reads absence from this list as
+            the member having been removed, and may only do so when the count it was
+            given matches what it received.
+          format: int64
+          type: string
     ListSlackChannelsResponse:
       example:
         channels:
@@ -12684,7 +12880,21 @@ components:
           status: WEBHOOK_STATUS_ACTIVE
           updatedAt: 2000-01-23T04:56:07.000+00:00
           workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
+        nextPageToken: nextPageToken
+        totalCount: totalCount
       properties:
+        nextPageToken:
+          description: Cursor to continue listing webhooks. Empty on the last page.
+          type: string
+        totalCount:
+          description: |-
+            How many records exist in total, so a client can tell a complete answer
+            from a page of one. A local-first client reads absence from this list as
+            deletion, and may only do so when the count it was given matches what it
+            received: without that, one page would look like the whole model and
+            everything beyond it would be removed locally.
+          format: int64
+          type: string
         webhooks:
           items:
             $ref: "#/components/schemas/Webhook"
@@ -12739,11 +12949,22 @@ components:
           eventAction: EVENT_ACTION_CLIENT_REDIRECT
           updatedAt: 2000-01-23T04:56:07.000+00:00
         nextPageToken: eyJzdGVwSWQiOiI5ODcifQ==
+        totalCount: totalCount
       properties:
         nextPageToken:
           description: Cursor to fetch the next page of workflow steps
           example: eyJzdGVwSWQiOiI5ODcifQ==
           title: Token for retrieving the next page of results
+          type: string
+        totalCount:
+          description: |-
+            How many steps this link has in total, so a client can tell a complete
+            answer from a page of one. A local-first client reads absence from this
+            list as the step having been deleted, and may only do so when the count it
+            was given matches what it received. The count covers the link asked about
+            rather than the workspace, which is the only sense in which this list is
+            ever whole.
+          format: int64
           type: string
         workflowSteps:
           items:
@@ -12754,6 +12975,7 @@ components:
       description: ListWorkspaceTokensResponse returns the active token inventory
         for audit screens.
       example:
+        nextPageToken: nextPageToken
         tokens:
         - createdAt: 2000-01-23T04:56:07.000+00:00
           createdBy: 123e4567-e89b-12d3-a456-426614174000
@@ -12771,12 +12993,25 @@ components:
           keyType: ""
           updatedAt: 2000-01-23T04:56:07.000+00:00
           workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
+        totalCount: totalCount
       properties:
+        nextPageToken:
+          description: Cursor to continue listing tokens. Empty on the last page.
+          type: string
         tokens:
           items:
             $ref: "#/components/schemas/WorkspaceToken"
           title: Tokens scoped to the calling workspace
           type: array
+        totalCount:
+          description: |-
+            How many records exist in total, so a client can tell a complete answer
+            from a page of one. A local-first client reads absence from this list as
+            deletion, and may only do so when the count it was given matches what it
+            received: without that, one page would look like the whole model and
+            everything beyond it would be removed locally.
+          format: int64
+          type: string
     Media:
       description: |-
         Stores workspace-managed assets such as QR center logos or downloadable files that Linkbreakers signs and serves
@@ -13486,6 +13721,21 @@ components:
             when present)
           type: string
       title: PageThemeTemplate
+    PageThemeTemplateImages:
+      description: |-
+        PageThemeTemplateImages is one template's perishable URLs. A message rather
+        than three parallel maps, so a record's images stay together.
+      example:
+        thumbnailSignedUrl: thumbnailSignedUrl
+        coverSignedUrl: coverSignedUrl
+        badgeSignedUrl: badgeSignedUrl
+      properties:
+        badgeSignedUrl:
+          type: string
+        coverSignedUrl:
+          type: string
+        thumbnailSignedUrl:
+          type: string
     PageThemeTemplateScope:
       default: PAGE_THEME_TEMPLATE_SCOPE_UNSPECIFIED
       description: |-
@@ -14535,6 +14785,89 @@ components:
           type: string
       title: RequestWorkspaceEnrollmentRequest represents a request for workspace
         enrollment
+    ResolvePageThemeTemplateImagesRequest:
+      description: ResolvePageThemeTemplateImagesRequest asks for signed image URLs.
+      example:
+        templateIds:
+        - templateIds
+        - templateIds
+      properties:
+        templateIds:
+          description: |-
+            Templates to resolve. Ids the caller cannot see are absent from the
+            response rather than failing the batch.
+          items:
+            type: string
+          type: array
+      required:
+      - templateIds
+    ResolvePageThemeTemplateImagesResponse:
+      description: ResolvePageThemeTemplateImagesResponse carries the resolved images.
+      example:
+        images:
+          key:
+            thumbnailSignedUrl: thumbnailSignedUrl
+            coverSignedUrl: coverSignedUrl
+            badgeSignedUrl: badgeSignedUrl
+      properties:
+        images:
+          additionalProperties:
+            $ref: "#/components/schemas/PageThemeTemplateImages"
+          description: Images by template id. These expire; fetch rather than store.
+    ResolveQrcodeImagesRequest:
+      description: ResolveQrcodeImagesRequest asks for signed QR code image URLs.
+      example:
+        linkIds:
+        - linkIds
+        - linkIds
+      properties:
+        linkIds:
+          description: |-
+            The links to resolve images for. Ids outside the caller's workspace, and
+            links with no generated QR code yet, are simply absent from the response
+            rather than failing the whole batch: a list draws the rows it can.
+          items:
+            type: string
+          type: array
+      required:
+      - linkIds
+    ResolveQrcodeImagesResponse:
+      description: ResolveQrcodeImagesResponse carries the resolved URLs.
+      example:
+        qrcodeSignedUrls:
+          key: qrcodeSignedUrls
+      properties:
+        qrcodeSignedUrls:
+          additionalProperties:
+            type: string
+          description: |-
+            Signed URL by link id. These expire, so treat them as good for this
+            session and ask again rather than persisting them.
+    ResolveQrcodeTemplateImagesRequest:
+      description: ResolveQrcodeTemplateImagesRequest asks for signed thumbnail URLs.
+      example:
+        templateIds:
+        - templateIds
+        - templateIds
+      properties:
+        templateIds:
+          description: |-
+            Templates to resolve. Ids the caller cannot see are absent from the
+            response rather than failing the batch.
+          items:
+            type: string
+          type: array
+    ResolveQrcodeTemplateImagesResponse:
+      description: ResolveQrcodeTemplateImagesResponse carries the resolved thumbnails.
+      example:
+        thumbnailSignedUrls:
+          key: thumbnailSignedUrls
+      properties:
+        thumbnailSignedUrls:
+          additionalProperties:
+            type: string
+          description: Signed thumbnail URL by template id. These expire; fetch rather
+            than store.
     ResolveStepCollisionsResponse:
       example:
         stepsRepositioned: 0
@@ -14819,6 +15152,234 @@ components:
           $ref: "#/components/schemas/SocialLinkTraceButton"
         title:
           type: string
+    SocketAgentErrorMessage:
+      description: SocketAgentErrorMessage says why there will be no reply.
+      properties:
+        errorCode:
+          $ref: "#/components/schemas/SocketErrorCode"
+        message:
+          type: string
+        requestId:
+          type: string
+        type:
+          $ref: "#/components/schemas/SocketMessageType"
+    SocketAgentProgressMessage:
+      description: |-
+        SocketAgentProgressMessage says what the agent is doing while it works.
+
+        A reply can take a model several tool calls to produce. Without these the
+        screen has nothing to show for that time.
+      properties:
+        detail:
+          type: string
+        requestId:
+          type: string
+        step:
+          description: "\"thinking\", \"calling_tool\", and so on."
+          type: string
+        type:
+          $ref: "#/components/schemas/SocketMessageType"
+    SocketAgentResponseMessage:
+      description: SocketAgentResponseMessage is the agent's reply to one message.
+      properties:
+        appliedActions:
+          items:
+            type: string
+          type: array
+        contextUpdated:
+          description: "True when the agent changed the resource, so the screen should\
+            \ re-read it."
+          type: boolean
+        requestId:
+          type: string
+        responseText:
+          type: string
+        type:
+          $ref: "#/components/schemas/SocketMessageType"
+        uiActions:
+          items:
+            $ref: "#/components/schemas/ChatUIAction"
+          type: array
+    SocketAgentSendRequest:
+      description: SocketAgentSendRequest asks the agent for a reply.
+      properties:
+        contextId:
+          type: string
+        contextMetadata:
+          description: Whatever the page knows and the agent cannot see.
+          type: string
+        contextType:
+          type: string
+        fileIds:
+          description: "Files already uploaded, to attach to this turn."
+          items:
+            type: string
+          type: array
+        message:
+          type: string
+        requestId:
+          description: Correlates the reply to this message. The client generates
+            it.
+          type: string
+        type:
+          $ref: "#/components/schemas/SocketMessageType"
+    SocketConnectedMessage:
+      description: SocketConnectedMessage confirms the socket is authenticated.
+      properties:
+        memberId:
+          type: string
+        sessionId:
+          type: string
+        type:
+          $ref: "#/components/schemas/SocketMessageType"
+        workspaceId:
+          type: string
+    SocketContract:
+      description: |-
+        SocketContract names every frame the socket carries.
+
+        Its fields are what put these messages in the generated clients: a websocket
+        has no HTTP operation of its own, and a message no operation mentions is not
+        emitted. The endpoint answers with the protocol version; the rest of this
+        message is the schema both sides are generated from.
+      properties:
+        agentError:
+          $ref: "#/components/schemas/SocketAgentErrorMessage"
+        agentProgress:
+          $ref: "#/components/schemas/SocketAgentProgressMessage"
+        agentResponse:
+          $ref: "#/components/schemas/SocketAgentResponseMessage"
+        agentSend:
+          $ref: "#/components/schemas/SocketAgentSendRequest"
+        connected:
+          $ref: "#/components/schemas/SocketConnectedMessage"
+        event:
+          $ref: "#/components/schemas/SocketEventMessage"
+        ping:
+          $ref: "#/components/schemas/SocketPingRequest"
+        pong:
+          $ref: "#/components/schemas/SocketPongMessage"
+        protocolVersion:
+          type: string
+        subscribe:
+          $ref: "#/components/schemas/SocketSubscribeRequest"
+        subscribeDenied:
+          $ref: "#/components/schemas/SocketSubscribeDeniedMessage"
+        subscribed:
+          $ref: "#/components/schemas/SocketSubscribedMessage"
+        unsubscribe:
+          $ref: "#/components/schemas/SocketUnsubscribeRequest"
+    SocketErrorCode:
+      default: SOCKET_ERROR_CODE_UNSPECIFIED
+      description: |-
+        SocketErrorCode is why a request could not be served.
+
+         - SOCKET_ERROR_CODE_FORBIDDEN: The caller asked for something outside their workspace.
+      enum:
+      - SOCKET_ERROR_CODE_UNSPECIFIED
+      - SOCKET_ERROR_CODE_RATE_LIMITED
+      - SOCKET_ERROR_CODE_CREDITS_EXHAUSTED
+      - SOCKET_ERROR_CODE_WORKSPACE_NOT_VERIFIED
+      - SOCKET_ERROR_CODE_BUSY
+      - SOCKET_ERROR_CODE_INVALID_CONTEXT
+      - SOCKET_ERROR_CODE_INTERNAL_ERROR
+      - SOCKET_ERROR_CODE_FORBIDDEN
+      type: string
+    SocketEventMessage:
+      description: |-
+        SocketEventMessage carries something that happened, to everyone on a channel.
+
+        This is the frame the local-first client listens for: a change hint tells it
+        its copy may be behind, and it answers by re-reading. It was the one frame
+        not in this contract, sent as the broadcast layer's own JSON, and it worked
+        only because the client hand-parses a `type` field and the two vocabularies
+        happened not to collide. A client generated strictly from this file would
+        have dropped every one of them.
+
+        The payload stays opaque. What is in it belongs to the domain that raised
+        the event, and naming those shapes here would make this file change every
+        time one of them did.
+      properties:
+        channel:
+          description: "Which channel carried it, so a client on several can tell\
+            \ them apart."
+          type: string
+        event:
+          description: "What happened, as the domain named it."
+          type: string
+        payload:
+          description: "The event's own body, as JSON."
+          type: string
+        type:
+          $ref: "#/components/schemas/SocketMessageType"
+    SocketMessageType:
+      default: SOCKET_MESSAGE_TYPE_UNSPECIFIED
+      description: |-
+        SocketMessageType is the discriminator every frame carries.
+
+         - SOCKET_MESSAGE_TYPE_AGENT_SEND: Client to server.
+         - SOCKET_MESSAGE_TYPE_CONNECTED: Server to client.
+      enum:
+      - SOCKET_MESSAGE_TYPE_UNSPECIFIED
+      - SOCKET_MESSAGE_TYPE_AGENT_SEND
+      - SOCKET_MESSAGE_TYPE_SUBSCRIBE
+      - SOCKET_MESSAGE_TYPE_UNSUBSCRIBE
+      - SOCKET_MESSAGE_TYPE_PING
+      - SOCKET_MESSAGE_TYPE_CONNECTED
+      - SOCKET_MESSAGE_TYPE_AGENT_RESPONSE
+      - SOCKET_MESSAGE_TYPE_AGENT_PROGRESS
+      - SOCKET_MESSAGE_TYPE_AGENT_ERROR
+      - SOCKET_MESSAGE_TYPE_SUBSCRIBED
+      - SOCKET_MESSAGE_TYPE_SUBSCRIBE_DENIED
+      - SOCKET_MESSAGE_TYPE_PONG
+      - SOCKET_MESSAGE_TYPE_EVENT
+      type: string
+    SocketPingRequest:
+      description: SocketPingRequest keeps the connection alive from the client side.
+      properties:
+        type:
+          $ref: "#/components/schemas/SocketMessageType"
+    SocketPongMessage:
+      description: SocketPongMessage answers a ping.
+      properties:
+        type:
+          $ref: "#/components/schemas/SocketMessageType"
+    SocketSubscribeDeniedMessage:
+      description: |-
+        SocketSubscribeDeniedMessage refuses a channel the caller may not read.
+
+        Said out loud rather than dropped silently: a client that believes it is
+        subscribed and receives nothing cannot tell that apart from a quiet channel.
+      properties:
+        channel:
+          type: string
+        code:
+          $ref: "#/components/schemas/SocketErrorCode"
+        message:
+          type: string
+        type:
+          $ref: "#/components/schemas/SocketMessageType"
+    SocketSubscribeRequest:
+      description: SocketSubscribeRequest joins a channel.
+      properties:
+        channel:
+          type: string
+        type:
+          $ref: "#/components/schemas/SocketMessageType"
+    SocketSubscribedMessage:
+      description: SocketSubscribedMessage confirms a channel was joined.
+      properties:
+        channel:
+          type: string
+        type:
+          $ref: "#/components/schemas/SocketMessageType"
+    SocketUnsubscribeRequest:
+      description: SocketUnsubscribeRequest leaves a channel.
+      properties:
+        channel:
+          type: string
+        type:
+          $ref: "#/components/schemas/SocketMessageType"
     SortDirection:
       default: SORT_DIRECTION_UNSPECIFIED
       description: |-
