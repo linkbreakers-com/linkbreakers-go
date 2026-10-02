@@ -5,21 +5,21 @@ info:
     url: https://app.linkbreakers.com
   description: This is a documentation of all the APIs of Linkbreakers
   title: Linkbreakers API
-  version: 1.131.8
+  version: 1.131.9
 servers:
 - url: https://api.linkbreakers.com
 security:
 - bearerAuth: []
 tags:
-- description: Context-aware agent that delegates to specialized sub-agents based
-    on the resource being edited.
-  name: Agent
 - description: "Endpoints for managing analytics dashboards with flexible, config-driven\
     \ widgets. Each widget defines its own data source and visualization."
   name: Analytics Dashboard
 - description: "Endpoints for retrieving aggregated analytics data for dashboard widgets\
     \ including geographic breakdown, device distribution, and visitor trends."
   name: Analytics Data
+- description: Context-aware assistant that delegates to specialized sub-assistants
+    based on the resource being edited.
+  name: Assistant
 - description: "Endpoints for managing custom domains in Linkbreakers. These endpoints\
     \ allow you to register, verify, and manage custom domains for your workspace."
   name: Custom Domains
@@ -88,164 +88,6 @@ tags:
     allow you to update and get workspaces.
   name: Workspaces
 paths:
-  /v1/agent/conversation:
-    delete:
-      description: Clear the conversation history for a specific context.
-      operationId: AgentService_ClearConversation
-      parameters:
-      - description: |2-
-           - AGENT_CONTEXT_TYPE_LINK_ANALYTICS: Building a link's analytics dashboard. context_id is the LINK id, not a
-          dashboard id — the dashboard does not exist yet while the user and the
-          assistant are still agreeing on what it should show. Once it exists,
-          editing it happens under AGENT_CONTEXT_TYPE_ANALYTICS_DASHBOARD instead.
-           - AGENT_CONTEXT_TYPE_LEAD_SCORE: A conversation about one visit and the lead score it produced. The context
-          id is the EVENT id, not the link id: two visits to the same link are two
-          different subjects, and sharing a thread between them lets one visitor's
-          details bleed into answers about another.
-           - AGENT_CONTEXT_TYPE_WORKSPACE: The workspace-wide assistant, with no resource selected. The context id is
-          the WORKSPACE id: this thread is not about any one link, dashboard or
-          design, and every capability the resource-scoped agents have is available
-          from it. One conversation per workspace, so it survives navigation.
-        explode: true
-        in: query
-        name: contextType
-        required: false
-        schema:
-          type: string
-        style: form
-      - explode: true
-        in: query
-        name: contextId
-        required: false
-        schema:
-          type: string
-        style: form
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AgentClearConversationResponse"
-          description: Everything worked as expected.
-        default:
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-          description: Unexpected error
-      security:
-      - bearerAuth: []
-      summary: Clear agent conversation
-      tags:
-      - Agent
-    get:
-      description: Get the display-ready chat history for a specific context.
-      operationId: AgentService_GetConversation
-      parameters:
-      - description: |2-
-           - AGENT_CONTEXT_TYPE_LINK_ANALYTICS: Building a link's analytics dashboard. context_id is the LINK id, not a
-          dashboard id — the dashboard does not exist yet while the user and the
-          assistant are still agreeing on what it should show. Once it exists,
-          editing it happens under AGENT_CONTEXT_TYPE_ANALYTICS_DASHBOARD instead.
-           - AGENT_CONTEXT_TYPE_LEAD_SCORE: A conversation about one visit and the lead score it produced. The context
-          id is the EVENT id, not the link id: two visits to the same link are two
-          different subjects, and sharing a thread between them lets one visitor's
-          details bleed into answers about another.
-           - AGENT_CONTEXT_TYPE_WORKSPACE: The workspace-wide assistant, with no resource selected. The context id is
-          the WORKSPACE id: this thread is not about any one link, dashboard or
-          design, and every capability the resource-scoped agents have is available
-          from it. One conversation per workspace, so it survives navigation.
-        explode: true
-        in: query
-        name: contextType
-        required: false
-        schema:
-          type: string
-        style: form
-      - explode: true
-        in: query
-        name: contextId
-        required: false
-        schema:
-          type: string
-        style: form
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AgentGetConversationResponse"
-          description: Everything worked as expected.
-        default:
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-          description: Unexpected error
-      security:
-      - bearerAuth: []
-      summary: Get agent conversation
-      tags:
-      - Agent
-  /v1/agent/conversation/read:
-    post:
-      description: "Record that the member has seen every assistant reply in this\
-        \ conversation. Call it when the thread is actually on screen, not when history\
-        \ is fetched."
-      operationId: AgentService_MarkConversationRead
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/AgentMarkConversationReadRequest"
-        required: true
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AgentMarkConversationReadResponse"
-          description: Everything worked as expected.
-        default:
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-          description: Unexpected error
-      security:
-      - bearerAuth: []
-      summary: Mark agent conversation read
-      tags:
-      - Agent
-  /v1/agent/upload:
-    post:
-      description: Upload a file to attach to the next agent message. Returns a temporary
-        file ID. Files expire after 5 minutes. Max 20MB.
-      operationId: AgentService_UploadFile
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/AgentUploadFileRequest"
-        required: true
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AgentUploadFileResponse"
-          description: Everything worked as expected.
-        default:
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-          description: Unexpected error
-      security:
-      - bearerAuth: []
-      summary: Upload file for agent chat
-      tags:
-      - Agent
   /v1/analytics/attributes/distribution:
     post:
       description: "Returns how visitors are spread across the values of one attribute,\
@@ -488,7 +330,7 @@ paths:
           description: Unexpected error
       security:
       - bearerAuth: []
-      summary: Get a stored widget agent summary
+      summary: Get a stored widget assistant summary
       tags:
       - Analytics Dashboard
     post:
@@ -533,12 +375,12 @@ paths:
           description: Unexpected error
       security:
       - bearerAuth: []
-      summary: Generate a widget agent summary
+      summary: Generate a widget assistant summary
       tags:
       - Analytics Dashboard
   /v1/analytics/dashboards/{id}:
     delete:
-      description: Delete a dashboard and its associated agent conversation.
+      description: Delete a dashboard and its associated assistant conversation.
       operationId: AnalyticsDashboardService_DeleteDashboard
       parameters:
       - explode: false
@@ -803,6 +645,164 @@ paths:
       summary: Get visitor trends
       tags:
       - Analytics Data
+  /v1/assistant/conversation:
+    delete:
+      description: Clear the conversation history for a specific context.
+      operationId: AssistantService_ClearConversation
+      parameters:
+      - description: |2-
+           - ASSISTANT_CONTEXT_TYPE_LINK_ANALYTICS: Building a link's analytics dashboard. context_id is the LINK id, not a
+          dashboard id — the dashboard does not exist yet while the user and the
+          assistant are still agreeing on what it should show. Once it exists,
+          editing it happens under ASSISTANT_CONTEXT_TYPE_ANALYTICS_DASHBOARD instead.
+           - ASSISTANT_CONTEXT_TYPE_LEAD_SCORE: A conversation about one visit and the lead score it produced. The context
+          id is the EVENT id, not the link id: two visits to the same link are two
+          different subjects, and sharing a thread between them lets one visitor's
+          details bleed into answers about another.
+           - ASSISTANT_CONTEXT_TYPE_WORKSPACE: The workspace-wide assistant, with no resource selected. The context id is
+          the WORKSPACE id: this thread is not about any one link, dashboard or
+          design, and every capability the resource-scoped assistants have is available
+          from it. One conversation per workspace, so it survives navigation.
+        explode: true
+        in: query
+        name: contextType
+        required: false
+        schema:
+          type: string
+        style: form
+      - explode: true
+        in: query
+        name: contextId
+        required: false
+        schema:
+          type: string
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssistantClearConversationResponse"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth: []
+      summary: Clear assistant conversation
+      tags:
+      - Assistant
+    get:
+      description: Get the display-ready chat history for a specific context.
+      operationId: AssistantService_GetConversation
+      parameters:
+      - description: |2-
+           - ASSISTANT_CONTEXT_TYPE_LINK_ANALYTICS: Building a link's analytics dashboard. context_id is the LINK id, not a
+          dashboard id — the dashboard does not exist yet while the user and the
+          assistant are still agreeing on what it should show. Once it exists,
+          editing it happens under ASSISTANT_CONTEXT_TYPE_ANALYTICS_DASHBOARD instead.
+           - ASSISTANT_CONTEXT_TYPE_LEAD_SCORE: A conversation about one visit and the lead score it produced. The context
+          id is the EVENT id, not the link id: two visits to the same link are two
+          different subjects, and sharing a thread between them lets one visitor's
+          details bleed into answers about another.
+           - ASSISTANT_CONTEXT_TYPE_WORKSPACE: The workspace-wide assistant, with no resource selected. The context id is
+          the WORKSPACE id: this thread is not about any one link, dashboard or
+          design, and every capability the resource-scoped assistants have is available
+          from it. One conversation per workspace, so it survives navigation.
+        explode: true
+        in: query
+        name: contextType
+        required: false
+        schema:
+          type: string
+        style: form
+      - explode: true
+        in: query
+        name: contextId
+        required: false
+        schema:
+          type: string
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssistantGetConversationResponse"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth: []
+      summary: Get assistant conversation
+      tags:
+      - Assistant
+  /v1/assistant/conversation/read:
+    post:
+      description: "Record that the member has seen every assistant reply in this\
+        \ conversation. Call it when the thread is actually on screen, not when history\
+        \ is fetched."
+      operationId: AssistantService_MarkConversationRead
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssistantMarkConversationReadRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssistantMarkConversationReadResponse"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth: []
+      summary: Mark assistant conversation read
+      tags:
+      - Assistant
+  /v1/assistant/upload:
+    post:
+      description: Upload a file to attach to the next assistant message. Returns
+        a temporary file ID. Files expire after 5 minutes. Max 20MB.
+      operationId: AssistantService_UploadFile
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssistantUploadFileRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssistantUploadFileResponse"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth: []
+      summary: Upload file for assistant chat
+      tags:
+      - Assistant
   /v1/custom-domains:
     get:
       description: Retrieves the custom domains for your workspace
@@ -5724,165 +5724,6 @@ components:
       - ACTION_CLICK
       title: The type of event action
       type: string
-    AgentClearConversationResponse:
-      title: AgentClearConversationResponse is empty on success
-      type: object
-    AgentContextType:
-      default: AGENT_CONTEXT_TYPE_UNSPECIFIED
-      description: |-
-        - AGENT_CONTEXT_TYPE_LINK_ANALYTICS: Building a link's analytics dashboard. context_id is the LINK id, not a
-        dashboard id — the dashboard does not exist yet while the user and the
-        assistant are still agreeing on what it should show. Once it exists,
-        editing it happens under AGENT_CONTEXT_TYPE_ANALYTICS_DASHBOARD instead.
-         - AGENT_CONTEXT_TYPE_LEAD_SCORE: A conversation about one visit and the lead score it produced. The context
-        id is the EVENT id, not the link id: two visits to the same link are two
-        different subjects, and sharing a thread between them lets one visitor's
-        details bleed into answers about another.
-         - AGENT_CONTEXT_TYPE_WORKSPACE: The workspace-wide assistant, with no resource selected. The context id is
-        the WORKSPACE id: this thread is not about any one link, dashboard or
-        design, and every capability the resource-scoped agents have is available
-        from it. One conversation per workspace, so it survives navigation.
-      enum:
-      - AGENT_CONTEXT_TYPE_UNSPECIFIED
-      - AGENT_CONTEXT_TYPE_ANALYTICS_DASHBOARD
-      - AGENT_CONTEXT_TYPE_WORKFLOW
-      - AGENT_CONTEXT_TYPE_LINK
-      - AGENT_CONTEXT_TYPE_QRCODE_DESIGN
-      - AGENT_CONTEXT_TYPE_PAGE_THEME
-      - AGENT_CONTEXT_TYPE_LINK_ANALYTICS
-      - AGENT_CONTEXT_TYPE_LEAD_SCORE
-      - AGENT_CONTEXT_TYPE_WORKSPACE
-      title: Agent context types
-      type: string
-    AgentDisplayMessage:
-      example:
-        attachments:
-        - name: name
-          mimeType: mimeType
-        - name: name
-          mimeType: mimeType
-        sender: sender
-        id: id
-        text: text
-        readAt: 2000-01-23T04:56:07.000+00:00
-        timestamp: 2000-01-23T04:56:07.000+00:00
-      properties:
-        attachments:
-          items:
-            $ref: "#/components/schemas/AgentDisplayMessageAttachment"
-          type: array
-        id:
-          type: string
-        readAt:
-          description: |-
-            When the member had this assistant message on screen. Unset while an
-            assistant message has not been seen, and on every user message.
-          format: date-time
-          type: string
-        sender:
-          type: string
-        text:
-          type: string
-        timestamp:
-          format: date-time
-          type: string
-      title: AgentDisplayMessage is a user-visible message for rendering
-    AgentDisplayMessageAttachment:
-      example:
-        name: name
-        mimeType: mimeType
-      properties:
-        mimeType:
-          type: string
-        name:
-          type: string
-      title: AgentDisplayMessageAttachment is a file attached to a message
-    AgentGetConversationResponse:
-      example:
-        messages:
-        - attachments:
-          - name: name
-            mimeType: mimeType
-          - name: name
-            mimeType: mimeType
-          sender: sender
-          id: id
-          text: text
-          readAt: 2000-01-23T04:56:07.000+00:00
-          timestamp: 2000-01-23T04:56:07.000+00:00
-        - attachments:
-          - name: name
-            mimeType: mimeType
-          - name: name
-            mimeType: mimeType
-          sender: sender
-          id: id
-          text: text
-          readAt: 2000-01-23T04:56:07.000+00:00
-          timestamp: 2000-01-23T04:56:07.000+00:00
-        unreadCount: 0
-      properties:
-        messages:
-          items:
-            $ref: "#/components/schemas/AgentDisplayMessage"
-          type: array
-        unreadCount:
-          description: Assistant messages in this conversation the member has not
-            seen yet.
-          format: int32
-          type: integer
-      title: AgentGetConversationResponse contains the display-ready messages
-    AgentMarkConversationReadRequest:
-      example:
-        contextType: AGENT_CONTEXT_TYPE_UNSPECIFIED
-        contextId: contextId
-      properties:
-        contextId:
-          type: string
-        contextType:
-          $ref: "#/components/schemas/AgentContextType"
-      title: AgentMarkConversationReadRequest marks a conversation's replies as seen
-    AgentMarkConversationReadResponse:
-      example:
-        markedCount: 0
-      properties:
-        markedCount:
-          format: int32
-          type: integer
-      title: AgentMarkConversationReadResponse reports how many replies this call
-        marked
-    AgentUploadFileRequest:
-      example:
-        name: name
-        mimeType: mimeType
-        content: content
-      properties:
-        content:
-          title: File content (base64-encoded in JSON)
-          type: string
-        mimeType:
-          title: "MIME type (e.g. \"image/png\", \"application/pdf\")"
-          type: string
-        name:
-          title: Original filename
-          type: string
-      title: AgentUploadFileRequest uploads a file for agent chat attachment
-    AgentUploadFileResponse:
-      example:
-        name: name
-        mimeType: mimeType
-        fileId: fileId
-      properties:
-        fileId:
-          title: Temporary file ID to include in agent message attachments
-          type: string
-        mimeType:
-          title: MIME type (echoed back)
-          type: string
-        name:
-          title: Original filename (echoed back)
-          type: string
-      title: AgentUploadFileResponse returns the temporary file reference
     AnalyticsDashboard:
       example:
         createdAt: 2000-01-23T04:56:07.000+00:00
@@ -6075,6 +5916,166 @@ components:
           allOf:
           - $ref: "#/components/schemas/QrcodeDesign"
           title: The updated QR code design with the template's styling applied
+    AssistantClearConversationResponse:
+      title: AssistantClearConversationResponse is empty on success
+      type: object
+    AssistantContextType:
+      default: ASSISTANT_CONTEXT_TYPE_UNSPECIFIED
+      description: |-
+        - ASSISTANT_CONTEXT_TYPE_LINK_ANALYTICS: Building a link's analytics dashboard. context_id is the LINK id, not a
+        dashboard id — the dashboard does not exist yet while the user and the
+        assistant are still agreeing on what it should show. Once it exists,
+        editing it happens under ASSISTANT_CONTEXT_TYPE_ANALYTICS_DASHBOARD instead.
+         - ASSISTANT_CONTEXT_TYPE_LEAD_SCORE: A conversation about one visit and the lead score it produced. The context
+        id is the EVENT id, not the link id: two visits to the same link are two
+        different subjects, and sharing a thread between them lets one visitor's
+        details bleed into answers about another.
+         - ASSISTANT_CONTEXT_TYPE_WORKSPACE: The workspace-wide assistant, with no resource selected. The context id is
+        the WORKSPACE id: this thread is not about any one link, dashboard or
+        design, and every capability the resource-scoped assistants have is available
+        from it. One conversation per workspace, so it survives navigation.
+      enum:
+      - ASSISTANT_CONTEXT_TYPE_UNSPECIFIED
+      - ASSISTANT_CONTEXT_TYPE_ANALYTICS_DASHBOARD
+      - ASSISTANT_CONTEXT_TYPE_WORKFLOW
+      - ASSISTANT_CONTEXT_TYPE_LINK
+      - ASSISTANT_CONTEXT_TYPE_QRCODE_DESIGN
+      - ASSISTANT_CONTEXT_TYPE_PAGE_THEME
+      - ASSISTANT_CONTEXT_TYPE_LINK_ANALYTICS
+      - ASSISTANT_CONTEXT_TYPE_LEAD_SCORE
+      - ASSISTANT_CONTEXT_TYPE_WORKSPACE
+      title: Assistant context types
+      type: string
+    AssistantDisplayMessage:
+      example:
+        attachments:
+        - name: name
+          mimeType: mimeType
+        - name: name
+          mimeType: mimeType
+        sender: sender
+        id: id
+        text: text
+        readAt: 2000-01-23T04:56:07.000+00:00
+        timestamp: 2000-01-23T04:56:07.000+00:00
+      properties:
+        attachments:
+          items:
+            $ref: "#/components/schemas/AssistantDisplayMessageAttachment"
+          type: array
+        id:
+          type: string
+        readAt:
+          description: |-
+            When the member had this assistant message on screen. Unset while an
+            assistant message has not been seen, and on every user message.
+          format: date-time
+          type: string
+        sender:
+          type: string
+        text:
+          type: string
+        timestamp:
+          format: date-time
+          type: string
+      title: AssistantDisplayMessage is a user-visible message for rendering
+    AssistantDisplayMessageAttachment:
+      example:
+        name: name
+        mimeType: mimeType
+      properties:
+        mimeType:
+          type: string
+        name:
+          type: string
+      title: AssistantDisplayMessageAttachment is a file attached to a message
+    AssistantGetConversationResponse:
+      example:
+        messages:
+        - attachments:
+          - name: name
+            mimeType: mimeType
+          - name: name
+            mimeType: mimeType
+          sender: sender
+          id: id
+          text: text
+          readAt: 2000-01-23T04:56:07.000+00:00
+          timestamp: 2000-01-23T04:56:07.000+00:00
+        - attachments:
+          - name: name
+            mimeType: mimeType
+          - name: name
+            mimeType: mimeType
+          sender: sender
+          id: id
+          text: text
+          readAt: 2000-01-23T04:56:07.000+00:00
+          timestamp: 2000-01-23T04:56:07.000+00:00
+        unreadCount: 0
+      properties:
+        messages:
+          items:
+            $ref: "#/components/schemas/AssistantDisplayMessage"
+          type: array
+        unreadCount:
+          description: Assistant messages in this conversation the member has not
+            seen yet.
+          format: int32
+          type: integer
+      title: AssistantGetConversationResponse contains the display-ready messages
+    AssistantMarkConversationReadRequest:
+      example:
+        contextType: ASSISTANT_CONTEXT_TYPE_UNSPECIFIED
+        contextId: contextId
+      properties:
+        contextId:
+          type: string
+        contextType:
+          $ref: "#/components/schemas/AssistantContextType"
+      title: AssistantMarkConversationReadRequest marks a conversation's replies as
+        seen
+    AssistantMarkConversationReadResponse:
+      example:
+        markedCount: 0
+      properties:
+        markedCount:
+          format: int32
+          type: integer
+      title: AssistantMarkConversationReadResponse reports how many replies this call
+        marked
+    AssistantUploadFileRequest:
+      example:
+        name: name
+        mimeType: mimeType
+        content: content
+      properties:
+        content:
+          title: File content (base64-encoded in JSON)
+          type: string
+        mimeType:
+          title: "MIME type (e.g. \"image/png\", \"application/pdf\")"
+          type: string
+        name:
+          title: Original filename
+          type: string
+      title: AssistantUploadFileRequest uploads a file for assistant chat attachment
+    AssistantUploadFileResponse:
+      example:
+        name: name
+        mimeType: mimeType
+        fileId: fileId
+      properties:
+        fileId:
+          title: Temporary file ID to include in assistant message attachments
+          type: string
+        mimeType:
+          title: MIME type (echoed back)
+          type: string
+        name:
+          title: Original filename (echoed back)
+          type: string
+      title: AssistantUploadFileResponse returns the temporary file reference
     AttributeValueDataPoint:
       example:
         visitorCount: 6
@@ -6832,7 +6833,7 @@ components:
           - $ref: "#/components/schemas/DashboardConfig"
           description: |-
             Initial widgets. Empty means the dashboard starts with none, because its
-            contents are normally agreed with the agent before anything is created.
+            contents are normally agreed with the assistant before anything is created.
         id:
           description: Client-supplied dashboard id. Generated server-side when empty.
           type: string
@@ -6848,7 +6849,7 @@ components:
             Fill a workspace dashboard with the standard starter widgets instead of
             leaving it empty. For the first dashboard in a workspace, which is created
             by one click rather than by a conversation. Ignored when config is set or
-            when link_id is set, and hidden from the agent, which agrees its widgets
+            when link_id is set, and hidden from the assistant, which agrees its widgets
             with the user and would otherwise stack them on top of these.
           type: boolean
     CreateDashboardResponse:
@@ -8852,7 +8853,7 @@ components:
           type: string
     ErrorResponse:
       example:
-        code: 6
+        code: 5
         codeType: UNKNOWN
         details:
         - "{}"
@@ -15152,8 +15153,8 @@ components:
           $ref: "#/components/schemas/SocialLinkTraceButton"
         title:
           type: string
-    SocketAgentErrorMessage:
-      description: SocketAgentErrorMessage says why there will be no reply.
+    SocketAssistantErrorMessage:
+      description: SocketAssistantErrorMessage says why there will be no reply.
       properties:
         errorCode:
           $ref: "#/components/schemas/SocketErrorCode"
@@ -15163,9 +15164,9 @@ components:
           type: string
         type:
           $ref: "#/components/schemas/SocketMessageType"
-    SocketAgentProgressMessage:
+    SocketAssistantProgressMessage:
       description: |-
-        SocketAgentProgressMessage says what the agent is doing while it works.
+        SocketAssistantProgressMessage says what the assistant is doing while it works.
 
         A reply can take a model several tool calls to produce. Without these the
         screen has nothing to show for that time.
@@ -15179,16 +15180,17 @@ components:
           type: string
         type:
           $ref: "#/components/schemas/SocketMessageType"
-    SocketAgentResponseMessage:
-      description: SocketAgentResponseMessage is the agent's reply to one message.
+    SocketAssistantResponseMessage:
+      description: SocketAssistantResponseMessage is the assistant's reply to one
+        message.
       properties:
         appliedActions:
           items:
             type: string
           type: array
         contextUpdated:
-          description: "True when the agent changed the resource, so the screen should\
-            \ re-read it."
+          description: "True when the assistant changed the resource, so the screen\
+            \ should re-read it."
           type: boolean
         requestId:
           type: string
@@ -15200,13 +15202,13 @@ components:
           items:
             $ref: "#/components/schemas/ChatUIAction"
           type: array
-    SocketAgentSendRequest:
-      description: SocketAgentSendRequest asks the agent for a reply.
+    SocketAssistantSendRequest:
+      description: SocketAssistantSendRequest asks the assistant for a reply.
       properties:
         contextId:
           type: string
         contextMetadata:
-          description: Whatever the page knows and the agent cannot see.
+          description: Whatever the page knows and the assistant cannot see.
           type: string
         contextType:
           type: string
@@ -15243,14 +15245,14 @@ components:
         emitted. The endpoint answers with the protocol version; the rest of this
         message is the schema both sides are generated from.
       properties:
-        agentError:
-          $ref: "#/components/schemas/SocketAgentErrorMessage"
-        agentProgress:
-          $ref: "#/components/schemas/SocketAgentProgressMessage"
-        agentResponse:
-          $ref: "#/components/schemas/SocketAgentResponseMessage"
-        agentSend:
-          $ref: "#/components/schemas/SocketAgentSendRequest"
+        assistantError:
+          $ref: "#/components/schemas/SocketAssistantErrorMessage"
+        assistantProgress:
+          $ref: "#/components/schemas/SocketAssistantProgressMessage"
+        assistantResponse:
+          $ref: "#/components/schemas/SocketAssistantResponseMessage"
+        assistantSend:
+          $ref: "#/components/schemas/SocketAssistantSendRequest"
         connected:
           $ref: "#/components/schemas/SocketConnectedMessage"
         event:
@@ -15317,18 +15319,18 @@ components:
       description: |-
         SocketMessageType is the discriminator every frame carries.
 
-         - SOCKET_MESSAGE_TYPE_AGENT_SEND: Client to server.
+         - SOCKET_MESSAGE_TYPE_ASSISTANT_SEND: Client to server.
          - SOCKET_MESSAGE_TYPE_CONNECTED: Server to client.
       enum:
       - SOCKET_MESSAGE_TYPE_UNSPECIFIED
-      - SOCKET_MESSAGE_TYPE_AGENT_SEND
+      - SOCKET_MESSAGE_TYPE_ASSISTANT_SEND
       - SOCKET_MESSAGE_TYPE_SUBSCRIBE
       - SOCKET_MESSAGE_TYPE_UNSUBSCRIBE
       - SOCKET_MESSAGE_TYPE_PING
       - SOCKET_MESSAGE_TYPE_CONNECTED
-      - SOCKET_MESSAGE_TYPE_AGENT_RESPONSE
-      - SOCKET_MESSAGE_TYPE_AGENT_PROGRESS
-      - SOCKET_MESSAGE_TYPE_AGENT_ERROR
+      - SOCKET_MESSAGE_TYPE_ASSISTANT_RESPONSE
+      - SOCKET_MESSAGE_TYPE_ASSISTANT_PROGRESS
+      - SOCKET_MESSAGE_TYPE_ASSISTANT_ERROR
       - SOCKET_MESSAGE_TYPE_SUBSCRIBED
       - SOCKET_MESSAGE_TYPE_SUBSCRIBE_DENIED
       - SOCKET_MESSAGE_TYPE_PONG
@@ -17126,13 +17128,13 @@ components:
         WidgetTabMode says how a tab produces what it shows.
 
          - WIDGET_TAB_MODE_UNSPECIFIED: Fetches the widget's data source with this tab's params, on switch.
-         - WIDGET_TAB_MODE_AGENT_SUMMARY: Shows an agent's analysis of the widget's values. Runs only when the user
+         - WIDGET_TAB_MODE_ASSISTANT_SUMMARY: Shows an assistant's analysis of the widget's values. Runs only when the user
         asks, because it costs platform credits, and its result is stored rather
         than regenerated on every view.
       enum:
       - WIDGET_TAB_MODE_UNSPECIFIED
       - WIDGET_TAB_MODE_DATA
-      - WIDGET_TAB_MODE_AGENT_SUMMARY
+      - WIDGET_TAB_MODE_ASSISTANT_SUMMARY
       type: string
     WidgetTabView:
       default: WIDGET_TAB_VIEW_UNSPECIFIED
