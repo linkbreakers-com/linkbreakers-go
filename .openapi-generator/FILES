@@ -237,6 +237,7 @@ model_import_page_theme_template_response.go
 model_import_qrcode_template_request.go
 model_import_qrcode_template_response.go
 model_invite_member_request.go
+model_journey_progress.go
 model_lead_score.go
 model_lead_score_breakdown.go
 model_link.go

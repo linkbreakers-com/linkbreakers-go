@@ -5,7 +5,7 @@ info:
     url: https://app.linkbreakers.com
   description: This is a documentation of all the APIs of Linkbreakers
   title: Linkbreakers API
-  version: 1.135.0
+  version: 1.135.1
 servers:
 - url: https://api.linkbreakers.com
 security:
@@ -1363,9 +1363,9 @@ paths:
           type: string
         style: form
       - description: |-
-          Optional list of relationships to include: visitor, device, link, workspace, leadScore
+          Optional list of relationships to include: visitor, device, link, workspace, leadScore, journey
 
-          Optional list of relationships to include: visitor, device, link, workspace, leadScore
+          Optional list of relationships to include: visitor, device, link, workspace, leadScore, journey
         explode: true
         in: query
         name: include
@@ -9005,6 +9005,7 @@ components:
           workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
         scannedAt: 2000-01-23T04:56:07.000+00:00
         workspace: ""
+        journey: ""
         destination: https://brand.example.com/checkout
         link: ""
         traces:
@@ -9220,6 +9221,12 @@ components:
           example: 8b6e1a2c-7d4f-4fd2-8b35-9a4c1f2d993a
           title: Unique identifier for the event object (UUID)
           type: string
+        journey:
+          allOf:
+          - $ref: "#/components/schemas/JourneyProgress"
+          description: |-
+            How far the visitor got through the link's workflow on this visit
+            (include "journey").
         leadScore:
           $ref: "#/components/schemas/LeadScore"
         leadScoreId:
@@ -10946,6 +10953,27 @@ components:
         lastName:
           title: Last name used in invitation email and dashboard
           type: string
+    JourneyProgress:
+      description: |-
+        How far one visit got through a workflow. Conditions are not counted,
+        since a visitor never sees them.
+      properties:
+        completed:
+          description: |-
+            Whether the visit reached an exit (a redirect, contact card, thank-you
+            or social links page).
+          type: boolean
+        stepsReached:
+          description: "Steps the visitor reached on this visit, the entry included."
+          format: int32
+          type: integer
+        stepsTotal:
+          description: |-
+            Steps on their path from entry to an exit: the ones reached plus the
+            fewest still ahead of where they stopped. Equal to steps_reached once
+            they reach an exit.
+          format: int32
+          type: integer
     LeadScore:
       description: |-
         Stores the AI-generated assessment Linkbreakers produces for a visitor's engagement with a link, including reasoning signals
@@ -11662,6 +11690,7 @@ components:
             workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
           scannedAt: 2000-01-23T04:56:07.000+00:00
           workspace: ""
+          journey: ""
           destination: https://brand.example.com/checkout
           link: ""
           traces:
@@ -11846,6 +11875,7 @@ components:
             workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
           scannedAt: 2000-01-23T04:56:07.000+00:00
           workspace: ""
+          journey: ""
           destination: https://brand.example.com/checkout
           link: ""
           traces:
@@ -12063,6 +12093,7 @@ components:
               workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
             scannedAt: 2000-01-23T04:56:07.000+00:00
             workspace: ""
+            journey: ""
             destination: https://brand.example.com/checkout
             link: ""
             traces:
@@ -12249,6 +12280,7 @@ components:
               workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
             scannedAt: 2000-01-23T04:56:07.000+00:00
             workspace: ""
+            journey: ""
             destination: https://brand.example.com/checkout
             link: ""
             traces:
