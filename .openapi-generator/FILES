@@ -19,7 +19,6 @@ api_page_themes.go
 api_qr_code_designs.go
 api_qr_code_templates.go
 api_slack_integrations.go
-api_support.go
 api_tags.go
 api_time_series.go
 api_visitors.go
@@ -69,8 +68,6 @@ model_complete_slack_o_auth_response.go
 model_connect_workflow_step_response.go
 model_contact_card_trace_card.go
 model_contact_card_trace_data.go
-model_contact_support_request.go
-model_contact_support_response.go
 model_container_config.go
 model_corners_dot_options.go
 model_corners_dot_type.go

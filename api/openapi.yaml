@@ -5,7 +5,7 @@ info:
     url: https://app.linkbreakers.com
   description: This is a documentation of all the APIs of Linkbreakers
   title: Linkbreakers API
-  version: 1.131.11
+  version: 1.132.0
 servers:
 - url: https://api.linkbreakers.com
 security:
@@ -63,8 +63,6 @@ tags:
 - description: Endpoints for managing the Slack integration. Connect your Slack workspace
     to receive real-time notifications when events occur on your links.
   name: Slack Integrations
-- description: Reach the Linkbreakers support team from your workspace.
-  name: Support
 - description: Endpoints for managing tags in Linkbreakers. These endpoints allow
     you to search for tags in a workspace.
   name: Tags
@@ -4682,35 +4680,6 @@ paths:
       summary: Test Slack integration
       tags:
       - Slack Integrations
-  /v1/support/requests:
-    post:
-      description: Sends a request to the Linkbreakers support team on behalf of the
-        authenticated member. The team replies by email.
-      operationId: SupportService_ContactSupport
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/ContactSupportRequest"
-        required: true
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ContactSupportResponse"
-          description: Everything worked as expected.
-        default:
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-          description: Unexpected error
-      security:
-      - bearerAuth: []
-      summary: Contact support
-      tags:
-      - Support
   /v1/tags:
     delete:
       description: Remove a tag by name so it no longer appears for links or analytics
@@ -6383,27 +6352,6 @@ components:
       properties:
         card:
           $ref: "#/components/schemas/ContactCardTraceCard"
-    ContactSupportRequest:
-      example:
-        linkId: linkId
-        message: message
-      properties:
-        linkId:
-          description: "The link the request is about, when there is one."
-          type: string
-        message:
-          description: "What the member needs help with, in their own words. Up to\
-            \ 4,000 characters."
-          type: string
-      required:
-      - message
-    ContactSupportResponse:
-      example:
-        replyToEmail: replyToEmail
-      properties:
-        replyToEmail:
-          description: Email address the support team will reply to.
-          type: string
     ContainerConfig:
       example:
         backgroundColor: ""
