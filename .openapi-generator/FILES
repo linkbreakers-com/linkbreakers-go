@@ -50,8 +50,11 @@ model_assistant_mark_conversation_read_request.go
 model_assistant_mark_conversation_read_response.go
 model_assistant_upload_file_request.go
 model_assistant_upload_file_response.go
+model_attribute_capture.go
 model_attribute_value_data_point.go
 model_attribute_value_entry.go
+model_attribute_write.go
+model_attribute_write_mode.go
 model_auto_layout_workflow_response.go
 model_background_options.go
 model_breakdown_data_point.go

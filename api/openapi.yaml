@@ -5,7 +5,7 @@ info:
     url: https://app.linkbreakers.com
   description: This is a documentation of all the APIs of Linkbreakers
   title: Linkbreakers API
-  version: 1.132.3
+  version: 1.134.0
 servers:
 - url: https://api.linkbreakers.com
 security:
@@ -6107,6 +6107,25 @@ components:
           title: Original filename (echoed back)
           type: string
       title: AssistantUploadFileResponse returns the temporary file reference
+    AttributeCapture:
+      description: |-
+        A step's opt-in to save values to the visitor's profile, so a workflow can
+        record qualification without a form: a tapped choice, a milestone reached,
+        or the context of the link that was scanned.
+
+        Available on LINK_VISIT, MULTI_LINK, MESSAGE_PAGE, CLIENT_REDIRECT,
+        CONTACT_CARD, THANK_YOU_PAGE and SOCIAL_LINKS_PAGE steps. Forms already save
+        every answer, and conditions only route on what is already known.
+      properties:
+        enabled:
+          description: Off keeps the configured writes without running them.
+          type: boolean
+        writes:
+          description: Up to 20 values to save. Each runs when the visitor goes through
+            the step.
+          items:
+            $ref: "#/components/schemas/AttributeWrite"
+          type: array
     AttributeValueDataPoint:
       example:
         visitorCount: 6
@@ -6136,6 +6155,56 @@ components:
           title: The value as captured
           type: string
       title: AttributeValueEntry is one recorded value of an attribute
+    AttributeWrite:
+      description: One value saved to the visitor's profile.
+      properties:
+        key:
+          description: |-
+            The attribute key, such as "looking_for" or "book_a_viewing_at". Letters,
+            digits, "_", "-" and "."; keys starting with "$" are reserved.
+          example: looking_for
+          type: string
+        mode:
+          description: |2-
+             - ATTRIBUTE_WRITE_MODE_SET: Overwrite, so the profile holds the latest value.
+             - ATTRIBUTE_WRITE_MODE_SET_ONCE: Keep the first value, for first-touch facts.
+          enum:
+          - ATTRIBUTE_WRITE_MODE_UNSPECIFIED
+          - ATTRIBUTE_WRITE_MODE_SET
+          - ATTRIBUTE_WRITE_MODE_SET_ONCE
+          type: string
+        type:
+          description: |-
+            VisitorAttributeType is what a value was captured as. It decides how the
+            value is parsed and which analytics the key can support, which the value
+            alone cannot tell you: "8" from a rating field and "8" typed into a text box
+            are different facts.
+          enum:
+          - VISITOR_ATTRIBUTE_TYPE_UNSPECIFIED
+          - VISITOR_ATTRIBUTE_TYPE_STRING
+          - VISITOR_ATTRIBUTE_TYPE_NUMBER
+          - VISITOR_ATTRIBUTE_TYPE_BOOLEAN
+          - VISITOR_ATTRIBUTE_TYPE_DATE
+          - VISITOR_ATTRIBUTE_TYPE_ENUM
+          type: string
+        value:
+          description: |-
+            Literal text, or a template filled in when the visitor goes through the
+            step: {{now}}, {{link.name}}, {{link.metadata.<key>}}, and on MULTI_LINK
+            steps {{choice.label}} and {{choice.id}} for the button tapped. A write
+            whose value comes out empty is skipped.
+          example: "{{choice.label}}"
+          type: string
+    AttributeWriteMode:
+      default: ATTRIBUTE_WRITE_MODE_UNSPECIFIED
+      description: |2-
+         - ATTRIBUTE_WRITE_MODE_SET: Overwrite, so the profile holds the latest value.
+         - ATTRIBUTE_WRITE_MODE_SET_ONCE: Keep the first value, for first-touch facts.
+      enum:
+      - ATTRIBUTE_WRITE_MODE_UNSPECIFIED
+      - ATTRIBUTE_WRITE_MODE_SET
+      - ATTRIBUTE_WRITE_MODE_SET_ONCE
+      type: string
     AutoLayoutWorkflowResponse:
       example:
         stepsRepositioned: 0
@@ -7074,15 +7143,8 @@ components:
     CreateLinkResponse:
       example:
         workflowSteps:
-        - createdAt: 2000-01-23T04:56:07.000+00:00
-          linkId: 123e4567-e89b-12d3-a456-426614174000
-          payload: ""
-          kind: KIND_INTERACTION
+        - kind: KIND_INTERACTION
           canvasPosition: ""
-          childStepIds:
-          - childStepIds
-          - childStepIds
-          id: a5f7b184-9d74-4f2a-9ed9-8f6a98cb12f4
           branches:
           - branchId: branchId
             nextStepId: nextStepId
@@ -7091,20 +7153,21 @@ components:
             nextStepId: nextStepId
             label: label
           nodeType: NODE_TYPE_COMPOSITE
+          eventAction: EVENT_ACTION_CLIENT_REDIRECT
+          attributeCapture: ""
+          createdAt: 2000-01-23T04:56:07.000+00:00
+          linkId: 123e4567-e89b-12d3-a456-426614174000
+          payload: ""
+          childStepIds:
+          - childStepIds
+          - childStepIds
+          id: a5f7b184-9d74-4f2a-9ed9-8f6a98cb12f4
           parentStepIds:
           - parentStepIds
           - parentStepIds
-          eventAction: EVENT_ACTION_CLIENT_REDIRECT
           updatedAt: 2000-01-23T04:56:07.000+00:00
-        - createdAt: 2000-01-23T04:56:07.000+00:00
-          linkId: 123e4567-e89b-12d3-a456-426614174000
-          payload: ""
-          kind: KIND_INTERACTION
+        - kind: KIND_INTERACTION
           canvasPosition: ""
-          childStepIds:
-          - childStepIds
-          - childStepIds
-          id: a5f7b184-9d74-4f2a-9ed9-8f6a98cb12f4
           branches:
           - branchId: branchId
             nextStepId: nextStepId
@@ -7113,10 +7176,18 @@ components:
             nextStepId: nextStepId
             label: label
           nodeType: NODE_TYPE_COMPOSITE
+          eventAction: EVENT_ACTION_CLIENT_REDIRECT
+          attributeCapture: ""
+          createdAt: 2000-01-23T04:56:07.000+00:00
+          linkId: 123e4567-e89b-12d3-a456-426614174000
+          payload: ""
+          childStepIds:
+          - childStepIds
+          - childStepIds
+          id: a5f7b184-9d74-4f2a-9ed9-8f6a98cb12f4
           parentStepIds:
           - parentStepIds
           - parentStepIds
-          eventAction: EVENT_ACTION_CLIENT_REDIRECT
           updatedAt: 2000-01-23T04:56:07.000+00:00
         link:
           qrcodeDesignId: a8c5e111-8894-4f8a-b5db-9efe0d12a210
@@ -7532,15 +7603,8 @@ components:
     CreateWorkflowStepResponse:
       example:
         workflowStep:
-          createdAt: 2000-01-23T04:56:07.000+00:00
-          linkId: 123e4567-e89b-12d3-a456-426614174000
-          payload: ""
           kind: KIND_INTERACTION
           canvasPosition: ""
-          childStepIds:
-          - childStepIds
-          - childStepIds
-          id: a5f7b184-9d74-4f2a-9ed9-8f6a98cb12f4
           branches:
           - branchId: branchId
             nextStepId: nextStepId
@@ -7549,10 +7613,18 @@ components:
             nextStepId: nextStepId
             label: label
           nodeType: NODE_TYPE_COMPOSITE
+          eventAction: EVENT_ACTION_CLIENT_REDIRECT
+          attributeCapture: ""
+          createdAt: 2000-01-23T04:56:07.000+00:00
+          linkId: 123e4567-e89b-12d3-a456-426614174000
+          payload: ""
+          childStepIds:
+          - childStepIds
+          - childStepIds
+          id: a5f7b184-9d74-4f2a-9ed9-8f6a98cb12f4
           parentStepIds:
           - parentStepIds
           - parentStepIds
-          eventAction: EVENT_ACTION_CLIENT_REDIRECT
           updatedAt: 2000-01-23T04:56:07.000+00:00
       properties:
         workflowStep:
@@ -8941,6 +9013,8 @@ components:
           stepKind: INTERACTION
           completedAt: 2000-01-23T04:56:07.000+00:00
           linkId: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
+          savedAttributes:
+            key: savedAttributes
           stepAction: contact_form
           stepData: ""
           id: 2a7b8c9d-1e2f-4a5b-9c8d-7e6f5a4b3c2d
@@ -8952,6 +9026,8 @@ components:
           stepKind: INTERACTION
           completedAt: 2000-01-23T04:56:07.000+00:00
           linkId: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
+          savedAttributes:
+            key: savedAttributes
           stepAction: contact_form
           stepData: ""
           id: 2a7b8c9d-1e2f-4a5b-9c8d-7e6f5a4b3c2d
@@ -9268,6 +9344,8 @@ components:
         stepKind: INTERACTION
         completedAt: 2000-01-23T04:56:07.000+00:00
         linkId: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
+        savedAttributes:
+          key: savedAttributes
         stepAction: contact_form
         stepData: ""
         id: 2a7b8c9d-1e2f-4a5b-9c8d-7e6f5a4b3c2d
@@ -9295,6 +9373,12 @@ components:
           example: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
           title: Link associated with this trace (UUID)
           type: string
+        savedAttributes:
+          additionalProperties:
+            type: string
+          description: |-
+            What this step saved to the visitor's profile, when the step is set to
+            save attributes. Keys are attribute keys, values the text saved.
         stepAction:
           example: contact_form
           title: Workflow step action
@@ -10620,15 +10704,8 @@ components:
     GetWorkflowStepResponse:
       example:
         workflowStep:
-          createdAt: 2000-01-23T04:56:07.000+00:00
-          linkId: 123e4567-e89b-12d3-a456-426614174000
-          payload: ""
           kind: KIND_INTERACTION
           canvasPosition: ""
-          childStepIds:
-          - childStepIds
-          - childStepIds
-          id: a5f7b184-9d74-4f2a-9ed9-8f6a98cb12f4
           branches:
           - branchId: branchId
             nextStepId: nextStepId
@@ -10637,10 +10714,18 @@ components:
             nextStepId: nextStepId
             label: label
           nodeType: NODE_TYPE_COMPOSITE
+          eventAction: EVENT_ACTION_CLIENT_REDIRECT
+          attributeCapture: ""
+          createdAt: 2000-01-23T04:56:07.000+00:00
+          linkId: 123e4567-e89b-12d3-a456-426614174000
+          payload: ""
+          childStepIds:
+          - childStepIds
+          - childStepIds
+          id: a5f7b184-9d74-4f2a-9ed9-8f6a98cb12f4
           parentStepIds:
           - parentStepIds
           - parentStepIds
-          eventAction: EVENT_ACTION_CLIENT_REDIRECT
           updatedAt: 2000-01-23T04:56:07.000+00:00
       properties:
         workflowStep:
@@ -11512,6 +11597,8 @@ components:
           stepKind: INTERACTION
           completedAt: 2000-01-23T04:56:07.000+00:00
           linkId: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
+          savedAttributes:
+            key: savedAttributes
           stepAction: contact_form
           stepData: ""
           id: 2a7b8c9d-1e2f-4a5b-9c8d-7e6f5a4b3c2d
@@ -11523,6 +11610,8 @@ components:
           stepKind: INTERACTION
           completedAt: 2000-01-23T04:56:07.000+00:00
           linkId: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
+          savedAttributes:
+            key: savedAttributes
           stepAction: contact_form
           stepData: ""
           id: 2a7b8c9d-1e2f-4a5b-9c8d-7e6f5a4b3c2d
@@ -11581,6 +11670,8 @@ components:
             stepKind: INTERACTION
             completedAt: 2000-01-23T04:56:07.000+00:00
             linkId: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
+            savedAttributes:
+              key: savedAttributes
             stepAction: contact_form
             stepData: ""
             id: 2a7b8c9d-1e2f-4a5b-9c8d-7e6f5a4b3c2d
@@ -11592,6 +11683,8 @@ components:
             stepKind: INTERACTION
             completedAt: 2000-01-23T04:56:07.000+00:00
             linkId: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
+            savedAttributes:
+              key: savedAttributes
             stepAction: contact_form
             stepData: ""
             id: 2a7b8c9d-1e2f-4a5b-9c8d-7e6f5a4b3c2d
@@ -11761,6 +11854,8 @@ components:
             stepKind: INTERACTION
             completedAt: 2000-01-23T04:56:07.000+00:00
             linkId: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
+            savedAttributes:
+              key: savedAttributes
             stepAction: contact_form
             stepData: ""
             id: 2a7b8c9d-1e2f-4a5b-9c8d-7e6f5a4b3c2d
@@ -11772,6 +11867,8 @@ components:
             stepKind: INTERACTION
             completedAt: 2000-01-23T04:56:07.000+00:00
             linkId: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
+            savedAttributes:
+              key: savedAttributes
             stepAction: contact_form
             stepData: ""
             id: 2a7b8c9d-1e2f-4a5b-9c8d-7e6f5a4b3c2d
@@ -11974,6 +12071,8 @@ components:
               stepKind: INTERACTION
               completedAt: 2000-01-23T04:56:07.000+00:00
               linkId: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
+              savedAttributes:
+                key: savedAttributes
               stepAction: contact_form
               stepData: ""
               id: 2a7b8c9d-1e2f-4a5b-9c8d-7e6f5a4b3c2d
@@ -11985,6 +12084,8 @@ components:
               stepKind: INTERACTION
               completedAt: 2000-01-23T04:56:07.000+00:00
               linkId: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
+              savedAttributes:
+                key: savedAttributes
               stepAction: contact_form
               stepData: ""
               id: 2a7b8c9d-1e2f-4a5b-9c8d-7e6f5a4b3c2d
@@ -12156,6 +12257,8 @@ components:
               stepKind: INTERACTION
               completedAt: 2000-01-23T04:56:07.000+00:00
               linkId: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
+              savedAttributes:
+                key: savedAttributes
               stepAction: contact_form
               stepData: ""
               id: 2a7b8c9d-1e2f-4a5b-9c8d-7e6f5a4b3c2d
@@ -12167,6 +12270,8 @@ components:
               stepKind: INTERACTION
               completedAt: 2000-01-23T04:56:07.000+00:00
               linkId: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
+              savedAttributes:
+                key: savedAttributes
               stepAction: contact_form
               stepData: ""
               id: 2a7b8c9d-1e2f-4a5b-9c8d-7e6f5a4b3c2d
@@ -13039,15 +13144,8 @@ components:
     ListWorkflowStepsResponse:
       example:
         workflowSteps:
-        - createdAt: 2000-01-23T04:56:07.000+00:00
-          linkId: 123e4567-e89b-12d3-a456-426614174000
-          payload: ""
-          kind: KIND_INTERACTION
+        - kind: KIND_INTERACTION
           canvasPosition: ""
-          childStepIds:
-          - childStepIds
-          - childStepIds
-          id: a5f7b184-9d74-4f2a-9ed9-8f6a98cb12f4
           branches:
           - branchId: branchId
             nextStepId: nextStepId
@@ -13056,20 +13154,21 @@ components:
             nextStepId: nextStepId
             label: label
           nodeType: NODE_TYPE_COMPOSITE
+          eventAction: EVENT_ACTION_CLIENT_REDIRECT
+          attributeCapture: ""
+          createdAt: 2000-01-23T04:56:07.000+00:00
+          linkId: 123e4567-e89b-12d3-a456-426614174000
+          payload: ""
+          childStepIds:
+          - childStepIds
+          - childStepIds
+          id: a5f7b184-9d74-4f2a-9ed9-8f6a98cb12f4
           parentStepIds:
           - parentStepIds
           - parentStepIds
-          eventAction: EVENT_ACTION_CLIENT_REDIRECT
           updatedAt: 2000-01-23T04:56:07.000+00:00
-        - createdAt: 2000-01-23T04:56:07.000+00:00
-          linkId: 123e4567-e89b-12d3-a456-426614174000
-          payload: ""
-          kind: KIND_INTERACTION
+        - kind: KIND_INTERACTION
           canvasPosition: ""
-          childStepIds:
-          - childStepIds
-          - childStepIds
-          id: a5f7b184-9d74-4f2a-9ed9-8f6a98cb12f4
           branches:
           - branchId: branchId
             nextStepId: nextStepId
@@ -13078,10 +13177,18 @@ components:
             nextStepId: nextStepId
             label: label
           nodeType: NODE_TYPE_COMPOSITE
+          eventAction: EVENT_ACTION_CLIENT_REDIRECT
+          attributeCapture: ""
+          createdAt: 2000-01-23T04:56:07.000+00:00
+          linkId: 123e4567-e89b-12d3-a456-426614174000
+          payload: ""
+          childStepIds:
+          - childStepIds
+          - childStepIds
+          id: a5f7b184-9d74-4f2a-9ed9-8f6a98cb12f4
           parentStepIds:
           - parentStepIds
           - parentStepIds
-          eventAction: EVENT_ACTION_CLIENT_REDIRECT
           updatedAt: 2000-01-23T04:56:07.000+00:00
         nextPageToken: eyJzdGVwSWQiOiI5ODcifQ==
         totalCount: totalCount
@@ -16142,15 +16249,8 @@ components:
     UpdateWorkflowStepResponse:
       example:
         workflowStep:
-          createdAt: 2000-01-23T04:56:07.000+00:00
-          linkId: 123e4567-e89b-12d3-a456-426614174000
-          payload: ""
           kind: KIND_INTERACTION
           canvasPosition: ""
-          childStepIds:
-          - childStepIds
-          - childStepIds
-          id: a5f7b184-9d74-4f2a-9ed9-8f6a98cb12f4
           branches:
           - branchId: branchId
             nextStepId: nextStepId
@@ -16159,10 +16259,18 @@ components:
             nextStepId: nextStepId
             label: label
           nodeType: NODE_TYPE_COMPOSITE
+          eventAction: EVENT_ACTION_CLIENT_REDIRECT
+          attributeCapture: ""
+          createdAt: 2000-01-23T04:56:07.000+00:00
+          linkId: 123e4567-e89b-12d3-a456-426614174000
+          payload: ""
+          childStepIds:
+          - childStepIds
+          - childStepIds
+          id: a5f7b184-9d74-4f2a-9ed9-8f6a98cb12f4
           parentStepIds:
           - parentStepIds
           - parentStepIds
-          eventAction: EVENT_ACTION_CLIENT_REDIRECT
           updatedAt: 2000-01-23T04:56:07.000+00:00
       properties:
         workflowStep:
@@ -17441,15 +17549,8 @@ components:
         Models a node in the Linkbreakers workflow canvas, defining what should occur after a scan (redirects, gates,
         forms) and how it connects to other steps in the visitor journey.
       example:
-        createdAt: 2000-01-23T04:56:07.000+00:00
-        linkId: 123e4567-e89b-12d3-a456-426614174000
-        payload: ""
         kind: KIND_INTERACTION
         canvasPosition: ""
-        childStepIds:
-        - childStepIds
-        - childStepIds
-        id: a5f7b184-9d74-4f2a-9ed9-8f6a98cb12f4
         branches:
         - branchId: branchId
           nextStepId: nextStepId
@@ -17458,15 +17559,29 @@ components:
           nextStepId: nextStepId
           label: label
         nodeType: NODE_TYPE_COMPOSITE
+        eventAction: EVENT_ACTION_CLIENT_REDIRECT
+        attributeCapture: ""
+        createdAt: 2000-01-23T04:56:07.000+00:00
+        linkId: 123e4567-e89b-12d3-a456-426614174000
+        payload: ""
+        childStepIds:
+        - childStepIds
+        - childStepIds
+        id: a5f7b184-9d74-4f2a-9ed9-8f6a98cb12f4
         parentStepIds:
         - parentStepIds
         - parentStepIds
-        eventAction: EVENT_ACTION_CLIENT_REDIRECT
         updatedAt: 2000-01-23T04:56:07.000+00:00
       externalDocs:
         description: Learn more about workflows in Linkbreakers
         url: https://linkbreakers.com/help/article/whats-a-workflow
       properties:
+        attributeCapture:
+          allOf:
+          - $ref: "#/components/schemas/AttributeCapture"
+          description: |-
+            What this step saves to the visitor's profile when a visitor goes through
+            it. Absent when the step has never been configured to save anything.
         branches:
           description: |-
             Every exit of this step, with its current destination.
@@ -17759,7 +17874,12 @@ components:
         canvasPosition: ""
         id: 987fcdeb-a321-45e6-b789-123456789012
         eventAction: EVENT_ACTION_FORM_SUBMIT
+        attributeCapture: ""
       properties:
+        attributeCapture:
+          allOf:
+          - $ref: "#/components/schemas/AttributeCapture"
+          description: What the step saves to the visitor's profile (optional).
         canvasPosition:
           allOf:
           - $ref: "#/components/schemas/CanvasPosition"
@@ -17840,7 +17960,14 @@ components:
       example:
         payload: ""
         canvasPosition: ""
+        attributeCapture: ""
       properties:
+        attributeCapture:
+          allOf:
+          - $ref: "#/components/schemas/AttributeCapture"
+          description: |-
+            Replaces what the step saves to the visitor's profile (optional). Send
+            the whole capture: setting enabled to false keeps the writes you send.
         canvasPosition:
           allOf:
           - $ref: "#/components/schemas/CanvasPosition"
