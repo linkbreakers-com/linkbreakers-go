@@ -260,6 +260,7 @@ model_list_tags_response.go
 model_list_visitor_attribute_keys_response.go
 model_list_visitors_csv_response.go
 model_list_visitors_json_response.go
+model_list_visitors_request.go
 model_list_visitors_response.go
 model_list_webhooks_response.go
 model_list_workflow_steps_response.go
@@ -403,6 +404,9 @@ model_visit_type_condition_trace_data.go
 model_visit_type_condition_trace_option.go
 model_visitor.go
 model_visitor_attribute.go
+model_visitor_attribute_filter.go
+model_visitor_attribute_filter_operator.go
+model_visitor_attribute_key.go
 model_visitor_attribute_type.go
 model_visitor_data_condition_option.go
 model_visitor_data_condition_payload.go

@@ -5,7 +5,7 @@ info:
     url: https://app.linkbreakers.com
   description: This is a documentation of all the APIs of Linkbreakers
   title: Linkbreakers API
-  version: 1.132.2
+  version: 1.132.3
 servers:
 - url: https://api.linkbreakers.com
 security:
@@ -4824,7 +4824,8 @@ paths:
   /v1/visitors:
     get:
       description: "Returns a paginated collection of visitors with optional filters,\
-        \ includes, and CSV export."
+        \ includes, and CSV export. To filter on visitor attributes, use POST /v1/visitors/search,\
+        \ which takes the same parameters as a JSON body."
       operationId: VisitorsService_List
       parameters:
       - description: "Maximum number of visitors to return (default 50, max 200)"
@@ -4966,6 +4967,36 @@ paths:
       security:
       - bearerAuth: []
       summary: List visitor attribute keys
+      tags:
+      - Visitors
+  /v1/visitors/search:
+    post:
+      description: "Same as List visitors, with the parameters sent as a JSON body\
+        \ so they can include attributeFilters. Every filter must match, for example\
+        \ budget at least 800000 and timeline equal to under_6_months."
+      operationId: VisitorsService_Search
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ListVisitorsRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListVisitorsResponse"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth: []
+      summary: Search visitors
       tags:
       - Visitors
   /v1/visitors/{id}:
@@ -12781,6 +12812,11 @@ components:
       title: ListTagsResponse represents the response containing a list of tags
     ListVisitorAttributeKeysResponse:
       example:
+        attributes:
+        - type: VISITOR_ATTRIBUTE_TYPE_UNSPECIFIED
+          key: budget
+        - type: VISITOR_ATTRIBUTE_TYPE_UNSPECIFIED
+          key: budget
         attributeKeys:
         - $email
         - $phone
@@ -12801,6 +12837,13 @@ components:
           - plan
           items:
             type: string
+          type: array
+        attributes:
+          description: |-
+            The same keys with the type their values were captured as, so a client can
+            offer the filter operators that fit each one.
+          items:
+            $ref: "#/components/schemas/VisitorAttributeKey"
           type: array
     ListVisitorsCsvResponse:
       description: ListVisitorsCsvResponse carries the raw CSV when ResponseFormat
@@ -12831,6 +12874,97 @@ components:
           items:
             $ref: "#/components/schemas/Visitor"
           type: array
+    ListVisitorsRequest:
+      description: "ListVisitorsRequest controls pagination, search, and export format\
+        \ for visitor roster views."
+      example:
+        include:
+        - devices
+        - events
+        - links
+        search: search
+        sortDirection: SORT_DIRECTION_DESC
+        linkId: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
+        sortField: VISITOR_SORT_FIELD_VISIT_COUNT
+        pageSize: 0
+        attributeFilters:
+        - value: "800000"
+          key: budget
+          operator: VISITOR_ATTRIBUTE_FILTER_OPERATOR_NUMBER_GREATER_OR_EQUAL
+        - value: "800000"
+          key: budget
+          operator: VISITOR_ATTRIBUTE_FILTER_OPERATOR_NUMBER_GREATER_OR_EQUAL
+        responseFormat: RESPONSE_FORMAT_JSON
+        pageToken: pageToken
+        email: email
+      properties:
+        attributeFilters:
+          description: |-
+            Only return visitors matching every filter, for example budget >= 800000
+            and timeline = "under_6_months". At most 20. Over REST, use
+            POST /v1/visitors/search: a query string cannot carry them.
+          items:
+            $ref: "#/components/schemas/VisitorAttributeFilter"
+          type: array
+        email:
+          title: optional exact match filter
+          type: string
+        include:
+          example:
+          - devices
+          - events
+          - links
+          items:
+            type: string
+          type: array
+        linkId:
+          example: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
+          title: optional filter by link ID (UUID; visitors who have interacted with
+            this link)
+          type: string
+        pageSize:
+          format: int64
+          title: "Maximum number of visitors to return (default 50, max 200)"
+          type: integer
+        pageToken:
+          title: Cursor token to retrieve the next page of results
+          type: string
+        responseFormat:
+          default: RESPONSE_FORMAT_JSON
+          description: |-
+            ResponseFormat defines the transport format the API should return for list-style endpoints.
+
+             - RESPONSE_FORMAT_UNSPECIFIED: Response format not specified
+             - RESPONSE_FORMAT_JSON: Response format JSON
+             - RESPONSE_FORMAT_CSV: Response format CSV
+          enum:
+          - RESPONSE_FORMAT_UNSPECIFIED
+          - RESPONSE_FORMAT_JSON
+          - RESPONSE_FORMAT_CSV
+          example: RESPONSE_FORMAT_JSON
+          type: string
+        search:
+          title: optional fuzzy search across known fields
+          type: string
+        sortDirection:
+          description: |-
+            SortDirection is the ordering applied to any sortable list endpoint.
+            Shared across resources so a caller learns it once.
+
+             - SORT_DIRECTION_UNSPECIFIED: Sort direction not specified (defaults to descending)
+             - SORT_DIRECTION_ASC: Sort in ascending order
+             - SORT_DIRECTION_DESC: Sort in descending order
+          enum:
+          - SORT_DIRECTION_UNSPECIFIED
+          - SORT_DIRECTION_ASC
+          - SORT_DIRECTION_DESC
+          example: SORT_DIRECTION_DESC
+          type: string
+        sortField:
+          allOf:
+          - $ref: "#/components/schemas/VisitorSortField"
+          description: Field to sort by. Defaults to created_at (newest first).
+          example: VISITOR_SORT_FIELD_VISIT_COUNT
     ListVisitorsResponse:
       example:
         csv: ""
@@ -16630,6 +16764,121 @@ components:
           description: "The raw value as captured. Always populated, whatever the\
             \ type."
           example: "8"
+          type: string
+    VisitorAttributeFilter:
+      description: |-
+        VisitorAttributeFilter narrows a visitor list to visitors whose attribute
+        matches. Several filters are combined with AND.
+      example:
+        value: "800000"
+        key: budget
+        operator: VISITOR_ATTRIBUTE_FILTER_OPERATOR_NUMBER_GREATER_OR_EQUAL
+      properties:
+        key:
+          description: |-
+            Attribute key, for example "budget". Reserved fields ($email, $phone,
+            $firstName, $lastName) can be filtered with the STRING_*, EXISTS and
+            NOT_EXISTS operators.
+          example: budget
+          type: string
+        operator:
+          allOf:
+          - $ref: "#/components/schemas/VisitorAttributeFilterOperator"
+          example: VISITOR_ATTRIBUTE_FILTER_OPERATOR_NUMBER_GREATER_OR_EQUAL
+          title: How the attribute is compared with value
+        value:
+          description: |-
+            Value to compare with: a number for NUMBER_* operators, a date such as
+            2026-03-01 or an RFC 3339 timestamp for DATE_* operators. Ignored by
+            operators that need no value.
+          example: "800000"
+          type: string
+    VisitorAttributeFilterOperator:
+      default: VISITOR_ATTRIBUTE_FILTER_OPERATOR_UNSPECIFIED
+      description: |-
+        How an attribute filter compares a visitor's attribute with its value. The
+        operators are the ones a VISITOR_DATA_CONDITION workflow step uses, so a
+        filter and a condition written the same way select the same visitors.
+
+        STRING_* operators compare the raw value and are case-sensitive. An absent
+        attribute reads as an empty string, so STRING_NOT_EQUALS, STRING_NOT_CONTAINS
+        and STRING_IS_EMPTY also match visitors who do not have the attribute.
+        NUMBER_* and DATE_* operators only match values captured as a number or a
+        date. BOOLEAN_IS_FALSE matches anything that is not true, including an absent
+        attribute.
+
+         - VISITOR_ATTRIBUTE_FILTER_OPERATOR_STRING_EQUALS: The attribute equals the value
+         - VISITOR_ATTRIBUTE_FILTER_OPERATOR_STRING_NOT_EQUALS: The attribute differs from the value, or is absent
+         - VISITOR_ATTRIBUTE_FILTER_OPERATOR_STRING_CONTAINS: The attribute contains the value
+         - VISITOR_ATTRIBUTE_FILTER_OPERATOR_STRING_NOT_CONTAINS: The attribute does not contain the value, or is absent
+         - VISITOR_ATTRIBUTE_FILTER_OPERATOR_STRING_STARTS_WITH: The attribute starts with the value
+         - VISITOR_ATTRIBUTE_FILTER_OPERATOR_STRING_ENDS_WITH: The attribute ends with the value
+         - VISITOR_ATTRIBUTE_FILTER_OPERATOR_STRING_IS_EMPTY: The attribute is empty or absent. No value needed.
+         - VISITOR_ATTRIBUTE_FILTER_OPERATOR_STRING_IS_NOT_EMPTY: The attribute is set to a non-empty value. No value needed.
+         - VISITOR_ATTRIBUTE_FILTER_OPERATOR_NUMBER_EQUALS: The number equals the value
+         - VISITOR_ATTRIBUTE_FILTER_OPERATOR_NUMBER_NOT_EQUALS: The number differs from the value
+         - VISITOR_ATTRIBUTE_FILTER_OPERATOR_NUMBER_GREATER_THAN: The number is greater than the value
+         - VISITOR_ATTRIBUTE_FILTER_OPERATOR_NUMBER_LESS_THAN: The number is less than the value
+         - VISITOR_ATTRIBUTE_FILTER_OPERATOR_NUMBER_GREATER_OR_EQUAL: The number is greater than or equal to the value
+         - VISITOR_ATTRIBUTE_FILTER_OPERATOR_NUMBER_LESS_OR_EQUAL: The number is less than or equal to the value
+         - VISITOR_ATTRIBUTE_FILTER_OPERATOR_DATE_EQUALS: The date equals the value
+         - VISITOR_ATTRIBUTE_FILTER_OPERATOR_DATE_BEFORE: The date is before the value
+         - VISITOR_ATTRIBUTE_FILTER_OPERATOR_DATE_AFTER: The date is after the value
+         - VISITOR_ATTRIBUTE_FILTER_OPERATOR_DATE_BEFORE_OR_EQUAL: The date is on or before the value
+         - VISITOR_ATTRIBUTE_FILTER_OPERATOR_DATE_AFTER_OR_EQUAL: The date is on or after the value
+         - VISITOR_ATTRIBUTE_FILTER_OPERATOR_BOOLEAN_IS_TRUE: The attribute is true. No value needed.
+         - VISITOR_ATTRIBUTE_FILTER_OPERATOR_BOOLEAN_IS_FALSE: The attribute is not true, including absent. No value needed.
+         - VISITOR_ATTRIBUTE_FILTER_OPERATOR_EXISTS: The visitor has the attribute, whatever its value. No value needed.
+         - VISITOR_ATTRIBUTE_FILTER_OPERATOR_NOT_EXISTS: The visitor does not have the attribute. No value needed.
+      enum:
+      - VISITOR_ATTRIBUTE_FILTER_OPERATOR_UNSPECIFIED
+      - VISITOR_ATTRIBUTE_FILTER_OPERATOR_STRING_EQUALS
+      - VISITOR_ATTRIBUTE_FILTER_OPERATOR_STRING_NOT_EQUALS
+      - VISITOR_ATTRIBUTE_FILTER_OPERATOR_STRING_CONTAINS
+      - VISITOR_ATTRIBUTE_FILTER_OPERATOR_STRING_NOT_CONTAINS
+      - VISITOR_ATTRIBUTE_FILTER_OPERATOR_STRING_STARTS_WITH
+      - VISITOR_ATTRIBUTE_FILTER_OPERATOR_STRING_ENDS_WITH
+      - VISITOR_ATTRIBUTE_FILTER_OPERATOR_STRING_IS_EMPTY
+      - VISITOR_ATTRIBUTE_FILTER_OPERATOR_STRING_IS_NOT_EMPTY
+      - VISITOR_ATTRIBUTE_FILTER_OPERATOR_NUMBER_EQUALS
+      - VISITOR_ATTRIBUTE_FILTER_OPERATOR_NUMBER_NOT_EQUALS
+      - VISITOR_ATTRIBUTE_FILTER_OPERATOR_NUMBER_GREATER_THAN
+      - VISITOR_ATTRIBUTE_FILTER_OPERATOR_NUMBER_LESS_THAN
+      - VISITOR_ATTRIBUTE_FILTER_OPERATOR_NUMBER_GREATER_OR_EQUAL
+      - VISITOR_ATTRIBUTE_FILTER_OPERATOR_NUMBER_LESS_OR_EQUAL
+      - VISITOR_ATTRIBUTE_FILTER_OPERATOR_DATE_EQUALS
+      - VISITOR_ATTRIBUTE_FILTER_OPERATOR_DATE_BEFORE
+      - VISITOR_ATTRIBUTE_FILTER_OPERATOR_DATE_AFTER
+      - VISITOR_ATTRIBUTE_FILTER_OPERATOR_DATE_BEFORE_OR_EQUAL
+      - VISITOR_ATTRIBUTE_FILTER_OPERATOR_DATE_AFTER_OR_EQUAL
+      - VISITOR_ATTRIBUTE_FILTER_OPERATOR_BOOLEAN_IS_TRUE
+      - VISITOR_ATTRIBUTE_FILTER_OPERATOR_BOOLEAN_IS_FALSE
+      - VISITOR_ATTRIBUTE_FILTER_OPERATOR_EXISTS
+      - VISITOR_ATTRIBUTE_FILTER_OPERATOR_NOT_EXISTS
+      type: string
+    VisitorAttributeKey:
+      description: VisitorAttributeKey is one attribute key seen in the workspace.
+      example:
+        type: VISITOR_ATTRIBUTE_TYPE_UNSPECIFIED
+        key: budget
+      properties:
+        key:
+          example: budget
+          title: "Attribute key, for example \"budget\" or \"$email\""
+          type: string
+        type:
+          description: |-
+            VisitorAttributeType is what a value was captured as. It decides how the
+            value is parsed and which analytics the key can support, which the value
+            alone cannot tell you: "8" from a rating field and "8" typed into a text box
+            are different facts.
+          enum:
+          - VISITOR_ATTRIBUTE_TYPE_UNSPECIFIED
+          - VISITOR_ATTRIBUTE_TYPE_STRING
+          - VISITOR_ATTRIBUTE_TYPE_NUMBER
+          - VISITOR_ATTRIBUTE_TYPE_BOOLEAN
+          - VISITOR_ATTRIBUTE_TYPE_DATE
+          - VISITOR_ATTRIBUTE_TYPE_ENUM
           type: string
     VisitorAttributeType:
       default: VISITOR_ATTRIBUTE_TYPE_UNSPECIFIED
