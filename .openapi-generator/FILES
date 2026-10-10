@@ -4,6 +4,7 @@ README.md
 api/openapi.yaml
 api_analytics_dashboard.go
 api_analytics_data.go
+api_api_scopes.go
 api_assistant.go
 api_custom_domains.go
 api_directories.go
@@ -16,6 +17,7 @@ api_media.go
 api_members.go
 api_page_theme_templates.go
 api_page_themes.go
+api_pricing.go
 api_qr_code_designs.go
 api_qr_code_templates.go
 api_slack_integrations.go
@@ -37,6 +39,9 @@ model_analytics_dashboard.go
 model_analytics_dashboard_service_generate_widget_summary_body.go
 model_analytics_dashboard_service_update_dashboard_body.go
 model_analytics_widget_result.go
+model_api_scope.go
+model_api_scope_access.go
+model_api_scope_info.go
 model_api_tag.go
 model_apply_page_theme_template_request.go
 model_apply_page_theme_template_response.go
@@ -57,6 +62,7 @@ model_attribute_write.go
 model_attribute_write_mode.go
 model_auto_layout_workflow_response.go
 model_background_options.go
+model_billing_interval.go
 model_breakdown_data_point.go
 model_canvas_position.go
 model_chat_display_message.go
@@ -106,6 +112,7 @@ model_create_webhook_response.go
 model_create_workflow_step_response.go
 model_create_workspace_token_request.go
 model_create_workspace_token_response.go
+model_credit_topup.go
 model_custom_domain.go
 model_custom_domain_dns_record.go
 model_custom_domain_one_click_setup.go
@@ -250,6 +257,7 @@ model_link_setting.go
 model_link_sort_field.go
 model_link_view.go
 model_links_service_update_body.go
+model_list_api_scopes_response.go
 model_list_custom_domains_response.go
 model_list_dashboards_response.go
 model_list_detected_google_forms_response.go
@@ -262,6 +270,7 @@ model_list_links_response.go
 model_list_media_response.go
 model_list_page_theme_templates_response.go
 model_list_page_themes_response.go
+model_list_pricing_plans_response.go
 model_list_qrcode_templates_response.go
 model_list_response.go
 model_list_slack_channels_response.go
@@ -282,6 +291,9 @@ model_member.go
 model_members_service_update_body.go
 model_message_page_navigation_type.go
 model_message_page_payload.go
+model_metered_price.go
+model_metered_unit.go
+model_money.go
 model_multi_link_button.go
 model_multi_link_payload.go
 model_multi_link_trace_button.go
@@ -303,7 +315,14 @@ model_page_theme_templates_service_update_page_theme_template_styling_body.go
 model_page_themes_service_update_page_theme_body.go
 model_password_payload.go
 model_password_trace_data.go
+model_plan_feature.go
+model_plan_limit.go
+model_plan_limit_key.go
+model_plan_limit_kind.go
+model_plan_price.go
 model_preferred_link_type.go
+model_pricing_plan.go
+model_pricing_plan_id.go
 model_protobuf_any.go
 model_protobuf_null_value.go
 model_public_create_qrcode_design_request.go
@@ -398,6 +417,7 @@ model_update_workflow_step_response.go
 model_update_workspace_origin_inquiry_request.go
 model_update_workspace_origin_purpose_request.go
 model_update_workspace_request.go
+model_update_workspace_token_response.go
 model_v_card_data.go
 model_v_card_payload.go
 model_v_card_social_link.go
@@ -453,5 +473,6 @@ model_workspace_insight.go
 model_workspace_metric.go
 model_workspace_token.go
 model_workspace_token_key_type.go
+model_workspace_tokens_service_update_body.go
 response.go
 utils.go

@@ -5,7 +5,7 @@ info:
     url: https://app.linkbreakers.com
   description: This is a documentation of all the APIs of Linkbreakers
   title: Linkbreakers API
-  version: 1.144.0
+  version: 1.146.0
 servers:
 - url: https://api.linkbreakers.com
 security:
@@ -17,6 +17,9 @@ tags:
 - description: "Endpoints for retrieving aggregated analytics data for dashboard widgets\
     \ including geographic breakdown, device distribution, and visitor trends."
   name: Analytics Data
+- description: "The permissions an API token or OAuth grant can hold. Every authenticated\
+    \ endpoint requires exactly one scope, declared on the operation."
+  name: API Scopes
 - description: Context-aware assistant that delegates to specialized sub-assistants
     based on the resource being edited.
   name: Assistant
@@ -52,6 +55,10 @@ tags:
     \ to create, read, and update themes for canvas, cover, badge, container, typography,\
     \ and interactive elements."
   name: Page Themes
+- description: "Public pricing catalog: the plans, what each costs and what each allows.\
+    \ Prices come from the billing provider and limits from the code that enforces\
+    \ them."
+  name: Pricing
 - description: "Endpoints for managing QR Code Designs in Linkbreakers. These endpoints\
     \ allow you to create, retrieve, update, and delete QR Code Designs."
   name: QR Code Designs
@@ -90,8 +97,10 @@ tags:
 paths:
   /v1/analytics/attributes/distribution:
     post:
-      description: "Returns how visitors are spread across the values of one attribute,\
-        \ for example how many gave each rating."
+      description: |-
+        Returns how visitors are spread across the values of one attribute, for example how many gave each rating.
+
+        Requires the `analytics:read` scope.
       operationId: AnalyticsDataService_GetAttributeDistribution
       requestBody:
         content:
@@ -113,14 +122,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - analytics:read
+      - oauth2:
+        - analytics:read
       summary: Get visitor attribute distribution
       tags:
       - Analytics Data
+      x-required-scope: analytics:read
   /v1/analytics/attributes/metric:
     post:
-      description: "Returns count, average, minimum and maximum for a visitor attribute,\
-        \ plus how much of the audience carries it."
+      description: |-
+        Returns count, average, minimum and maximum for a visitor attribute, plus how much of the audience carries it.
+
+        Requires the `analytics:read` scope.
       operationId: AnalyticsDataService_GetAttributeMetric
       requestBody:
         content:
@@ -142,14 +157,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - analytics:read
+      - oauth2:
+        - analytics:read
       summary: Get visitor attribute metric
       tags:
       - Analytics Data
+      x-required-scope: analytics:read
   /v1/analytics/attributes/values:
     post:
-      description: "Returns the individual recorded values of one attribute, most\
-        \ recent first. Intended for free text such as comments."
+      description: |-
+        Returns the individual recorded values of one attribute, most recent first. Intended for free text such as comments.
+
+        Requires the `analytics:read` scope.
       operationId: AnalyticsDataService_GetAttributeValues
       requestBody:
         content:
@@ -171,14 +192,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - analytics:read
+      - oauth2:
+        - analytics:read
       summary: List visitor attribute values
       tags:
       - Analytics Data
+      x-required-scope: analytics:read
   /v1/analytics/breakdown:
     post:
-      description: "Returns a ranked breakdown of events by any dimension (browser,\
-        \ platform, device type, country, city, visit type)."
+      description: |-
+        Returns a ranked breakdown of events by any dimension (browser, platform, device type, country, city, visit type).
+
+        Requires the `analytics:read` scope.
       operationId: AnalyticsDataService_GetBreakdown
       requestBody:
         content:
@@ -200,12 +227,17 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - analytics:read
+      - oauth2:
+        - analytics:read
       summary: Get dimension breakdown
       tags:
       - Analytics Data
+      x-required-scope: analytics:read
   /v1/analytics/dashboards:
     get:
+      description: Requires the `analytics:read` scope.
       operationId: AnalyticsDashboardService_ListDashboards
       parameters:
       - description: |-
@@ -265,11 +297,16 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - analytics:read
+      - oauth2:
+        - analytics:read
       summary: List analytics dashboards
       tags:
       - Analytics Dashboard
+      x-required-scope: analytics:read
     post:
+      description: Requires the `analytics:write` scope.
       operationId: AnalyticsDashboardService_CreateDashboard
       requestBody:
         content:
@@ -291,14 +328,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - analytics:write
+      - oauth2:
+        - analytics:write
       summary: Create analytics dashboard
       tags:
       - Analytics Dashboard
+      x-required-scope: analytics:write
   /v1/analytics/dashboards/{dashboardId}/widgets/{widgetId}/summary:
     get:
-      description: "Returns the last generated analysis, and whether the underlying\
-        \ values have changed since."
+      description: |-
+        Returns the last generated analysis, and whether the underlying values have changed since.
+
+        Requires the `analytics:read` scope.
       operationId: AnalyticsDashboardService_GetWidgetSummary
       parameters:
       - explode: false
@@ -329,13 +372,19 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - analytics:read
+      - oauth2:
+        - analytics:read
       summary: Get a stored widget assistant summary
       tags:
       - Analytics Dashboard
+      x-required-scope: analytics:read
     post:
-      description: "Analyses the widget's current values and stores the result. Consumes\
-        \ platform credits, so it runs only when requested."
+      description: |-
+        Analyses the widget's current values and stores the result. Consumes platform credits, so it runs only when requested.
+
+        Requires the `analytics:write` scope.
       operationId: AnalyticsDashboardService_GenerateWidgetSummary
       parameters:
       - description: Dashboard holding the widget
@@ -374,13 +423,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - analytics:write
+      - oauth2:
+        - analytics:write
       summary: Generate a widget assistant summary
       tags:
       - Analytics Dashboard
+      x-required-scope: analytics:write
   /v1/analytics/dashboards/{id}:
     delete:
-      description: Delete a dashboard and its associated assistant conversation.
+      description: |-
+        Delete a dashboard and its associated assistant conversation.
+
+        Requires the `analytics:write` scope.
       operationId: AnalyticsDashboardService_DeleteDashboard
       parameters:
       - explode: false
@@ -404,11 +460,16 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - analytics:write
+      - oauth2:
+        - analytics:write
       summary: Delete analytics dashboard
       tags:
       - Analytics Dashboard
+      x-required-scope: analytics:write
     put:
+      description: Requires the `analytics:write` scope.
       operationId: AnalyticsDashboardService_UpdateDashboard
       parameters:
       - description: ID of the dashboard to update.
@@ -439,13 +500,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - analytics:write
+      - oauth2:
+        - analytics:write
       summary: Update analytics dashboard
       tags:
       - Analytics Dashboard
+      x-required-scope: analytics:write
   /v1/analytics/devices:
     post:
-      description: Retrieve event distribution across device types.
+      description: |-
+        Retrieve event distribution across device types.
+
+        Requires the `analytics:read` scope.
       operationId: AnalyticsDataService_GetDeviceDistribution
       requestBody:
         content:
@@ -467,15 +535,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - analytics:read
+      - oauth2:
+        - analytics:read
       summary: Get device distribution
       tags:
       - Analytics Data
+      x-required-scope: analytics:read
   /v1/analytics/funnel:
     post:
-      description: "Returns the workflow steps visitors reached, in distinct visitors,\
-        \ ordered from arrival to exit, with the conversion rate and drop-off at each\
-        \ step."
+      description: |-
+        Returns the workflow steps visitors reached, in distinct visitors, ordered from arrival to exit, with the conversion rate and drop-off at each step.
+
+        Requires the `analytics:read` scope.
       operationId: AnalyticsDataService_GetStepFunnel
       requestBody:
         content:
@@ -497,14 +570,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - analytics:read
+      - oauth2:
+        - analytics:read
       summary: Get workflow step funnel
       tags:
       - Analytics Data
+      x-required-scope: analytics:read
   /v1/analytics/geo:
     post:
-      description: Retrieve geographic distribution of events grouped by country or
-        city.
+      description: |-
+        Retrieve geographic distribution of events grouped by country or city.
+
+        Requires the `analytics:read` scope.
       operationId: AnalyticsDataService_GetGeoBreakdown
       requestBody:
         content:
@@ -526,14 +605,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - analytics:read
+      - oauth2:
+        - analytics:read
       summary: Get geographic breakdown
       tags:
       - Analytics Data
+      x-required-scope: analytics:read
   /v1/analytics/hours:
     post:
-      description: Retrieve event counts aggregated by hour of day for identifying
-        peak activity times.
+      description: |-
+        Retrieve event counts aggregated by hour of day for identifying peak activity times.
+
+        Requires the `analytics:read` scope.
       operationId: AnalyticsDataService_GetHourOfDayDistribution
       requestBody:
         content:
@@ -555,14 +640,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - analytics:read
+      - oauth2:
+        - analytics:read
       summary: Get hour of day distribution
       tags:
       - Analytics Data
+      x-required-scope: analytics:read
   /v1/analytics/timeseries:
     post:
-      description: "Retrieve time-bucketed event counts grouped by a dimension like\
-        \ country, city, device type, or visit type."
+      description: |-
+        Retrieve time-bucketed event counts grouped by a dimension like country, city, device type, or visit type.
+
+        Requires the `analytics:read` scope.
       operationId: AnalyticsDataService_GetGroupedTimeSeries
       requestBody:
         content:
@@ -584,14 +675,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - analytics:read
+      - oauth2:
+        - analytics:read
       summary: Get grouped time series
       tags:
       - Analytics Data
+      x-required-scope: analytics:read
   /v1/analytics/top-links:
     post:
-      description: Retrieve links ranked by event count for identifying best performing
-        QR codes and links.
+      description: |-
+        Retrieve links ranked by event count for identifying best performing QR codes and links.
+
+        Requires the `analytics:read` scope.
       operationId: AnalyticsDataService_GetTopLinks
       requestBody:
         content:
@@ -613,13 +710,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - analytics:read
+      - oauth2:
+        - analytics:read
       summary: Get top performing links
       tags:
       - Analytics Data
+      x-required-scope: analytics:read
   /v1/analytics/visitors:
     post:
-      description: Retrieve new vs returning visitor counts over time.
+      description: |-
+        Retrieve new vs returning visitor counts over time.
+
+        Requires the `analytics:read` scope.
       operationId: AnalyticsDataService_GetVisitorTrends
       requestBody:
         content:
@@ -641,13 +745,42 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - analytics:read
+      - oauth2:
+        - analytics:read
       summary: Get visitor trends
       tags:
       - Analytics Data
+      x-required-scope: analytics:read
+  /v1/api-scopes:
+    get:
+      description: "List every scope an API token or OAuth grant can hold, with the\
+        \ resource it covers and what it allows. Needs no authentication."
+      operationId: WorkspaceTokensService_ListApiScopes
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListApiScopesResponse"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security: []
+      summary: List API scopes
+      tags:
+      - API Scopes
   /v1/assistant/conversation:
     delete:
-      description: Clear the conversation history for a specific context.
+      description: |-
+        Clear the conversation history for a specific context.
+
+        Requires the `assistant:write` scope.
       operationId: AssistantService_ClearConversation
       parameters:
       - description: |2-
@@ -687,12 +820,19 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - assistant:write
+      - oauth2:
+        - assistant:write
       summary: Clear assistant conversation
       tags:
       - Assistant
+      x-required-scope: assistant:write
     get:
-      description: Get the display-ready chat history for a specific context.
+      description: |-
+        Get the display-ready chat history for a specific context.
+
+        Requires the `assistant:read` scope.
       operationId: AssistantService_GetConversation
       parameters:
       - description: |2-
@@ -732,15 +872,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - assistant:read
+      - oauth2:
+        - assistant:read
       summary: Get assistant conversation
       tags:
       - Assistant
+      x-required-scope: assistant:read
   /v1/assistant/conversation/read:
     post:
-      description: "Record that the member has seen every assistant reply in this\
-        \ conversation. Call it when the thread is actually on screen, not when history\
-        \ is fetched."
+      description: |-
+        Record that the member has seen every assistant reply in this conversation. Call it when the thread is actually on screen, not when history is fetched.
+
+        Requires the `assistant:write` scope.
       operationId: AssistantService_MarkConversationRead
       requestBody:
         content:
@@ -762,14 +907,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - assistant:write
+      - oauth2:
+        - assistant:write
       summary: Mark assistant conversation read
       tags:
       - Assistant
+      x-required-scope: assistant:write
   /v1/assistant/upload:
     post:
-      description: Upload a file to attach to the next assistant message. Returns
-        a temporary file ID. Files expire after 5 minutes. Max 20MB.
+      description: |-
+        Upload a file to attach to the next assistant message. Returns a temporary file ID. Files expire after 5 minutes. Max 20MB.
+
+        Requires the `assistant:write` scope.
       operationId: AssistantService_UploadFile
       requestBody:
         content:
@@ -791,13 +942,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - assistant:write
+      - oauth2:
+        - assistant:write
       summary: Upload file for assistant chat
       tags:
       - Assistant
+      x-required-scope: assistant:write
   /v1/custom-domains:
     get:
-      description: Retrieves the custom domains for your workspace
+      description: |-
+        Retrieves the custom domains for your workspace
+
+        Requires the `domains:read` scope.
       operationId: CustomDomainsService_List
       parameters:
       - description: |-
@@ -854,13 +1012,19 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - domains:read
+      - oauth2:
+        - domains:read
       summary: List custom domains
       tags:
       - Custom Domains
+      x-required-scope: domains:read
     post:
-      description: This endpoint allows users to register a new custom domain that
-        can be used with their Linkbreakers workspace.
+      description: |-
+        This endpoint allows users to register a new custom domain that can be used with their Linkbreakers workspace.
+
+        Requires the `domains:write` scope.
       operationId: CustomDomainsService_Create
       requestBody:
         content:
@@ -882,14 +1046,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - domains:write
+      - oauth2:
+        - domains:write
       summary: Create a custom domain
       tags:
       - Custom Domains
+      x-required-scope: domains:write
   /v1/custom-domains/{id}:
     delete:
-      description: Removes a custom domain from the workspace. This operation cannot
-        be undone.
+      description: |-
+        Removes a custom domain from the workspace. This operation cannot be undone.
+
+        Requires the `domains:write` scope.
       operationId: CustomDomainsService_Delete
       parameters:
       - description: The ID of the custom domain to delete (UUID)
@@ -919,13 +1089,19 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - domains:write
+      - oauth2:
+        - domains:write
       summary: Delete a custom domain
       tags:
       - Custom Domains
+      x-required-scope: domains:write
     get:
-      description: Retrieves information about a custom domain including its verification
-        status and timestamps.
+      description: |-
+        Retrieves information about a custom domain including its verification status and timestamps.
+
+        Requires the `domains:read` scope.
       operationId: CustomDomainsService_Get
       parameters:
       - description: The ID of the custom domain to retrieve (UUID)
@@ -950,13 +1126,19 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - domains:read
+      - oauth2:
+        - domains:read
       summary: Get custom domain details
       tags:
       - Custom Domains
+      x-required-scope: domains:read
     patch:
-      description: "Update settings for a custom domain, such as the root destination\
-        \ URL."
+      description: |-
+        Update settings for a custom domain, such as the root destination URL.
+
+        Requires the `domains:write` scope.
       operationId: CustomDomainsService_Update
       parameters:
       - description: The ID of the custom domain to update (UUID)
@@ -987,15 +1169,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - domains:write
+      - oauth2:
+        - domains:write
       summary: Update a custom domain
       tags:
       - Custom Domains
+      x-required-scope: domains:write
   /v1/custom-domains/{id}/check:
     post:
-      description: Check a custom domain by looking up its DNS records and TLS status.
-        This is automatically done when the domain is created. It will update the
-        domain status.
+      description: |-
+        Check a custom domain by looking up its DNS records and TLS status. This is automatically done when the domain is created. It will update the domain status.
+
+        Requires the `domains:write` scope.
       operationId: CustomDomainsService_Check
       parameters:
       - description: The ID of the custom domain to retrieve (UUID)
@@ -1020,10 +1207,14 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - domains:write
+      - oauth2:
+        - domains:write
       summary: Check a custom domain
       tags:
       - Custom Domains
+      x-required-scope: domains:write
   /v1/custom-domains/{id}/setup-guide:
     get:
       description: |-
@@ -1032,6 +1223,8 @@ paths:
         settings, the exact records to add (with the host written the way that
         provider expects it), provider-specific hints, and a one-click setup URL when
         the provider supports Domain Connect for Linkbreakers.
+
+        Requires the `domains:read` scope.
       operationId: CustomDomainsService_GetSetupGuide
       parameters:
       - description: The ID of the custom domain (UUID)
@@ -1056,14 +1249,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - domains:read
+      - oauth2:
+        - domains:read
       summary: Get the setup guide for a custom domain
       tags:
       - Custom Domains
+      x-required-scope: domains:read
   /v1/custom-domains/{id}/validation_instructions:
     get:
-      description: Get the instructions for validating a custom domain. There may
-        be a delay before the instructions are available.
+      description: |-
+        Get the instructions for validating a custom domain. There may be a delay before the instructions are available.
+
+        Requires the `domains:read` scope.
       operationId: CustomDomainsService_ValidationInstructions
       parameters:
       - description: The ID of the custom domain to retrieve (UUID)
@@ -1088,14 +1287,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - domains:read
+      - oauth2:
+        - domains:read
       summary: Get the validation instructions
       tags:
       - Custom Domains
+      x-required-scope: domains:read
   /v1/directories:
     get:
-      description: "List directories in the workspace with optional filtering by parent\
-        \ directory, search, and pagination."
+      description: |-
+        List directories in the workspace with optional filtering by parent directory, search, and pagination.
+
+        Requires the `links:read` scope.
       operationId: DirectoriesService_List
       parameters:
       - description: The maximum number of directories to return
@@ -1175,13 +1380,19 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - links:read
+      - oauth2:
+        - links:read
       summary: List directories
       tags:
       - Directories
+      x-required-scope: links:read
     post:
-      description: Create a new directory in the workspace. Optionally nest it under
-        an existing directory.
+      description: |-
+        Create a new directory in the workspace. Optionally nest it under an existing directory.
+
+        Requires the `links:write` scope.
       operationId: DirectoriesService_Create
       requestBody:
         content:
@@ -1203,15 +1414,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - links:write
+      - oauth2:
+        - links:write
       summary: Create a directory
       tags:
       - Directories
+      x-required-scope: links:write
   /v1/directories/{id}:
     delete:
-      description: Remove a directory from the workspace. This operation cannot be
-        undone. A directory cannot be deleted while it still contains links or child
-        directories; move or remove them first.
+      description: |-
+        Remove a directory from the workspace. This operation cannot be undone. A directory cannot be deleted while it still contains links or child directories; move or remove them first.
+
+        Requires the `links:write` scope.
       operationId: DirectoriesService_Delete
       parameters:
       - description: "The ID of the directory to delete. The directory must be empty\
@@ -1244,12 +1460,19 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - links:write
+      - oauth2:
+        - links:write
       summary: Delete a directory
       tags:
       - Directories
+      x-required-scope: links:write
     get:
-      description: Retrieve a directory by its unique identifier.
+      description: |-
+        Retrieve a directory by its unique identifier.
+
+        Requires the `links:read` scope.
       operationId: DirectoriesService_Get
       parameters:
       - description: The ID of the directory to retrieve (UUID)
@@ -1274,12 +1497,19 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - links:read
+      - oauth2:
+        - links:read
       summary: Get a directory
       tags:
       - Directories
+      x-required-scope: links:read
     patch:
-      description: Update a directory's name or move it under a different parent directory.
+      description: |-
+        Update a directory's name or move it under a different parent directory.
+
+        Requires the `links:write` scope.
       operationId: DirectoriesService_Update
       parameters:
       - description: The ID of the directory to update (UUID)
@@ -1310,16 +1540,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - links:write
+      - oauth2:
+        - links:write
       summary: Update a directory
       tags:
       - Directories
+      x-required-scope: links:write
   /v1/events:
     get:
-      description: "Retrieves the workspace's event timeline, returning paginated\
-        \ JSON by default or CSV payloads for reporting exports. For workspaces on\
-        \ the free plan, events older than 2 weeks are restricted, and for light plan\
-        \ workspaces, events older than 3 months are restricted."
+      description: |-
+        Retrieves the workspace's event timeline, returning paginated JSON by default or CSV payloads for reporting exports. For workspaces on the free plan, events older than 2 weeks are restricted, and for light plan workspaces, events older than 3 months are restricted.
+
+        Requires the `analytics:read` scope.
       operationId: EventsService_ListEvents
       parameters:
       - description: |-
@@ -1428,14 +1662,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - analytics:read
+      - oauth2:
+        - analytics:read
       summary: List events
       tags:
       - Events
+      x-required-scope: analytics:read
   /v1/events/{eventId}/traces:
     get:
-      description: "Retrieves all workflow step traces for an event, ordered by completion\
-        \ time. Useful for analyzing user engagement and workflow progression."
+      description: |-
+        Retrieves all workflow step traces for an event, ordered by completion time. Useful for analyzing user engagement and workflow progression.
+
+        Requires the `analytics:read` scope.
       operationId: EventsService_ListEventTraces
       parameters:
       - description: Event ID to get traces for (UUID)
@@ -1460,13 +1700,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - analytics:read
+      - oauth2:
+        - analytics:read
       summary: List event traces
       tags:
       - Events
+      x-required-scope: analytics:read
   /v1/google-forms-integrations:
     delete:
-      description: Disconnect and remove the Google Forms integration from the workspace.
+      description: |-
+        Disconnect and remove the Google Forms integration from the workspace.
+
+        Requires the `integrations:write` scope.
       operationId: GoogleFormsIntegrationsService_Delete
       responses:
         "200":
@@ -1483,12 +1730,19 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - integrations:write
+      - oauth2:
+        - integrations:write
       summary: Disconnect Google Forms integration
       tags:
       - Google Forms Integrations
+      x-required-scope: integrations:write
     get:
-      description: Retrieve the Google Forms integration for the workspace.
+      description: |-
+        Retrieve the Google Forms integration for the workspace.
+
+        Requires the `integrations:read` scope.
       operationId: GoogleFormsIntegrationsService_Get
       responses:
         "200":
@@ -1504,12 +1758,19 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - integrations:read
+      - oauth2:
+        - integrations:read
       summary: Get Google Forms integration
       tags:
       - Google Forms Integrations
+      x-required-scope: integrations:read
     patch:
-      description: Update the integration status (pause or resume syncing).
+      description: |-
+        Update the integration status (pause or resume syncing).
+
+        Requires the `integrations:write` scope.
       operationId: GoogleFormsIntegrationsService_Update
       requestBody:
         content:
@@ -1531,14 +1792,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - integrations:write
+      - oauth2:
+        - integrations:write
       summary: Update Google Forms integration
       tags:
       - Google Forms Integrations
+      x-required-scope: integrations:write
   /v1/google-forms-integrations/detected-forms:
     get:
-      description: Returns Google Forms auto-detected from workspace links that have
-        a Google Form as their redirect destination.
+      description: |-
+        Returns Google Forms auto-detected from workspace links that have a Google Form as their redirect destination.
+
+        Requires the `integrations:read` scope.
       operationId: GoogleFormsIntegrationsService_ListDetectedForms
       responses:
         "200":
@@ -1554,14 +1821,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - integrations:read
+      - oauth2:
+        - integrations:read
       summary: List detected Google Forms
       tags:
       - Google Forms Integrations
+      x-required-scope: integrations:read
   /v1/google-forms-integrations/oauth-url:
     get:
-      description: Returns the Google OAuth authorization URL to initiate the connection
-        flow.
+      description: |-
+        Returns the Google OAuth authorization URL to initiate the connection flow.
+
+        Requires the `integrations:write` scope.
       operationId: GoogleFormsIntegrationsService_GetOAuthURL
       responses:
         "200":
@@ -1577,14 +1850,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - integrations:write
+      - oauth2:
+        - integrations:write
       summary: Get Google OAuth URL
       tags:
       - Google Forms Integrations
+      x-required-scope: integrations:write
   /v1/google-forms-integrations/oauth/complete:
     post:
-      description: Exchanges the Google authorization code for tokens and creates
-        the workspace integration.
+      description: |-
+        Exchanges the Google authorization code for tokens and creates the workspace integration.
+
+        Requires the `integrations:write` scope.
       operationId: GoogleFormsIntegrationsService_CompleteOAuth
       requestBody:
         content:
@@ -1606,14 +1885,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - integrations:write
+      - oauth2:
+        - integrations:write
       summary: Complete Google OAuth
       tags:
       - Google Forms Integrations
+      x-required-scope: integrations:write
   /v1/google-forms-integrations/sync:
     post:
-      description: Trigger an immediate sync of new Google Forms responses from all
-        detected forms.
+      description: |-
+        Trigger an immediate sync of new Google Forms responses from all detected forms.
+
+        Requires the `integrations:write` scope.
       operationId: GoogleFormsIntegrationsService_SyncNow
       requestBody:
         content:
@@ -1635,10 +1920,14 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - integrations:write
+      - oauth2:
+        - integrations:write
       summary: Sync now
       tags:
       - Google Forms Integrations
+      x-required-scope: integrations:write
   /v1/integrations/{slug}:
     post:
       operationId: IntegrationsService_Track
@@ -1665,14 +1954,16 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
-      security:
-      - bearerAuth: []
+      security: []
       summary: Track notifies when an integration installation is attempted
       tags:
       - IntegrationsService
   /v1/links:
     get:
-      description: Retrieves the shortened links for your workspace
+      description: |-
+        Retrieves the shortened links for your workspace
+
+        Requires the `links:read` scope.
       operationId: LinksService_List
       parameters:
       - description: The maximum number of links to return.
@@ -1799,14 +2090,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - links:read
+      - oauth2:
+        - links:read
       summary: List links
       tags:
       - Links
+      x-required-scope: links:read
     post:
       description: |-
         This endpoint allows users to create a new shortened URL link in their Linkbreakers workspace.
         The URL will be checked for malicious content before being shortened.
+
+        Requires the `links:write` scope.
       operationId: LinksService_Create
       requestBody:
         content:
@@ -1828,16 +2125,22 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - links:write
+      - oauth2:
+        - links:write
       summary: Create a new link
       tags:
       - Links
+      x-required-scope: links:write
   /v1/links/bulk:
     post:
       description: |-
         Creates links in batch using the same per-link options as Create.
         This operation is transactional: if one link fails validation or insertion,
         no links from the batch are created.
+
+        Requires the `links:write` scope.
       operationId: LinksService_CreateBulk
       requestBody:
         content:
@@ -1859,15 +2162,21 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - links:write
+      - oauth2:
+        - links:write
       summary: Create multiple links in a single request
       tags:
       - Links
+      x-required-scope: links:write
   /v1/links/contact:
     post:
       description: |-
         This endpoint allows users to create a new vCard contact link in their Linkbreakers workspace.
         The link will generate a vCard file for contact information sharing.
+
+        Requires the `links:write` scope.
       operationId: LinksService_CreateContactLink
       requestBody:
         content:
@@ -1889,15 +2198,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - links:write
+      - oauth2:
+        - links:write
       summary: Create a new contact card link
       tags:
       - Links
+      x-required-scope: links:write
   /v1/links/qrcode-images:resolve:
     post:
-      description: "Return freshly signed QR code image URLs for the given links.\
-        \ The URLs expire, so callers fetch them when they need to render rather than\
-        \ storing them."
+      description: |-
+        Return freshly signed QR code image URLs for the given links. The URLs expire, so callers fetch them when they need to render rather than storing them.
+
+        Requires the `links:read` scope.
       operationId: LinksService_ResolveQrcodeImages
       requestBody:
         content:
@@ -1919,15 +2233,21 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - links:read
+      - oauth2:
+        - links:read
       summary: Resolve QR code image URLs
       tags:
       - Links
+      x-required-scope: links:read
   /v1/links/shortlink-availability:
     get:
       description: |-
         Checks if a shortlink is available for use to create a new link. A custom domain can be provided to check against.
         It typically checks the shortlink slugs and shortlink IDs already present within the system.
+
+        Requires the `links:read` scope.
       operationId: LinksService_ShortlinkAvailability
       parameters:
       - description: The shortlink to check availability for.
@@ -1962,13 +2282,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - links:read
+      - oauth2:
+        - links:read
       summary: Check shortlink availability
       tags:
       - Links
+      x-required-scope: links:read
   /v1/links/shortlink-random:
     get:
-      description: Generates a random availableshortlink for a new link.
+      description: |-
+        Generates a random availableshortlink for a new link.
+
+        Requires the `links:read` scope.
       operationId: LinksService_ShortlinkRandom
       responses:
         "200":
@@ -1984,14 +2311,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - links:read
+      - oauth2:
+        - links:read
       summary: Get a random shortlink
       tags:
       - Links
+      x-required-scope: links:read
   /v1/links/thank-you:
     post:
-      description: This endpoint allows users to create a new link with a thank you
-        page as the exit step.
+      description: |-
+        This endpoint allows users to create a new link with a thank you page as the exit step.
+
+        Requires the `links:write` scope.
       operationId: LinksService_CreateThankYouLink
       requestBody:
         content:
@@ -2013,14 +2346,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - links:write
+      - oauth2:
+        - links:write
       summary: Create a new thank you page link
       tags:
       - Links
+      x-required-scope: links:write
   /v1/links/{id}:
     delete:
-      description: Removes a shortened link from the workspace. This operation cannot
-        be undone.
+      description: |-
+        Removes a shortened link from the workspace. This operation cannot be undone.
+
+        Requires the `links:write` scope.
       operationId: LinksService_Delete
       parameters:
       - description: The ID of the link to delete (UUID)
@@ -2045,13 +2384,19 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - links:write
+      - oauth2:
+        - links:write
       summary: Delete a link
       tags:
       - Links
+      x-required-scope: links:write
     get:
-      description: Retrieves information about a shortened link including its metadata
-        and metrics.
+      description: |-
+        Retrieves information about a shortened link including its metadata and metrics.
+
+        Requires the `links:read` scope.
       operationId: LinksService_Get
       parameters:
       - description: The ID of the link to retrieve (UUID)
@@ -2089,12 +2434,19 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - links:read
+      - oauth2:
+        - links:read
       summary: Get link details
       tags:
       - Links
+      x-required-scope: links:read
     patch:
-      description: Updates an existing shortened link in your Linkbreakers workspace.
+      description: |-
+        Updates an existing shortened link in your Linkbreakers workspace.
+
+        Requires the `links:write` scope.
       operationId: LinksService_Update
       parameters:
       - description: The ID of the link to update (UUID)
@@ -2125,13 +2477,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - links:write
+      - oauth2:
+        - links:write
       summary: Update a link
       tags:
       - Links
+      x-required-scope: links:write
   /v1/links/{linkId}/workflow-steps:
     get:
-      description: Retrieves all workflow steps for a specific link
+      description: |-
+        Retrieves all workflow steps for a specific link
+
+        Requires the `workflows:read` scope.
       operationId: WorkflowStepsService_List
       parameters:
       - description: The ID of the link to list workflow steps for (UUID)
@@ -2173,14 +2532,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - workflows:read
+      - oauth2:
+        - workflows:read
       summary: List workflow steps for a link
       tags:
       - Workflow Steps
+      x-required-scope: workflows:read
     post:
       description: |-
         This endpoint allows users to create a new workflow step for a link.
         Workflow steps define the behavior of links, such as redirection destinations.
+
+        Requires the `workflows:write` scope.
       operationId: WorkflowStepsService_Create
       parameters:
       - description: The ID of the link to create the workflow step for (UUID)
@@ -2211,15 +2576,21 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - workflows:write
+      - oauth2:
+        - workflows:write
       summary: Create a new workflow step
       tags:
       - Workflow Steps
+      x-required-scope: workflows:write
   /v1/links/{linkId}/workflow-steps/auto-layout:
     post:
       description: |-
         Arranges all workflow steps in a clean left-to-right DAG layout.
         Useful after building a workflow from scratch.
+
+        Requires the `workflows:write` scope.
       operationId: WorkflowStepsService_AutoLayoutWorkflow
       parameters:
       - explode: false
@@ -2249,12 +2620,17 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - workflows:write
+      - oauth2:
+        - workflows:write
       summary: Auto-layout workflow
       tags:
       - Workflow Steps
+      x-required-scope: workflows:write
   /v1/links/{linkId}/workflow-steps/validate:
     get:
+      description: Requires the `workflows:read` scope.
       operationId: WorkflowStepsService_ValidateWorkflow
       parameters:
       - explode: false
@@ -2278,13 +2654,19 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - workflows:read
+      - oauth2:
+        - workflows:read
       tags:
       - Workflow Steps
+      x-required-scope: workflows:read
   /v1/links/{linkId}/workflow-steps/{id}:
     delete:
-      description: Removes a workflow step from the link. This operation cannot be
-        undone.
+      description: |-
+        Removes a workflow step from the link. This operation cannot be undone.
+
+        Requires the `workflows:write` scope.
       operationId: WorkflowStepsService_Delete
       parameters:
       - description: The ID of the link (UUID)
@@ -2317,12 +2699,19 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - workflows:write
+      - oauth2:
+        - workflows:write
       summary: Delete a workflow step
       tags:
       - Workflow Steps
+      x-required-scope: workflows:write
     get:
-      description: Retrieves information about a specific workflow step.
+      description: |-
+        Retrieves information about a specific workflow step.
+
+        Requires the `workflows:read` scope.
       operationId: WorkflowStepsService_Get
       parameters:
       - description: The ID of the link (UUID)
@@ -2355,12 +2744,19 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - workflows:read
+      - oauth2:
+        - workflows:read
       summary: Get workflow step details
       tags:
       - Workflow Steps
+      x-required-scope: workflows:read
     patch:
-      description: Updates an existing workflow step for a link.
+      description: |-
+        Updates an existing workflow step for a link.
+
+        Requires the `workflows:write` scope.
       operationId: WorkflowStepsService_Update
       parameters:
       - description: The ID of the link (UUID)
@@ -2399,15 +2795,21 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - workflows:write
+      - oauth2:
+        - workflows:write
       summary: Update a workflow step
       tags:
       - Workflow Steps
+      x-required-scope: workflows:write
   /v1/links/{linkId}/workflow-steps/{stepId}/branches/{branchId}/connection:
     delete:
       description: |-
         Leaves the branch with no destination. Clearing a branch that is already
         clear succeeds. See ConnectStep for what a branch id is.
+
+        Requires the `workflows:write` scope.
       operationId: WorkflowStepsService_DisconnectStep
       parameters:
       - description: The ID of the link (UUID)
@@ -2448,10 +2850,14 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - workflows:write
+      - oauth2:
+        - workflows:write
       summary: Clear one exit of a workflow step
       tags:
       - Workflow Steps
+      x-required-scope: workflows:write
     put:
       description: |-
         Every workflow step is connected the same way: name the branch it leaves
@@ -2464,6 +2870,8 @@ paths:
 
         Read a step to see its branches, their ids and their current destinations.
         Idempotent: connecting a branch to the step it already leads to is a no-op.
+
+        Requires the `workflows:write` scope.
       operationId: WorkflowStepsService_ConnectStep
       parameters:
       - description: The ID of the link (UUID)
@@ -2512,16 +2920,22 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - workflows:write
+      - oauth2:
+        - workflows:write
       summary: Connect one exit of a workflow step to another step
       tags:
       - Workflow Steps
+      x-required-scope: workflows:write
   /v1/links/{linkId}/workflow-steps/{stepId}/resolve-collisions:
     post:
       description: |-
         Pushes overlapping steps away from a given anchor step using iterative
         radial repulsion. The anchor step stays fixed. Use after adding or moving
         individual steps to preserve the existing layout.
+
+        Requires the `workflows:write` scope.
       operationId: WorkflowStepsService_ResolveStepCollisions
       parameters:
       - explode: false
@@ -2558,13 +2972,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - workflows:write
+      - oauth2:
+        - workflows:write
       summary: Resolve step collisions
       tags:
       - Workflow Steps
+      x-required-scope: workflows:write
   /v1/media:
     get:
-      description: Retrieves the media files for your workspace
+      description: |-
+        Retrieves the media files for your workspace
+
+        Requires the `media:read` scope.
       operationId: MediaService_List
       parameters:
       - description: The maximum number of media files to return.
@@ -2600,15 +3021,21 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - media:read
+      - oauth2:
+        - media:read
       summary: List media files
       tags:
       - Media
+      x-required-scope: media:read
     post:
       description: |-
         This endpoint allows users to upload a new media file to their Linkbreakers workspace.
         For now the file size limit is 3MB.
         Example: Uploading an image to be placed in the center of a QR Code.
+
+        Requires the `media:write` scope.
       operationId: MediaService_Create
       requestBody:
         content:
@@ -2630,14 +3057,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - media:write
+      - oauth2:
+        - media:write
       summary: Upload a media file
       tags:
       - Media
+      x-required-scope: media:write
   /v1/media/{id}:
     delete:
-      description: Removes a media file from the workspace. This operation cannot
-        be undone.
+      description: |-
+        Removes a media file from the workspace. This operation cannot be undone.
+
+        Requires the `media:write` scope.
       operationId: MediaService_Delete
       parameters:
       - description: The ID of the media file to delete (UUID)
@@ -2667,14 +3100,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - media:write
+      - oauth2:
+        - media:write
       summary: Delete a media file
       tags:
       - Media
+      x-required-scope: media:write
     get:
       description: |-
         Retrieves information about a media file including its metadata and URL.
         Example: Getting details for media with ID "med_123".
+
+        Requires the `media:read` scope.
       operationId: MediaService_Get
       parameters:
       - description: The ID of the media file to retrieve (UUID)
@@ -2699,14 +3138,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - media:read
+      - oauth2:
+        - media:read
       summary: Get media file details
       tags:
       - Media
+      x-required-scope: media:read
   /v1/member:
     get:
-      description: Return the member information associated with the authenticated
-        caller.
+      description: |-
+        Return the member information associated with the authenticated caller.
+
+        Requires the `members:read` scope.
       operationId: MembersService_GetMyself
       responses:
         "200":
@@ -2722,12 +3167,19 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - members:read
+      - oauth2:
+        - members:read
       summary: Get the current member
       tags:
       - Members
+      x-required-scope: members:read
     put:
-      description: Let the signed-in member update their own profile or credentials.
+      description: |-
+        Let the signed-in member update their own profile or credentials.
+
+        Requires the `members:write` scope.
       operationId: MembersService_UpdateMyself
       requestBody:
         content:
@@ -2749,13 +3201,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - members:write
+      - oauth2:
+        - members:write
       summary: Update the current member
       tags:
       - Members
+      x-required-scope: members:write
   /v1/members:
     get:
-      description: Retrieve a paginated list of members in the current workspace.
+      description: |-
+        Retrieve a paginated list of members in the current workspace.
+
+        Requires the `members:read` scope.
       operationId: MembersService_List
       parameters:
       - description: "Maximum number of members to return. Defaults to 100, capped\
@@ -2798,13 +3257,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - members:read
+      - oauth2:
+        - members:read
       summary: List members
       tags:
       - Members
+      x-required-scope: members:read
   /v1/members/invite:
     post:
-      description: Create a pending member and dispatch an invitation email.
+      description: |-
+        Create a pending member and dispatch an invitation email.
+
+        Requires the `members:write` scope.
       operationId: MembersService_Invite
       requestBody:
         content:
@@ -2831,13 +3297,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - members:write
+      - oauth2:
+        - members:write
       summary: Invite a new member
       tags:
       - Members
+      x-required-scope: members:write
   /v1/members/{id}:
     delete:
-      description: Permanently remove a member from the workspace roster.
+      description: |-
+        Permanently remove a member from the workspace roster.
+
+        Requires the `members:write` scope.
       operationId: MembersService_Delete
       parameters:
       - description: Member identifier (UUID) to delete
@@ -2863,12 +3336,19 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - members:write
+      - oauth2:
+        - members:write
       summary: Delete a member
       tags:
       - Members
+      x-required-scope: members:write
     get:
-      description: Fetch a single workspace member by the provided identifier.
+      description: |-
+        Fetch a single workspace member by the provided identifier.
+
+        Requires the `members:read` scope.
       operationId: MembersService_Get
       parameters:
       - description: Member identifier (UUID) to retrieve
@@ -2893,12 +3373,19 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - members:read
+      - oauth2:
+        - members:read
       summary: Get a member by ID
       tags:
       - Members
+      x-required-scope: members:read
     put:
-      description: Modify profile details or role assignments for an existing member.
+      description: |-
+        Modify profile details or role assignments for an existing member.
+
+        Requires the `members:write` scope.
       operationId: MembersService_Update
       parameters:
       - description: Member identifier (UUID) to update
@@ -2929,13 +3416,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - members:write
+      - oauth2:
+        - members:write
       summary: Update a member
       tags:
       - Members
+      x-required-scope: members:write
   /v1/members/{id}/allow:
     post:
-      description: Restore workspace access for a previously suspended member.
+      description: |-
+        Restore workspace access for a previously suspended member.
+
+        Requires the `members:write` scope.
       operationId: MembersService_AllowAccess
       parameters:
       - description: Member identifier (UUID) whose access should be restored
@@ -2966,13 +3460,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - members:write
+      - oauth2:
+        - members:write
       summary: Allow access for a member
       tags:
       - Members
+      x-required-scope: members:write
   /v1/members/{id}/revoke:
     post:
-      description: Suspend a member's access without removing their account.
+      description: |-
+        Suspend a member's access without removing their account.
+
+        Requires the `members:write` scope.
       operationId: MembersService_RevokeAccess
       parameters:
       - description: Member identifier (UUID) whose access should be suspended
@@ -3003,13 +3504,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - members:write
+      - oauth2:
+        - members:write
       summary: Revoke access for a member
       tags:
       - Members
+      x-required-scope: members:write
   /v1/members/{id}/signout:
     post:
-      description: Terminate all active sessions for the specified member.
+      description: |-
+        Terminate all active sessions for the specified member.
+
+        Requires the `members:write` scope.
       operationId: MembersService_ForceSignout
       parameters:
       - description: Member identifier (UUID) to sign out of all sessions
@@ -3040,14 +3548,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - members:write
+      - oauth2:
+        - members:write
       summary: Force a member to sign out
       tags:
       - Members
+      x-required-scope: members:write
   /v1/metrics/events:
     get:
-      description: Retrieve aggregated event analytics for the provided time window
-        and optional link filter.
+      description: |-
+        Retrieve aggregated event analytics for the provided time window and optional link filter.
+
+        Requires the `analytics:read` scope.
       operationId: MetricsService_GetEventsMetric
       parameters:
       - description: Inclusive start timestamp for the aggregation
@@ -3093,14 +3607,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - analytics:read
+      - oauth2:
+        - analytics:read
       summary: Get events metric
       tags:
       - Workspace Metrics
+      x-required-scope: analytics:read
   /v1/metrics/workspace:
     get:
-      description: "Return high-level workspace totals covering members, links, and\
-        \ activity volume."
+      description: |-
+        Return high-level workspace totals covering members, links, and activity volume.
+
+        Requires the `analytics:read` scope.
       operationId: MetricsService_GetWorkspaceMetric
       responses:
         "200":
@@ -3116,14 +3636,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - analytics:read
+      - oauth2:
+        - analytics:read
       summary: Get workspace metric
       tags:
       - Workspace Metrics
+      x-required-scope: analytics:read
   /v1/metrics/workspace/insight:
     get:
-      description: Return workspace usage insights including the preferred link type
-        based on historical link creation patterns.
+      description: |-
+        Return workspace usage insights including the preferred link type based on historical link creation patterns.
+
+        Requires the `analytics:read` scope.
       operationId: MetricsService_GetWorkspaceInsight
       responses:
         "200":
@@ -3139,14 +3665,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - analytics:read
+      - oauth2:
+        - analytics:read
       summary: Get workspace insight
       tags:
       - Workspace Metrics
+      x-required-scope: analytics:read
   /v1/page-theme-templates:
     get:
-      description: Retrieve page theme templates that belong to the authenticated
-        caller's workspace.
+      description: |-
+        Retrieve page theme templates that belong to the authenticated caller's workspace.
+
+        Requires the `page_themes:read` scope.
       operationId: PageThemeTemplatesService_ListPageThemeTemplates
       parameters:
       - explode: true
@@ -3208,13 +3740,19 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - page_themes:read
+      - oauth2:
+        - page_themes:read
       summary: List my page theme templates
       tags:
       - Page Theme Templates
+      x-required-scope: page_themes:read
     post:
-      description: Create a page theme template by copying the styling of an existing
-        page theme into a fresh detached theme owned by the template.
+      description: |-
+        Create a page theme template by copying the styling of an existing page theme into a fresh detached theme owned by the template.
+
+        Requires the `page_themes:write` scope.
       operationId: PageThemeTemplatesService_CreatePageThemeTemplate
       requestBody:
         content:
@@ -3236,15 +3774,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - page_themes:write
+      - oauth2:
+        - page_themes:write
       summary: Create a new page theme template
       tags:
       - Page Theme Templates
+      x-required-scope: page_themes:write
   /v1/page-theme-templates/images:resolve:
     post:
-      description: "Return freshly signed thumbnail, cover and badge URLs for the\
-        \ given templates. The URLs expire, so callers fetch them when they need to\
-        \ render rather than storing them."
+      description: |-
+        Return freshly signed thumbnail, cover and badge URLs for the given templates. The URLs expire, so callers fetch them when they need to render rather than storing them.
+
+        Requires the `page_themes:read` scope.
       operationId: PageThemeTemplatesService_ResolvePageThemeTemplateImages
       requestBody:
         content:
@@ -3266,14 +3809,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - page_themes:read
+      - oauth2:
+        - page_themes:read
       summary: Resolve page theme template images
       tags:
       - Page Theme Templates
+      x-required-scope: page_themes:read
   /v1/page-theme-templates/import:
     post:
-      description: Import a public page theme template into your workspace by slug.
-        Creates a private copy owned by your workspace.
+      description: |-
+        Import a public page theme template into your workspace by slug. Creates a private copy owned by your workspace.
+
+        Requires the `page_themes:write` scope.
       operationId: PageThemeTemplatesService_ImportPageThemeTemplate
       requestBody:
         content:
@@ -3295,14 +3844,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - page_themes:write
+      - oauth2:
+        - page_themes:write
       summary: Import a public page theme template
       tags:
       - Page Theme Templates
+      x-required-scope: page_themes:write
   /v1/page-theme-templates/{id}:
     delete:
-      description: Remove a page theme template belonging to the authenticated caller's
-        workspace. Pages already styled from it are unaffected.
+      description: |-
+        Remove a page theme template belonging to the authenticated caller's workspace. Pages already styled from it are unaffected.
+
+        Requires the `page_themes:write` scope.
       operationId: PageThemeTemplatesService_DeletePageThemeTemplate
       parameters:
       - explode: false
@@ -3331,13 +3886,19 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - page_themes:write
+      - oauth2:
+        - page_themes:write
       summary: Delete a workspace page theme template
       tags:
       - Page Theme Templates
+      x-required-scope: page_themes:write
     get:
-      description: Retrieve a page theme template that belongs to the authenticated
-        caller's workspace.
+      description: |-
+        Retrieve a page theme template that belongs to the authenticated caller's workspace.
+
+        Requires the `page_themes:read` scope.
       operationId: PageThemeTemplatesService_GetPageThemeTemplate
       parameters:
       - explode: false
@@ -3370,13 +3931,19 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - page_themes:read
+      - oauth2:
+        - page_themes:read
       summary: Get a workspace page theme template
       tags:
       - Page Theme Templates
+      x-required-scope: page_themes:read
     patch:
-      description: Modify the metadata of a page theme template owned by the authenticated
-        workspace.
+      description: |-
+        Modify the metadata of a page theme template owned by the authenticated workspace.
+
+        Requires the `page_themes:write` scope.
       operationId: PageThemeTemplatesService_UpdatePageThemeTemplate
       parameters:
       - description: The ID of the page theme template to update (UUID)
@@ -3407,15 +3974,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - page_themes:write
+      - oauth2:
+        - page_themes:write
       summary: Update a workspace page theme template
       tags:
       - Page Theme Templates
+      x-required-scope: page_themes:write
   /v1/page-theme-templates/{id}/publish:
     post:
-      description: "Publish a page theme template to make it available in the public\
-        \ gallery. Requires workspace to be public and template to have slug, description,\
-        \ and name."
+      description: |-
+        Publish a page theme template to make it available in the public gallery. Requires workspace to be public and template to have slug, description, and name.
+
+        Requires the `page_themes:write` scope.
       operationId: PageThemeTemplatesService_PublishPageThemeTemplate
       parameters:
       - description: The ID of the page theme template to publish (UUID)
@@ -3446,14 +4018,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - page_themes:write
+      - oauth2:
+        - page_themes:write
       summary: Publish a workspace page theme template
       tags:
       - Page Theme Templates
+      x-required-scope: page_themes:write
   /v1/page-theme-templates/{id}/styling:
     patch:
-      description: "Edit the colours, typography, container and media of a page theme\
-        \ template. Queues a thumbnail regeneration."
+      description: |-
+        Edit the colours, typography, container and media of a page theme template. Queues a thumbnail regeneration.
+
+        Requires the `page_themes:write` scope.
       operationId: PageThemeTemplatesService_UpdatePageThemeTemplateStyling
       parameters:
       - description: The ID of the page theme template whose styling to update (UUID)
@@ -3484,13 +4062,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - page_themes:write
+      - oauth2:
+        - page_themes:write
       summary: Update a page theme template's styling
       tags:
       - Page Theme Templates
+      x-required-scope: page_themes:write
   /v1/page-themes:
     get:
-      description: Retrieves all page themes belonging to the caller's workspace.
+      description: |-
+        Retrieves all page themes belonging to the caller's workspace.
+
+        Requires the `page_themes:read` scope.
       operationId: PageThemesService_ListPageThemes
       parameters:
       - description: "Maximum number of page themes to return. Defaults to 100, capped\
@@ -3528,10 +4113,14 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - page_themes:read
+      - oauth2:
+        - page_themes:read
       summary: List page themes for the current workspace
       tags:
       - Page Themes
+      x-required-scope: page_themes:read
   /v1/page-themes/apply-template:
     post:
       description: |-
@@ -3539,6 +4128,8 @@ paths:
         own theme row, so the template can later be edited or deleted without changing
         any page that was styled from it. Cover and badge media are copied into the
         caller's workspace when the template carries them.
+
+        Requires the `page_themes:write` scope.
       operationId: PageThemesService_ApplyPageThemeTemplate
       requestBody:
         content:
@@ -3565,15 +4156,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - page_themes:write
+      - oauth2:
+        - page_themes:write
       summary: Apply a page theme template to a link
       tags:
       - Page Themes
+      x-required-scope: page_themes:write
   /v1/page-themes/matching-template:
     get:
-      description: "Returns the page theme template available to the workspace whose\
-        \ styling is identical to the link's current page theme, if one exists. Saving\
-        \ the theme as a template again would only duplicate it."
+      description: |-
+        Returns the page theme template available to the workspace whose styling is identical to the link's current page theme, if one exists. Saving the theme as a template again would only duplicate it.
+
+        Requires the `page_themes:read` scope.
       operationId: PageThemeTemplatesService_FindMatchingPageThemeTemplate
       parameters:
       - description: Link whose current page theme should be matched
@@ -3598,13 +4194,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - page_themes:read
+      - oauth2:
+        - page_themes:read
       summary: Find a page theme template matching a link's styling
       tags:
       - Page Themes
+      x-required-scope: page_themes:read
   /v1/page-themes/{id}:
     get:
-      description: Retrieves a specific page theme by ID.
+      description: |-
+        Retrieves a specific page theme by ID.
+
+        Requires the `page_themes:read` scope.
       operationId: PageThemesService_GetPageTheme
       parameters:
       - description: Page theme ID to retrieve
@@ -3634,13 +4237,19 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - page_themes:read
+      - oauth2:
+        - page_themes:read
       summary: Get a page theme
       tags:
       - Page Themes
+      x-required-scope: page_themes:read
     patch:
-      description: Updates an existing page theme. Cannot update page themes that
-        are currently attached to links.
+      description: |-
+        Updates an existing page theme. Cannot update page themes that are currently attached to links.
+
+        Requires the `page_themes:write` scope.
       operationId: PageThemesService_UpdatePageTheme
       parameters:
       - description: Page theme ID to update
@@ -3682,10 +4291,36 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - page_themes:write
+      - oauth2:
+        - page_themes:write
       summary: Update a page theme
       tags:
       - Page Themes
+      x-required-scope: page_themes:write
+  /v1/pricing/plans:
+    get:
+      description: "Retrieve every plan with its prices, limits and features. Public,\
+        \ no authentication required."
+      operationId: PricingService_ListPricingPlans
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListPricingPlansResponse"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security: []
+      summary: List pricing plans
+      tags:
+      - Pricing
   /v1/public/page-theme-templates:
     get:
       description: "Retrieve available public page theme templates, optionally filtered\
@@ -3754,8 +4389,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
-      security:
-      - bearerAuth: []
+      security: []
       summary: List page theme templates
       tags:
       - Page Theme Templates
@@ -3798,8 +4432,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
-      security:
-      - bearerAuth: []
+      security: []
       summary: Get a public page theme template
       tags:
       - Page Theme Templates
@@ -3832,8 +4465,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
-      security:
-      - bearerAuth: []
+      security: []
       summary: Create a new QR code design
       tags:
       - QR Code Designs
@@ -3905,8 +4537,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
-      security:
-      - bearerAuth: []
+      security: []
       summary: List QR code templates
       tags:
       - QR Code Templates
@@ -3949,8 +4580,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
-      security:
-      - bearerAuth: []
+      security: []
       summary: Get a public QR code template
       tags:
       - QR Code Templates
@@ -3980,16 +4610,16 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
-      security:
-      - bearerAuth: []
+      security: []
       summary: Get a public workspace by slug
       tags:
       - Workspaces
   /v1/qrcode-designs/apply-template:
     post:
-      description: Copy all design settings from a community QR code template to an
-        existing link's QR code design. This replaces the current design with the
-        template's styling.
+      description: |-
+        Copy all design settings from a community QR code template to an existing link's QR code design. This replaces the current design with the template's styling.
+
+        Requires the `qrcodes:write` scope.
       operationId: QrcodeDesignService_ApplyTemplate
       requestBody:
         content:
@@ -4011,13 +4641,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - qrcodes:write
+      - oauth2:
+        - qrcodes:write
       summary: Apply a QR code template to a link
       tags:
       - QR Code Designs
+      x-required-scope: qrcodes:write
   /v1/qrcode-designs/{id}:
     delete:
-      description: Remove a QR code design that is no longer in use by any assets.
+      description: |-
+        Remove a QR code design that is no longer in use by any assets.
+
+        Requires the `qrcodes:write` scope.
       operationId: QrcodeDesignService_Delete
       parameters:
       - description: The ID of the QR code design to delete
@@ -4047,12 +4684,19 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - qrcodes:write
+      - oauth2:
+        - qrcodes:write
       summary: Delete a QR code design
       tags:
       - QR Code Designs
+      x-required-scope: qrcodes:write
     get:
-      description: Fetch a QR code design by its identifier including computed metadata.
+      description: |-
+        Fetch a QR code design by its identifier including computed metadata.
+
+        Requires the `qrcodes:read` scope.
       operationId: QrcodeDesignService_Get
       parameters:
       - description: The ID of the QR code design to get (UUID)
@@ -4077,12 +4721,19 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - qrcodes:read
+      - oauth2:
+        - qrcodes:read
       summary: Get a QR code design
       tags:
       - QR Code Designs
+      x-required-scope: qrcodes:read
     patch:
-      description: Apply styling tweaks or media changes to an existing QR code design.
+      description: |-
+        Apply styling tweaks or media changes to an existing QR code design.
+
+        Requires the `qrcodes:write` scope.
       operationId: QrcodeDesignService_Update
       parameters:
       - description: The ID of the QR code design to update (UUID)
@@ -4113,14 +4764,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - qrcodes:write
+      - oauth2:
+        - qrcodes:write
       summary: Update a QR code design
       tags:
       - QR Code Designs
+      x-required-scope: qrcodes:write
   /v1/qrcode-templates:
     get:
-      description: Retrieve QR code templates that belong to the authenticated caller's
-        workspace.
+      description: |-
+        Retrieve QR code templates that belong to the authenticated caller's workspace.
+
+        Requires the `qrcodes:read` scope.
       operationId: QrcodeTemplatesService_ListQrcodeTemplates
       parameters:
       - explode: true
@@ -4182,13 +4839,19 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - qrcodes:read
+      - oauth2:
+        - qrcodes:read
       summary: List my QR code templates
       tags:
       - QR Code Templates
+      x-required-scope: qrcodes:read
     post:
-      description: Create a new QR code template using a fresh design. The design
-        must not be used by any other links or templates.
+      description: |-
+        Create a new QR code template using a fresh design. The design must not be used by any other links or templates.
+
+        Requires the `qrcodes:write` scope.
       operationId: QrcodeTemplatesService_CreateQrcodeTemplate
       requestBody:
         content:
@@ -4210,15 +4873,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - qrcodes:write
+      - oauth2:
+        - qrcodes:write
       summary: Create a new QR code template
       tags:
       - QR Code Templates
+      x-required-scope: qrcodes:write
   /v1/qrcode-templates/images:resolve:
     post:
-      description: "Return freshly signed thumbnail URLs for the given templates.\
-        \ The URLs expire, so callers fetch them when they need to render rather than\
-        \ storing them."
+      description: |-
+        Return freshly signed thumbnail URLs for the given templates. The URLs expire, so callers fetch them when they need to render rather than storing them.
+
+        Requires the `qrcodes:read` scope.
       operationId: QrcodeTemplatesService_ResolveQrcodeTemplateImages
       requestBody:
         content:
@@ -4240,14 +4908,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - qrcodes:read
+      - oauth2:
+        - qrcodes:read
       summary: Resolve QR code template thumbnails
       tags:
       - QR Code Templates
+      x-required-scope: qrcodes:read
   /v1/qrcode-templates/import:
     post:
-      description: Import a public QR code template into your workspace by slug. Creates
-        a private copy owned by your workspace.
+      description: |-
+        Import a public QR code template into your workspace by slug. Creates a private copy owned by your workspace.
+
+        Requires the `qrcodes:write` scope.
       operationId: QrcodeTemplatesService_ImportQrcodeTemplate
       requestBody:
         content:
@@ -4269,14 +4943,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - qrcodes:write
+      - oauth2:
+        - qrcodes:write
       summary: Import a public QR code template
       tags:
       - QR Code Templates
+      x-required-scope: qrcodes:write
   /v1/qrcode-templates/{id}:
     delete:
-      description: Remove a QR code template belonging to the authenticated caller's
-        workspace.
+      description: |-
+        Remove a QR code template belonging to the authenticated caller's workspace.
+
+        Requires the `qrcodes:write` scope.
       operationId: QrcodeTemplatesService_DeleteQrcodeTemplate
       parameters:
       - explode: false
@@ -4305,13 +4985,19 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - qrcodes:write
+      - oauth2:
+        - qrcodes:write
       summary: Delete a workspace QR code template
       tags:
       - QR Code Templates
+      x-required-scope: qrcodes:write
     get:
-      description: Retrieve a QR code template that belongs to the authenticated caller's
-        workspace.
+      description: |-
+        Retrieve a QR code template that belongs to the authenticated caller's workspace.
+
+        Requires the `qrcodes:read` scope.
       operationId: QrcodeTemplatesService_GetQrcodeTemplate
       parameters:
       - explode: false
@@ -4344,13 +5030,19 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - qrcodes:read
+      - oauth2:
+        - qrcodes:read
       summary: Get a workspace QR code template
       tags:
       - QR Code Templates
+      x-required-scope: qrcodes:read
     patch:
-      description: Modify the name or description of a QR code template owned by the
-        authenticated workspace.
+      description: |-
+        Modify the name or description of a QR code template owned by the authenticated workspace.
+
+        Requires the `qrcodes:write` scope.
       operationId: QrcodeTemplatesService_UpdateQrcodeTemplate
       parameters:
       - description: The ID of the QR code template to update (UUID)
@@ -4381,15 +5073,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - qrcodes:write
+      - oauth2:
+        - qrcodes:write
       summary: Update a workspace QR code template
       tags:
       - QR Code Templates
+      x-required-scope: qrcodes:write
   /v1/qrcode-templates/{id}/publish:
     post:
-      description: "Publish a QR code template to make it available in the public\
-        \ gallery. Requires workspace to be public and template to have slug, description,\
-        \ and name."
+      description: |-
+        Publish a QR code template to make it available in the public gallery. Requires workspace to be public and template to have slug, description, and name.
+
+        Requires the `qrcodes:write` scope.
       operationId: QrcodeTemplatesService_PublishQrcodeTemplate
       parameters:
       - description: The ID of the QR code template to publish (UUID)
@@ -4420,14 +5117,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - qrcodes:write
+      - oauth2:
+        - qrcodes:write
       summary: Publish a workspace QR code template
       tags:
       - QR Code Templates
+      x-required-scope: qrcodes:write
   /v1/settings/link-setting/{id}:
     get:
-      description: Retrieve the current visitor data collection configuration for
-        a link.
+      description: |-
+        Retrieve the current visitor data collection configuration for a link.
+
+        Requires the `links:read` scope.
       operationId: SettingsService_GetLinkSetting
       parameters:
       - description: Identifier of the link setting profile (UUID)
@@ -4452,12 +5155,19 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - links:read
+      - oauth2:
+        - links:read
       summary: Get a link setting
       tags:
       - Link Settings
+      x-required-scope: links:read
     put:
-      description: Adjust the data collection policy associated with a specific link.
+      description: |-
+        Adjust the data collection policy associated with a specific link.
+
+        Requires the `links:write` scope.
       operationId: SettingsService_UpdateLinkSetting
       parameters:
       - description: The ID of the link setting to update (UUID)
@@ -4488,13 +5198,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - links:write
+      - oauth2:
+        - links:write
       summary: Update a link setting
       tags:
       - Link Settings
+      x-required-scope: links:write
   /v1/slack-integrations:
     delete:
-      description: Disconnect and remove the Slack integration from the workspace.
+      description: |-
+        Disconnect and remove the Slack integration from the workspace.
+
+        Requires the `integrations:write` scope.
       operationId: SlackIntegrationsService_Delete
       responses:
         "200":
@@ -4511,12 +5228,19 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - integrations:write
+      - oauth2:
+        - integrations:write
       summary: Disconnect Slack integration
       tags:
       - Slack Integrations
+      x-required-scope: integrations:write
     get:
-      description: Retrieve the Slack integration configuration for the workspace.
+      description: |-
+        Retrieve the Slack integration configuration for the workspace.
+
+        Requires the `integrations:read` scope.
       operationId: SlackIntegrationsService_Get
       responses:
         "200":
@@ -4532,13 +5256,19 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - integrations:read
+      - oauth2:
+        - integrations:read
       summary: Get Slack integration
       tags:
       - Slack Integrations
+      x-required-scope: integrations:read
     patch:
-      description: "Update the Slack integration configuration (channel, triggers,\
-        \ status)."
+      description: |-
+        Update the Slack integration configuration (channel, triggers, status).
+
+        Requires the `integrations:write` scope.
       operationId: SlackIntegrationsService_Update
       requestBody:
         content:
@@ -4560,13 +5290,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - integrations:write
+      - oauth2:
+        - integrations:write
       summary: Update Slack integration
       tags:
       - Slack Integrations
+      x-required-scope: integrations:write
   /v1/slack-integrations/channels:
     get:
-      description: List available Slack channels the bot can send notifications to.
+      description: |-
+        List available Slack channels the bot can send notifications to.
+
+        Requires the `integrations:read` scope.
       operationId: SlackIntegrationsService_ListChannels
       responses:
         "200":
@@ -4582,14 +5319,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - integrations:read
+      - oauth2:
+        - integrations:read
       summary: List Slack channels
       tags:
       - Slack Integrations
+      x-required-scope: integrations:read
   /v1/slack-integrations/oauth-url:
     get:
-      description: Returns the Slack OAuth authorization URL to initiate the Add to
-        Slack flow.
+      description: |-
+        Returns the Slack OAuth authorization URL to initiate the Add to Slack flow.
+
+        Requires the `integrations:write` scope.
       operationId: SlackIntegrationsService_GetOAuthURL
       responses:
         "200":
@@ -4605,14 +5348,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - integrations:write
+      - oauth2:
+        - integrations:write
       summary: Get Slack OAuth URL
       tags:
       - Slack Integrations
+      x-required-scope: integrations:write
   /v1/slack-integrations/oauth/complete:
     post:
-      description: Exchanges the Slack authorization code for a bot token and creates
-        the workspace integration.
+      description: |-
+        Exchanges the Slack authorization code for a bot token and creates the workspace integration.
+
+        Requires the `integrations:write` scope.
       operationId: SlackIntegrationsService_CompleteOAuth
       requestBody:
         content:
@@ -4634,13 +5383,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - integrations:write
+      - oauth2:
+        - integrations:write
       summary: Complete Slack OAuth
       tags:
       - Slack Integrations
+      x-required-scope: integrations:write
   /v1/slack-integrations/test:
     post:
-      description: Send a test notification to verify the Slack integration is working.
+      description: |-
+        Send a test notification to verify the Slack integration is working.
+
+        Requires the `integrations:write` scope.
       operationId: SlackIntegrationsService_Test
       requestBody:
         content:
@@ -4662,14 +5418,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - integrations:write
+      - oauth2:
+        - integrations:write
       summary: Test Slack integration
       tags:
       - Slack Integrations
+      x-required-scope: integrations:write
   /v1/tags:
     delete:
-      description: Remove a tag by name so it no longer appears for links or analytics
-        filters.
+      description: |-
+        Remove a tag by name so it no longer appears for links or analytics filters.
+
+        Requires the `links:write` scope.
       operationId: TagsService_Delete
       parameters:
       - description: Tag name to remove (must exactly match an existing tag within
@@ -4695,12 +5457,19 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - links:write
+      - oauth2:
+        - links:write
       summary: Delete tags
       tags:
       - Tags
+      x-required-scope: links:write
     get:
-      description: Search workspace tags by name and paginate through matching results.
+      description: |-
+        Search workspace tags by name and paginate through matching results.
+
+        Requires the `links:read` scope.
       operationId: TagsService_List
       parameters:
       - description: The search query to filter tags by name
@@ -4744,12 +5513,17 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - links:read
+      - oauth2:
+        - links:read
       summary: List tags
       tags:
       - Tags
+      x-required-scope: links:read
   /v1/timeseries/events:
     post:
+      description: Requires the `analytics:read` scope.
       operationId: TimeSeriesService_GetEventsTimeSeries
       requestBody:
         content:
@@ -4771,17 +5545,21 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - analytics:read
+      - oauth2:
+        - analytics:read
       summary: Get events time series
       tags:
       - Time Series
+      x-required-scope: analytics:read
   /v1/visitor/devices/{id}/update: {}
   /v1/visitor/identify:
     post:
-      description: "Identifies a visitor from an LBID. Anonymous visitors (created\
-        \ at scan time) are promoted or merged into existing identified visitors.\
-        \ If the identity matches an existing visitor, devices and events converge\
-        \ into that source-of-truth record."
+      description: |-
+        Identifies a visitor from an LBID. Anonymous visitors (created at scan time) are promoted or merged into existing identified visitors. If the identity matches an existing visitor, devices and events converge into that source-of-truth record.
+
+        Requires the `visitors:write` scope.
       operationId: VisitorsService_Identify
       requestBody:
         content:
@@ -4803,15 +5581,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - visitors:write
+      - oauth2:
+        - visitors:write
       summary: Identify visitor
       tags:
       - Visitors
+      x-required-scope: visitors:write
   /v1/visitors:
     get:
-      description: "Returns a paginated collection of visitors with optional filters,\
-        \ includes, and CSV export. To filter on visitor attributes, use POST /v1/visitors/search,\
-        \ which takes the same parameters as a JSON body."
+      description: |-
+        Returns a paginated collection of visitors with optional filters, includes, and CSV export. To filter on visitor attributes, use POST /v1/visitors/search, which takes the same parameters as a JSON body.
+
+        Requires the `visitors:read` scope.
       operationId: VisitorsService_List
       parameters:
       - description: "Maximum number of visitors to return (default 50, max 200)"
@@ -4918,14 +5701,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - visitors:read
+      - oauth2:
+        - visitors:read
       summary: List visitors
       tags:
       - Visitors
+      x-required-scope: visitors:read
   /v1/visitors/attributes:
     get:
-      description: Returns the distinct visitor attribute keys available in the workspace
-        or scoped to a single link.
+      description: |-
+        Returns the distinct visitor attribute keys available in the workspace or scoped to a single link.
+
+        Requires the `visitors:read` scope.
       operationId: VisitorsService_ListAttributeKeys
       parameters:
       - description: "Optional link identifier (UUID). When set, returns keys observed\
@@ -4951,15 +5740,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - visitors:read
+      - oauth2:
+        - visitors:read
       summary: List visitor attribute keys
       tags:
       - Visitors
+      x-required-scope: visitors:read
   /v1/visitors/search:
     post:
-      description: "Same as List visitors, with the parameters sent as a JSON body\
-        \ so they can include attributeFilters. Every filter must match, for example\
-        \ budget at least 800000 and timeline equal to under_6_months."
+      description: |-
+        Same as List visitors, with the parameters sent as a JSON body so they can include attributeFilters. Every filter must match, for example budget at least 800000 and timeline equal to under_6_months.
+
+        Requires the `visitors:read` scope.
       operationId: VisitorsService_Search
       requestBody:
         content:
@@ -4981,13 +5775,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - visitors:read
+      - oauth2:
+        - visitors:read
       summary: Search visitors
       tags:
       - Visitors
+      x-required-scope: visitors:read
   /v1/visitors/{id}:
     delete:
-      description: Removes a visitor profile and its stored attributes from the workspace.
+      description: |-
+        Removes a visitor profile and its stored attributes from the workspace.
+
+        Requires the `visitors:write` scope.
       operationId: VisitorsService_Delete
       parameters:
       - description: Visitor identifier to remove (UUID)
@@ -5012,13 +5813,19 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - visitors:write
+      - oauth2:
+        - visitors:write
       summary: Delete a visitor
       tags:
       - Visitors
+      x-required-scope: visitors:write
     get:
-      description: "Retrieves a visitor profile by ID with optional devices, events,\
-        \ or links included."
+      description: |-
+        Retrieves a visitor profile by ID with optional devices, events, or links included.
+
+        Requires the `visitors:read` scope.
       operationId: VisitorsService_Get
       parameters:
       - description: Visitor identifier (UUID)
@@ -5054,12 +5861,19 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - visitors:read
+      - oauth2:
+        - visitors:read
       summary: Get a visitor
       tags:
       - Visitors
+      x-required-scope: visitors:read
     patch:
-      description: Applies partial attribute updates to an existing visitor profile.
+      description: |-
+        Applies partial attribute updates to an existing visitor profile.
+
+        Requires the `visitors:write` scope.
       operationId: VisitorsService_Update
       parameters:
       - description: Visitor identifier (UUID)
@@ -5090,14 +5904,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - visitors:write
+      - oauth2:
+        - visitors:write
       summary: Update a visitor
       tags:
       - Visitors
+      x-required-scope: visitors:write
   /v1/visitors/{id}/attributes/{attributeKey}:
     delete:
-      description: Deletes a single attribute from the visitor profile without affecting
-        other data.
+      description: |-
+        Deletes a single attribute from the visitor profile without affecting other data.
+
+        Requires the `visitors:write` scope.
       operationId: VisitorsService_DeleteAttribute
       parameters:
       - description: Visitor identifier whose attribute should be removed (UUID)
@@ -5130,13 +5950,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - visitors:write
+      - oauth2:
+        - visitors:write
       summary: Delete a visitor attribute
       tags:
       - Visitors
+      x-required-scope: visitors:write
   /v1/webhooks:
     get:
-      description: Enumerate all webhooks for the workspace to manage event integrations.
+      description: |-
+        Enumerate all webhooks for the workspace to manage event integrations.
+
+        Requires the `webhooks:read` scope.
       operationId: WebhooksService_List
       parameters:
       - description: |-
@@ -5188,13 +6015,19 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - webhooks:read
+      - oauth2:
+        - webhooks:read
       summary: List webhooks
       tags:
       - Webhooks
+      x-required-scope: webhooks:read
     post:
-      description: Create a new webhook endpoint to receive event notifications when
-        workflow steps complete.
+      description: |-
+        Create a new webhook endpoint to receive event notifications when workflow steps complete.
+
+        Requires the `webhooks:write` scope.
       operationId: WebhooksService_Create
       requestBody:
         content:
@@ -5216,13 +6049,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - webhooks:write
+      - oauth2:
+        - webhooks:write
       summary: Create a webhook
       tags:
       - Webhooks
+      x-required-scope: webhooks:write
   /v1/webhooks/{id}:
     delete:
-      description: Remove a webhook endpoint so it no longer receives event notifications.
+      description: |-
+        Remove a webhook endpoint so it no longer receives event notifications.
+
+        Requires the `webhooks:write` scope.
       operationId: WebhooksService_Delete
       parameters:
       - description: Identifier of the webhook to delete (UUID)
@@ -5248,12 +6088,19 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - webhooks:write
+      - oauth2:
+        - webhooks:write
       summary: Delete a webhook
       tags:
       - Webhooks
+      x-required-scope: webhooks:write
     get:
-      description: Retrieve details for a specific webhook endpoint.
+      description: |-
+        Retrieve details for a specific webhook endpoint.
+
+        Requires the `webhooks:read` scope.
       operationId: WebhooksService_Get
       parameters:
       - description: Identifier of the desired webhook (UUID)
@@ -5278,12 +6125,19 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - webhooks:read
+      - oauth2:
+        - webhooks:read
       summary: Get a webhook
       tags:
       - Webhooks
+      x-required-scope: webhooks:read
     patch:
-      description: Modify an existing webhook endpoint configuration.
+      description: |-
+        Modify an existing webhook endpoint configuration.
+
+        Requires the `webhooks:write` scope.
       operationId: WebhooksService_Update
       parameters:
       - description: Identifier of the webhook to update (UUID)
@@ -5314,15 +6168,21 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - webhooks:write
+      - oauth2:
+        - webhooks:write
       summary: Update a webhook
       tags:
       - Webhooks
+      x-required-scope: webhooks:write
   /v1/websocket/contract: {}
   /v1/workspace:
     delete:
-      description: Soft-delete the workspace associated with the authenticated member's
-        session. This operation can be reversed by contacting support.
+      description: |-
+        Soft-delete the workspace associated with the authenticated member's session. This operation can be reversed by contacting support.
+
+        Requires the `workspace:write` scope.
       operationId: WorkspacesService_Delete
       responses:
         "200":
@@ -5339,13 +6199,19 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - workspace:write
+      - oauth2:
+        - workspace:write
       summary: Delete workspace
       tags:
       - Workspaces
+      x-required-scope: workspace:write
     get:
-      description: Return the workspace associated with the authenticated member's
-        current session.
+      description: |-
+        Return the workspace associated with the authenticated member's current session.
+
+        Requires the `workspace:read` scope.
       operationId: WorkspacesService_GetMyWorkspace
       responses:
         "200":
@@ -5361,13 +6227,19 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - workspace:read
+      - oauth2:
+        - workspace:read
       summary: Get my workspace
       tags:
       - Workspaces
+      x-required-scope: workspace:read
     put:
-      description: Modify workspace settings such as the display name and MFA enforcement
-        policy.
+      description: |-
+        Modify workspace settings such as the display name and MFA enforcement policy.
+
+        Requires the `workspace:write` scope.
       operationId: WorkspacesService_Update
       requestBody:
         content:
@@ -5389,13 +6261,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - workspace:write
+      - oauth2:
+        - workspace:write
       summary: Update a workspace
       tags:
       - Workspaces
+      x-required-scope: workspace:write
   /v1/workspace-tokens:
     get:
-      description: Enumerate all active workspace tokens for auditing and management.
+      description: |-
+        Enumerate all active workspace tokens for auditing and management.
+
+        Requires the `tokens:read` scope.
       operationId: WorkspaceTokensService_List
       parameters:
       - description: "Maximum number to return. Defaults to 100, capped at 1000."
@@ -5432,13 +6311,19 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - tokens:read
+      - oauth2:
+        - tokens:read
       summary: List workspace tokens
       tags:
       - Workspace Tokens
+      x-required-scope: tokens:read
     post:
-      description: Generate a new long-lived API token and return the one-time access
-        secret.
+      description: |-
+        Generate a new long-lived API token and return the one-time access secret.
+
+        Requires the `tokens:write` scope.
       operationId: WorkspaceTokensService_Create
       requestBody:
         content:
@@ -5460,13 +6345,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - tokens:write
+      - oauth2:
+        - tokens:write
       summary: Create a workspace token
       tags:
       - Workspace Tokens
+      x-required-scope: tokens:write
   /v1/workspace-tokens/{id}:
     delete:
-      description: Revoke a workspace token immediately so it can no longer authenticate.
+      description: |-
+        Revoke a workspace token immediately so it can no longer authenticate.
+
+        Requires the `tokens:write` scope.
       operationId: WorkspaceTokensService_Delete
       parameters:
       - description: Identifier of the token to revoke (UUID)
@@ -5492,13 +6384,19 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - tokens:write
+      - oauth2:
+        - tokens:write
       summary: Delete a workspace token
       tags:
       - Workspace Tokens
+      x-required-scope: tokens:write
     get:
-      description: Retrieve metadata for a specific workspace token without revealing
-        its secret.
+      description: |-
+        Retrieve metadata for a specific workspace token without revealing its secret.
+
+        Requires the `tokens:read` scope.
       operationId: WorkspaceTokensService_Get
       parameters:
       - description: Identifier of the desired token (UUID)
@@ -5523,14 +6421,63 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - tokens:read
+      - oauth2:
+        - tokens:read
       summary: Get a workspace token
       tags:
       - Workspace Tokens
+      x-required-scope: tokens:read
+    patch:
+      description: |-
+        Rename a workspace token or change its scopes. Changes reach every request within 30 seconds. A token can only grant scopes it holds itself.
+
+        Requires the `tokens:write` scope.
+      operationId: WorkspaceTokensService_Update
+      parameters:
+      - description: Identifier of the token to update (UUID)
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkspaceTokensServiceUpdateBody"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpdateWorkspaceTokenResponse"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth:
+        - tokens:write
+      - oauth2:
+        - tokens:write
+      summary: Update a workspace token
+      tags:
+      - Workspace Tokens
+      x-required-scope: tokens:write
   /v1/workspace/origin-inquiry:
     post:
-      description: Persist how a workspace discovered Linkbreakers without exposing
-        the value to other workspace APIs.
+      description: |-
+        Persist how a workspace discovered Linkbreakers without exposing the value to other workspace APIs.
+
+        Requires the `workspace:write` scope.
       operationId: WorkspacesService_UpdateOriginInquiry
       requestBody:
         content:
@@ -5553,14 +6500,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - workspace:write
+      - oauth2:
+        - workspace:write
       summary: Update workspace origin inquiry
       tags:
       - Workspaces
+      x-required-scope: workspace:write
   /v1/workspace/origin-purpose:
     post:
-      description: Persist what the workspace wants to build with Linkbreakers for
-        AI assistance without exposing the value to other workspace APIs.
+      description: |-
+        Persist what the workspace wants to build with Linkbreakers for AI assistance without exposing the value to other workspace APIs.
+
+        Requires the `workspace:write` scope.
       operationId: WorkspacesService_UpdateOriginPurpose
       requestBody:
         content:
@@ -5583,14 +6536,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - workspace:write
+      - oauth2:
+        - workspace:write
       summary: Update workspace origin purpose
       tags:
       - Workspaces
+      x-required-scope: workspace:write
   /v1/workspace/request-enrollment:
     post:
-      description: "Submit a request for workspace enrollment, setting the enroll_requested_at\
-        \ timestamp."
+      description: |-
+        Submit a request for workspace enrollment, setting the enroll_requested_at timestamp.
+
+        Requires the `workspace:write` scope.
       operationId: WorkspacesService_RequestEnrollment
       requestBody:
         content:
@@ -5613,14 +6572,20 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - workspace:write
+      - oauth2:
+        - workspace:write
       summary: Request workspace enrollment
       tags:
       - Workspaces
+      x-required-scope: workspace:write
   /v1/workspaces/{id}:
     get:
-      description: "Retrieve workspace details for the provided identifier, typically\
-        \ for internal tooling."
+      description: |-
+        Retrieve workspace details for the provided identifier, typically for internal tooling.
+
+        Requires the `workspace:read` scope.
       operationId: WorkspacesService_GetWorkspace
       parameters:
       - description: Workspace identifier (UUID) to retrieve
@@ -5645,10 +6610,14 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
       security:
-      - bearerAuth: []
+      - bearerAuth:
+        - workspace:read
+      - oauth2:
+        - workspace:read
       summary: Get a workspace by ID
       tags:
       - Workspaces
+      x-required-scope: workspace:read
 components:
   responses:
     "200":
@@ -5858,6 +6827,118 @@ components:
           type: string
         widgetId:
           type: string
+    ApiScope:
+      default: API_SCOPE_UNSPECIFIED
+      description: |-
+        ApiScope is one permission an API token or OAuth grant can hold.
+
+        A write scope also grants the read scope of the same resource.
+
+         - API_SCOPE_UNSPECIFIED: Not a scope. Rejected wherever a scope is expected.
+         - API_SCOPE_LINKS_READ: Read links, their QR code images, tags, folders and link settings.
+         - API_SCOPE_LINKS_WRITE: Create, update and delete links, tags, folders and link settings.
+         - API_SCOPE_WORKFLOWS_READ: Read the workflow steps behind a link and validate them.
+         - API_SCOPE_WORKFLOWS_WRITE: Create, connect, update, lay out and delete workflow steps.
+         - API_SCOPE_QRCODES_READ: Read QR code designs and QR code templates.
+         - API_SCOPE_QRCODES_WRITE: Change QR code designs and create, publish and delete QR code templates.
+         - API_SCOPE_PAGE_THEMES_READ: Read page themes and page theme templates.
+         - API_SCOPE_PAGE_THEMES_WRITE: Change page themes and create, publish and delete page theme templates.
+         - API_SCOPE_MEDIA_READ: Read uploaded media.
+         - API_SCOPE_MEDIA_WRITE: Upload and delete media.
+         - API_SCOPE_DOMAINS_READ: Read custom domains and their DNS instructions.
+         - API_SCOPE_DOMAINS_WRITE: Add, verify, update and delete custom domains.
+         - API_SCOPE_VISITORS_READ: Read and search visitors and their attributes.
+         - API_SCOPE_VISITORS_WRITE: Identify, update and delete visitors and their attributes.
+         - API_SCOPE_ANALYTICS_READ: Read events, metrics, time series, analytics data and dashboards.
+         - API_SCOPE_ANALYTICS_WRITE: Create, update and delete analytics dashboards and generate widget summaries.
+         - API_SCOPE_WEBHOOKS_READ: Read webhooks.
+         - API_SCOPE_WEBHOOKS_WRITE: Create, update and delete webhooks.
+         - API_SCOPE_INTEGRATIONS_READ: Read the Slack and Google Forms integrations.
+         - API_SCOPE_INTEGRATIONS_WRITE: Connect, configure, test, sync and disconnect the Slack and Google Forms integrations.
+         - API_SCOPE_WORKSPACE_READ: Read the workspace and its settings.
+         - API_SCOPE_WORKSPACE_WRITE: Update the workspace, request enrollment and delete the workspace.
+         - API_SCOPE_MEMBERS_READ: Read workspace members.
+         - API_SCOPE_MEMBERS_WRITE: Invite, update, revoke, sign out and remove members.
+         - API_SCOPE_TOKENS_READ: Read API tokens and their scopes, never their secrets.
+         - API_SCOPE_TOKENS_WRITE: Create, update and delete API tokens, limited to the scopes the calling token holds.
+         - API_SCOPE_BILLING_WRITE: Open checkout, credit top-up and billing portal sessions.
+         - API_SCOPE_ASSISTANT_READ: Read the Assistant conversation.
+         - API_SCOPE_ASSISTANT_WRITE: Send files to the Assistant, clear the conversation and contact support.
+      enum:
+      - API_SCOPE_UNSPECIFIED
+      - API_SCOPE_LINKS_READ
+      - API_SCOPE_LINKS_WRITE
+      - API_SCOPE_WORKFLOWS_READ
+      - API_SCOPE_WORKFLOWS_WRITE
+      - API_SCOPE_QRCODES_READ
+      - API_SCOPE_QRCODES_WRITE
+      - API_SCOPE_PAGE_THEMES_READ
+      - API_SCOPE_PAGE_THEMES_WRITE
+      - API_SCOPE_MEDIA_READ
+      - API_SCOPE_MEDIA_WRITE
+      - API_SCOPE_DOMAINS_READ
+      - API_SCOPE_DOMAINS_WRITE
+      - API_SCOPE_VISITORS_READ
+      - API_SCOPE_VISITORS_WRITE
+      - API_SCOPE_ANALYTICS_READ
+      - API_SCOPE_ANALYTICS_WRITE
+      - API_SCOPE_WEBHOOKS_READ
+      - API_SCOPE_WEBHOOKS_WRITE
+      - API_SCOPE_INTEGRATIONS_READ
+      - API_SCOPE_INTEGRATIONS_WRITE
+      - API_SCOPE_WORKSPACE_READ
+      - API_SCOPE_WORKSPACE_WRITE
+      - API_SCOPE_MEMBERS_READ
+      - API_SCOPE_MEMBERS_WRITE
+      - API_SCOPE_TOKENS_READ
+      - API_SCOPE_TOKENS_WRITE
+      - API_SCOPE_BILLING_WRITE
+      - API_SCOPE_ASSISTANT_READ
+      - API_SCOPE_ASSISTANT_WRITE
+      type: string
+    ApiScopeAccess:
+      default: API_SCOPE_ACCESS_UNSPECIFIED
+      description: |-
+        ApiScopeAccess is what a scope allows on its resource.
+
+         - API_SCOPE_ACCESS_UNSPECIFIED: Not set.
+         - API_SCOPE_ACCESS_READ: Reads only.
+         - API_SCOPE_ACCESS_WRITE: Reads and writes.
+      enum:
+      - API_SCOPE_ACCESS_UNSPECIFIED
+      - API_SCOPE_ACCESS_READ
+      - API_SCOPE_ACCESS_WRITE
+      type: string
+    ApiScopeInfo:
+      description: ApiScopeInfo describes one scope for people and agents choosing
+        scopes.
+      example:
+        access: ""
+        resource: links
+        scope: ""
+        name: links:read
+        description: description
+      properties:
+        access:
+          allOf:
+          - $ref: "#/components/schemas/ApiScopeAccess"
+          description: Whether the scope reads or writes the resource.
+        description:
+          description: What the scope allows.
+          type: string
+        name:
+          description: The scope string as it appears in OAuth grants and error messages
+            (e.g. links:read).
+          example: links:read
+          type: string
+        resource:
+          description: The resource the scope covers (e.g. links).
+          example: links
+          type: string
+        scope:
+          allOf:
+          - $ref: "#/components/schemas/ApiScope"
+          description: The scope.
     ApplyPageThemeTemplateRequest:
       example:
         linkId: linkId
@@ -6269,6 +7350,20 @@ components:
           - $ref: "#/components/schemas/ThemeColor"
           title: Color configuration supporting solid colors and gradients
       title: BackgroundOptions represents the styling options for the QR code background
+    BillingInterval:
+      default: BILLING_INTERVAL_UNSPECIFIED
+      description: |-
+        - BILLING_INTERVAL_UNSPECIFIED: Not set
+         - BILLING_INTERVAL_MONTH: Charged every month
+         - BILLING_INTERVAL_YEAR: Charged every year
+         - BILLING_INTERVAL_ONE_TIME: Charged once
+      enum:
+      - BILLING_INTERVAL_UNSPECIFIED
+      - BILLING_INTERVAL_MONTH
+      - BILLING_INTERVAL_YEAR
+      - BILLING_INTERVAL_ONE_TIME
+      title: BillingInterval is how often a price is charged
+      type: string
     BreakdownDataPoint:
       example:
         code: code
@@ -7700,6 +8795,9 @@ components:
     CreateWorkspaceTokenRequest:
       example:
         name: name
+        scopes:
+        - API_SCOPE_UNSPECIFIED
+        - API_SCOPE_UNSPECIFIED
         keyType: ""
       properties:
         keyType:
@@ -7709,6 +8807,14 @@ components:
         name:
           title: The name of the token
           type: string
+        scopes:
+          description: |-
+            The scopes the token may use. Leave empty for full access. A write scope
+            also grants the read scope of the same resource. Publishable keys take no
+            scopes. A token can only grant scopes it holds itself.
+          items:
+            $ref: "#/components/schemas/ApiScope"
+          type: array
       required:
       - keyType
       title: CreateWorkspaceTokenRequest represents the request to create a new workspace
@@ -7729,6 +8835,18 @@ components:
           title: The workspace token
       title: CreateWorkspaceTokenResponse represents the response after creating a
         workspace token
+    CreditTopup:
+      properties:
+        amounts:
+          items:
+            $ref: "#/components/schemas/Money"
+          title: "Price of one unit, one entry per currency"
+          type: array
+        creditsPerUnit:
+          format: int32
+          title: Credits bought per unit
+          type: integer
+      title: CreditTopup is the price of buying platform credits outside a plan
     CustomDomain:
       description: |-
         Captures a branded hostname that Linkbreakers provisions for a workspace so scans and shortlinks resolve
@@ -11571,6 +12689,26 @@ components:
             If true, all tags will be removed from the link.
           type: boolean
       title: Request to update a link
+    ListApiScopesResponse:
+      description: ListApiScopesResponse lists every scope a token can hold.
+      example:
+        scopes:
+        - access: ""
+          resource: links
+          scope: ""
+          name: links:read
+          description: description
+        - access: ""
+          resource: links
+          scope: ""
+          name: links:read
+          description: description
+      properties:
+        scopes:
+          description: "Every scope, ordered by resource then read before write."
+          items:
+            $ref: "#/components/schemas/ApiScopeInfo"
+          type: array
     ListCustomDomainsResponse:
       example:
         customDomains:
@@ -12829,6 +13967,129 @@ components:
           format: int64
           type: string
       title: Response containing page themes
+    ListPricingPlansResponse:
+      example:
+        plans:
+        - features:
+          - PLAN_FEATURE_UNSPECIFIED
+          - PLAN_FEATURE_UNSPECIFIED
+          meteredPrices:
+          - unit: ""
+            amounts:
+            - currency: currency
+              amountMinor: 1
+            - currency: currency
+              amountMinor: 1
+          - unit: ""
+            amounts:
+            - currency: currency
+              amountMinor: 1
+            - currency: currency
+              amountMinor: 1
+          name: name
+          id: ""
+          prices:
+          - monthlyEquivalents:
+            - currency: currency
+              amountMinor: 1
+            - currency: currency
+              amountMinor: 1
+            amounts:
+            - currency: currency
+              amountMinor: 1
+            - currency: currency
+              amountMinor: 1
+            interval: ""
+          - monthlyEquivalents:
+            - currency: currency
+              amountMinor: 1
+            - currency: currency
+              amountMinor: 1
+            amounts:
+            - currency: currency
+              amountMinor: 1
+            - currency: currency
+              amountMinor: 1
+            interval: ""
+          limits:
+          - kind: ""
+            value: 6
+            key: ""
+          - kind: ""
+            value: 6
+            key: ""
+        - features:
+          - PLAN_FEATURE_UNSPECIFIED
+          - PLAN_FEATURE_UNSPECIFIED
+          meteredPrices:
+          - unit: ""
+            amounts:
+            - currency: currency
+              amountMinor: 1
+            - currency: currency
+              amountMinor: 1
+          - unit: ""
+            amounts:
+            - currency: currency
+              amountMinor: 1
+            - currency: currency
+              amountMinor: 1
+          name: name
+          id: ""
+          prices:
+          - monthlyEquivalents:
+            - currency: currency
+              amountMinor: 1
+            - currency: currency
+              amountMinor: 1
+            amounts:
+            - currency: currency
+              amountMinor: 1
+            - currency: currency
+              amountMinor: 1
+            interval: ""
+          - monthlyEquivalents:
+            - currency: currency
+              amountMinor: 1
+            - currency: currency
+              amountMinor: 1
+            amounts:
+            - currency: currency
+              amountMinor: 1
+            - currency: currency
+              amountMinor: 1
+            interval: ""
+          limits:
+          - kind: ""
+            value: 6
+            key: ""
+          - kind: ""
+            value: 6
+            key: ""
+        creditTopup: ""
+        linkCreatedCreditCost: 0
+        pricesUpdatedAt: 2000-01-23T04:56:07.000+00:00
+      properties:
+        creditTopup:
+          allOf:
+          - $ref: "#/components/schemas/CreditTopup"
+          description: Price of buying more credits. Absent when prices could not
+            be read.
+        linkCreatedCreditCost:
+          format: int32
+          title: Platform credits spent by creating one link
+          type: integer
+        plans:
+          items:
+            $ref: "#/components/schemas/PricingPlan"
+          title: "Plans, cheapest first"
+          type: array
+        pricesUpdatedAt:
+          description: When the prices were read from the billing provider. Absent
+            when they never could be.
+          format: date-time
+          type: string
+      title: The pricing catalog
     ListQrcodeTemplatesResponse:
       example:
         nextPageToken: eyJxdHMiOiJxdGVtcGxhdGUifQ==
@@ -13335,17 +14596,25 @@ components:
         tokens:
         - createdAt: 2000-01-23T04:56:07.000+00:00
           createdBy: 123e4567-e89b-12d3-a456-426614174000
+          fullAccess: true
           lastUsedAt: 2000-01-23T04:56:07.000+00:00
           name: Production token
           id: d22f7bf1-83a9-4f3a-9b37-9a3a21b6ac11
+          scopes:
+          - API_SCOPE_UNSPECIFIED
+          - API_SCOPE_UNSPECIFIED
           keyType: ""
           updatedAt: 2000-01-23T04:56:07.000+00:00
           workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
         - createdAt: 2000-01-23T04:56:07.000+00:00
           createdBy: 123e4567-e89b-12d3-a456-426614174000
+          fullAccess: true
           lastUsedAt: 2000-01-23T04:56:07.000+00:00
           name: Production token
           id: d22f7bf1-83a9-4f3a-9b37-9a3a21b6ac11
+          scopes:
+          - API_SCOPE_UNSPECIFIED
+          - API_SCOPE_UNSPECIFIED
           keyType: ""
           updatedAt: 2000-01-23T04:56:07.000+00:00
           workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
@@ -13655,6 +14924,55 @@ components:
       - navigationType
       - title
       title: MessagePagePayload is a mid-flow informational page with mandatory navigation
+    MeteredPrice:
+      example:
+        unit: ""
+        amounts:
+        - currency: currency
+          amountMinor: 1
+        - currency: currency
+          amountMinor: 1
+      properties:
+        amounts:
+          items:
+            $ref: "#/components/schemas/Money"
+          title: "Price of one unit, one entry per currency"
+          type: array
+        unit:
+          allOf:
+          - $ref: "#/components/schemas/MeteredUnit"
+          title: What is billed
+      title: MeteredPrice is what one unit costs on a plan billed per use
+    MeteredUnit:
+      default: METERED_UNIT_UNSPECIFIED
+      description: |-
+        - METERED_UNIT_UNSPECIFIED: Not set
+         - METERED_UNIT_LINK_CREATED: A link created
+         - METERED_UNIT_LINK_VISITED: A tracked visit
+         - METERED_UNIT_PUBLIC_API_CALL: A public API call
+         - METERED_UNIT_CUSTOM_DOMAIN_CREATED: A custom domain created
+      enum:
+      - METERED_UNIT_UNSPECIFIED
+      - METERED_UNIT_LINK_CREATED
+      - METERED_UNIT_LINK_VISITED
+      - METERED_UNIT_PUBLIC_API_CALL
+      - METERED_UNIT_CUSTOM_DOMAIN_CREATED
+      title: MeteredUnit names something an Enterprise workspace is billed for per
+        unit
+      type: string
+    Money:
+      example:
+        currency: currency
+        amountMinor: 1
+      properties:
+        amountMinor:
+          format: int32
+          title: "Amount in the currency's minor unit, e.g. 790 for 7.90 USD"
+          type: integer
+        currency:
+          title: "ISO 4217 currency code, upper case, e.g. \"USD\""
+          type: string
+      title: Money is an amount in one currency
     MultiLinkButton:
       properties:
         id:
@@ -14343,6 +15661,109 @@ components:
           type: string
         validated:
           type: boolean
+    PlanFeature:
+      default: PLAN_FEATURE_UNSPECIFIED
+      description: |-
+        - PLAN_FEATURE_UNSPECIFIED: Not set
+         - PLAN_FEATURE_BRAND_FREE_PAGES: Visitor pages carry no Linkbreakers branding
+      enum:
+      - PLAN_FEATURE_UNSPECIFIED
+      - PLAN_FEATURE_BRAND_FREE_PAGES
+      title: PlanFeature names a capability that depends on the plan
+      type: string
+    PlanLimit:
+      example:
+        kind: ""
+        value: 6
+        key: ""
+      properties:
+        key:
+          allOf:
+          - $ref: "#/components/schemas/PlanLimitKey"
+          title: What the limit is on
+        kind:
+          allOf:
+          - $ref: "#/components/schemas/PlanLimitKind"
+          title: How the limit behaves
+        value:
+          description: The ceiling. Absent when kind is PLAN_LIMIT_KIND_UNLIMITED
+            or PLAN_LIMIT_KIND_METERED.
+          format: int32
+          type: integer
+      title: PlanLimit is one number a plan puts on something
+    PlanLimitKey:
+      default: PLAN_LIMIT_KEY_UNSPECIFIED
+      description: |-
+        - PLAN_LIMIT_KEY_UNSPECIFIED: Not set
+         - PLAN_LIMIT_KEY_CUSTOM_DOMAINS: Custom domains connected to the workspace
+         - PLAN_LIMIT_KEY_TEAM_MEMBERS: Members of the workspace
+         - PLAN_LIMIT_KEY_PLATFORM_CREDITS: Platform credits, spent by creating links and by AI features
+         - PLAN_LIMIT_KEY_TRACKED_VISITS: Tracked visits (scans and clicks)
+         - PLAN_LIMIT_KEY_PUBLIC_API_CALLS: Public API calls
+         - PLAN_LIMIT_KEY_WEBHOOKS: Webhooks configured in the workspace
+         - PLAN_LIMIT_KEY_ASSISTANT_MESSAGES_PER_MINUTE: Assistant messages per minute
+         - PLAN_LIMIT_KEY_LINKS_INCLUDED: Links the monthly platform credits pay for. Links are not capped on their own: each one spends credits.
+      enum:
+      - PLAN_LIMIT_KEY_UNSPECIFIED
+      - PLAN_LIMIT_KEY_CUSTOM_DOMAINS
+      - PLAN_LIMIT_KEY_TEAM_MEMBERS
+      - PLAN_LIMIT_KEY_PLATFORM_CREDITS
+      - PLAN_LIMIT_KEY_TRACKED_VISITS
+      - PLAN_LIMIT_KEY_PUBLIC_API_CALLS
+      - PLAN_LIMIT_KEY_WEBHOOKS
+      - PLAN_LIMIT_KEY_ASSISTANT_MESSAGES_PER_MINUTE
+      - PLAN_LIMIT_KEY_LINKS_INCLUDED
+      title: PlanLimitKey names one thing a plan puts a number on
+      type: string
+    PlanLimitKind:
+      default: PLAN_LIMIT_KIND_UNSPECIFIED
+      description: |-
+        - PLAN_LIMIT_KIND_UNSPECIFIED: Not set
+         - PLAN_LIMIT_KIND_TOTAL: A standing total that does not refill, such as connected domains
+         - PLAN_LIMIT_KIND_MONTHLY: An allowance that refills every month
+         - PLAN_LIMIT_KIND_PER_MINUTE: A rate that refills every minute
+         - PLAN_LIMIT_KIND_UNLIMITED: No ceiling
+         - PLAN_LIMIT_KIND_METERED: No ceiling; every unit is billed
+      enum:
+      - PLAN_LIMIT_KIND_UNSPECIFIED
+      - PLAN_LIMIT_KIND_TOTAL
+      - PLAN_LIMIT_KIND_MONTHLY
+      - PLAN_LIMIT_KIND_PER_MINUTE
+      - PLAN_LIMIT_KIND_UNLIMITED
+      - PLAN_LIMIT_KIND_METERED
+      title: PlanLimitKind says how a limit behaves
+      type: string
+    PlanPrice:
+      example:
+        monthlyEquivalents:
+        - currency: currency
+          amountMinor: 1
+        - currency: currency
+          amountMinor: 1
+        amounts:
+        - currency: currency
+          amountMinor: 1
+        - currency: currency
+          amountMinor: 1
+        interval: ""
+      properties:
+        amounts:
+          items:
+            $ref: "#/components/schemas/Money"
+          title: "The charge for the whole interval, one entry per currency the price\
+            \ is offered in"
+          type: array
+        interval:
+          allOf:
+          - $ref: "#/components/schemas/BillingInterval"
+          title: How often the price is charged
+        monthlyEquivalents:
+          description: "The charge spread over one month, one entry per currency.\
+            \ Equals amounts for a monthly price."
+          items:
+            $ref: "#/components/schemas/Money"
+          type: array
+      title: PlanPrice is what a plan costs for one billing interval
     PreferredLinkType:
       default: PREFERRED_LINK_TYPE_URL
       description: |-
@@ -14357,6 +15778,104 @@ components:
       - PREFERRED_LINK_TYPE_CONTACT_CARD
       - PREFERRED_LINK_TYPE_SOCIAL_LINKS_PAGE
       - PREFERRED_LINK_TYPE_MIX
+      type: string
+    PricingPlan:
+      description: "One plan: what it costs and what it allows."
+      example:
+        features:
+        - PLAN_FEATURE_UNSPECIFIED
+        - PLAN_FEATURE_UNSPECIFIED
+        meteredPrices:
+        - unit: ""
+          amounts:
+          - currency: currency
+            amountMinor: 1
+          - currency: currency
+            amountMinor: 1
+        - unit: ""
+          amounts:
+          - currency: currency
+            amountMinor: 1
+          - currency: currency
+            amountMinor: 1
+        name: name
+        id: ""
+        prices:
+        - monthlyEquivalents:
+          - currency: currency
+            amountMinor: 1
+          - currency: currency
+            amountMinor: 1
+          amounts:
+          - currency: currency
+            amountMinor: 1
+          - currency: currency
+            amountMinor: 1
+          interval: ""
+        - monthlyEquivalents:
+          - currency: currency
+            amountMinor: 1
+          - currency: currency
+            amountMinor: 1
+          amounts:
+          - currency: currency
+            amountMinor: 1
+          - currency: currency
+            amountMinor: 1
+          interval: ""
+        limits:
+        - kind: ""
+          value: 6
+          key: ""
+        - kind: ""
+          value: 6
+          key: ""
+      properties:
+        features:
+          items:
+            $ref: "#/components/schemas/PlanFeature"
+          title: Capabilities the plan includes
+          type: array
+        id:
+          allOf:
+          - $ref: "#/components/schemas/PricingPlanId"
+          title: Plan identifier
+        limits:
+          items:
+            $ref: "#/components/schemas/PlanLimit"
+          title: Every limit the plan enforces
+          type: array
+        meteredPrices:
+          items:
+            $ref: "#/components/schemas/MeteredPrice"
+          title: Per-unit prices for plans billed by use
+          type: array
+        name:
+          title: Display name
+          type: string
+        prices:
+          description: |-
+            Recurring prices. Empty for the free plan and for Enterprise, which is billed per unit through
+            metered_prices. Also empty for a paid plan whose prices could not be read: treat that as unknown, not free.
+          items:
+            $ref: "#/components/schemas/PlanPrice"
+          type: array
+      title: PricingPlan
+    PricingPlanId:
+      default: PRICING_PLAN_ID_UNSPECIFIED
+      description: |-
+        - PRICING_PLAN_ID_UNSPECIFIED: Not set
+         - PRICING_PLAN_ID_FREE: Free plan, no payment
+         - PRICING_PLAN_ID_LIGHT: Light plan
+         - PRICING_PLAN_ID_PRO: Pro plan. Trials and sponsored workspaces are allowed what Pro allows unless a limit says otherwise.
+         - PRICING_PLAN_ID_ENTERPRISE: Enterprise plan, billed per unit used
+      enum:
+      - PRICING_PLAN_ID_UNSPECIFIED
+      - PRICING_PLAN_ID_FREE
+      - PRICING_PLAN_ID_LIGHT
+      - PRICING_PLAN_ID_PRO
+      - PRICING_PLAN_ID_ENTERPRISE
+      title: PricingPlanId identifies a plan a workspace can subscribe to
       type: string
     PublicCreateQrcodeDesignRequest:
       description: PublicCreateQrcodeDesignRequest provisions a new reusable QR code
@@ -16460,6 +17979,15 @@ components:
           title: Website URL for the workspace
           type: string
       title: UpdateWorkspaceRequest represents the request to update a workspace
+    UpdateWorkspaceTokenResponse:
+      description: UpdateWorkspaceTokenResponse returns the updated token.
+      example:
+        token: ""
+      properties:
+        token:
+          allOf:
+          - $ref: "#/components/schemas/WorkspaceToken"
+          title: Token metadata (does not include the secret access token)
     VCardData:
       properties:
         buttonLabel:
@@ -18312,9 +19840,13 @@ components:
       example:
         createdAt: 2000-01-23T04:56:07.000+00:00
         createdBy: 123e4567-e89b-12d3-a456-426614174000
+        fullAccess: true
         lastUsedAt: 2000-01-23T04:56:07.000+00:00
         name: Production token
         id: d22f7bf1-83a9-4f3a-9b37-9a3a21b6ac11
+        scopes:
+        - API_SCOPE_UNSPECIFIED
+        - API_SCOPE_UNSPECIFIED
         keyType: ""
         updatedAt: 2000-01-23T04:56:07.000+00:00
         workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
@@ -18328,6 +19860,12 @@ components:
           example: 123e4567-e89b-12d3-a456-426614174000
           title: The member who created the token (UUID of creator)
           type: string
+        fullAccess:
+          description: |-
+            True when the token may call every endpoint, including ones behind scopes
+            added later. Tokens created without scopes have full access.
+          readOnly: true
+          type: boolean
         id:
           example: d22f7bf1-83a9-4f3a-9b37-9a3a21b6ac11
           title: The unique identifier of the workspace token (UUID)
@@ -18346,6 +19884,13 @@ components:
           example: Production token
           title: The name of the token
           type: string
+        scopes:
+          description: "The scopes the token holds. With full access, every scope\
+            \ that exists today."
+          items:
+            $ref: "#/components/schemas/ApiScope"
+          readOnly: true
+          type: array
         updatedAt:
           format: date-time
           readOnly: true
@@ -18368,6 +19913,29 @@ components:
       - WORKSPACE_TOKEN_KEY_TYPE_PUBLISHABLE
       title: WorkspaceTokenKeyType defines the access level of a workspace token
       type: string
+    WorkspaceTokensServiceUpdateBody:
+      description: UpdateWorkspaceTokenRequest renames a token or changes what it
+        may access.
+      example:
+        fullAccess: true
+        name: name
+        scopes:
+        - API_SCOPE_UNSPECIFIED
+        - API_SCOPE_UNSPECIFIED
+      properties:
+        fullAccess:
+          description: Set to true to give the token full access again. Cannot be
+            combined with scopes.
+          type: boolean
+        name:
+          description: New name for the token. Left unchanged when omitted.
+          type: string
+        scopes:
+          description: Replace the token's scopes with these. Cannot be combined with
+            full_access.
+          items:
+            $ref: "#/components/schemas/ApiScope"
+          type: array
     apiTag:
       description: |-
         Provides lightweight segmentation metadata Linkbreakers attaches to links and analytics so teams can group campaigns
@@ -18432,6 +20000,61 @@ components:
       bearerFormat: JWT
       description: "JWT Bearer token authentication. Use a workspace API token obtained\
         \ from the Linkbreakers dashboard. When using the SDK, pass this token to\
-        \ the `accessToken` field in the Configuration constructor (not `apiKey`)."
+        \ the `accessToken` field in the Configuration constructor (not `apiKey`).\
+        \ A token has full access or a list of scopes; each operation lists the one\
+        \ scope it requires, and a write scope also grants the read scope of the same\
+        \ resource. GET /v1/api-scopes lists every scope."
       scheme: bearer
       type: http
+    oauth2:
+      description: OAuth 2.0 authorization code flow with PKCE and dynamic client
+        registration. Request only the scopes you need. The scope names are the same
+        ones workspace API tokens hold.
+      flows:
+        authorizationCode:
+          authorizationUrl: https://mcp.linkbreakers.com/oauth/authorize
+          refreshUrl: https://mcp.linkbreakers.com/oauth/token
+          scopes:
+            analytics:read: "Read events, metrics, time series, analytics data and\
+              \ dashboards."
+            analytics:write: "Create, update and delete analytics dashboards and generate\
+              \ widget summaries."
+            assistant:read: Read the Assistant conversation.
+            assistant:write: "Send files to the Assistant, clear the conversation\
+              \ and contact support."
+            billing:write: "Open checkout, credit top-up and billing portal sessions."
+            domains:read: Read custom domains and their DNS instructions.
+            domains:write: "Add, verify, update and delete custom domains."
+            integrations:read: Read the Slack and Google Forms integrations.
+            integrations:write: "Connect, configure, test, sync and disconnect the\
+              \ Slack and Google Forms integrations."
+            links:read: "Read links, their QR code images, tags, folders and link\
+              \ settings."
+            links:write: "Create, update and delete links, tags, folders and link\
+              \ settings."
+            mcp:tools: "Full access, including scopes added later."
+            media:read: Read uploaded media.
+            media:write: Upload and delete media.
+            members:read: Read workspace members.
+            members:write: "Invite, update, revoke, sign out and remove members."
+            page_themes:read: Read page themes and page theme templates.
+            page_themes:write: "Change page themes and create, publish and delete\
+              \ page theme templates."
+            qrcodes:read: Read QR code designs and QR code templates.
+            qrcodes:write: "Change QR code designs and create, publish and delete\
+              \ QR code templates."
+            tokens:read: "Read API tokens and their scopes, never their secrets."
+            tokens:write: "Create, update and delete API tokens, limited to the scopes\
+              \ the calling token holds."
+            visitors:read: Read and search visitors and their attributes.
+            visitors:write: "Identify, update and delete visitors and their attributes."
+            webhooks:read: Read webhooks.
+            webhooks:write: "Create, update and delete webhooks."
+            workflows:read: Read the workflow steps behind a link and validate them.
+            workflows:write: "Create, connect, update, lay out and delete workflow\
+              \ steps."
+            workspace:read: Read the workspace and its settings.
+            workspace:write: "Update the workspace, request enrollment and delete\
+              \ the workspace."
+          tokenUrl: https://mcp.linkbreakers.com/oauth/token
+      type: oauth2
