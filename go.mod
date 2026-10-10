@@ -1,5 +1,5 @@
 module github.com/linkbreakers-com/linkbreakers-go
 
-go 1.26.0
+go 1.23.0
 
-require golang.org/x/oauth2 v0.37.0
+require golang.org/x/oauth2 v0.27.0
