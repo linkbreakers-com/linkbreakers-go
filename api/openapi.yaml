@@ -5,7 +5,7 @@ info:
     url: https://app.linkbreakers.com
   description: This is a documentation of all the APIs of Linkbreakers
   title: Linkbreakers API
-  version: 1.146.0
+  version: 1.147.0
 servers:
 - url: https://api.linkbreakers.com
 security:
@@ -14018,6 +14018,7 @@ components:
           - kind: ""
             value: 6
             key: ""
+          trial: ""
         - features:
           - PLAN_FEATURE_UNSPECIFIED
           - PLAN_FEATURE_UNSPECIFIED
@@ -14066,6 +14067,7 @@ components:
           - kind: ""
             value: 6
             key: ""
+          trial: ""
         creditTopup: ""
         linkCreatedCreditCost: 0
         pricesUpdatedAt: 2000-01-23T04:56:07.000+00:00
@@ -15764,6 +15766,26 @@ components:
             $ref: "#/components/schemas/Money"
           type: array
       title: PlanPrice is what a plan costs for one billing interval
+    PlanTrial:
+      properties:
+        days:
+          format: int32
+          title: Length of the trial in days
+          type: integer
+        limits:
+          description: "What a workspace on the trial is allowed. Mostly the plan's\
+            \ limits, with the exceptions enforcement makes."
+          items:
+            $ref: "#/components/schemas/PlanLimit"
+          type: array
+        signupOffer:
+          title: Value of the offer query parameter on the signup link that starts
+            the trial
+          type: string
+        signupUrl:
+          title: Signup link that starts the trial
+          type: string
+      title: "PlanTrial is a free, self-serve trial of a plan"
     PreferredLinkType:
       default: PREFERRED_LINK_TYPE_URL
       description: |-
@@ -15830,6 +15852,7 @@ components:
         - kind: ""
           value: 6
           key: ""
+        trial: ""
       properties:
         features:
           items:
@@ -15860,6 +15883,11 @@ components:
           items:
             $ref: "#/components/schemas/PlanPrice"
           type: array
+        trial:
+          allOf:
+          - $ref: "#/components/schemas/PlanTrial"
+          description: Self-serve free trial of this plan. Absent when the plan has
+            none.
       title: PricingPlan
     PricingPlanId:
       default: PRICING_PLAN_ID_UNSPECIFIED

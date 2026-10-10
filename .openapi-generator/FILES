@@ -320,6 +320,7 @@ model_plan_limit.go
 model_plan_limit_key.go
 model_plan_limit_kind.go
 model_plan_price.go
+model_plan_trial.go
 model_preferred_link_type.go
 model_pricing_plan.go
 model_pricing_plan_id.go
