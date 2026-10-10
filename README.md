@@ -22,41 +22,36 @@ import (
 )
 
 func main() {
-    // Create configuration
-    cfg := linkbreakers.NewConfiguration()
+    client := linkbreakers.NewAPIClient(linkbreakers.NewConfiguration())
 
-    // Create API client with Bearer token
-    client := linkbreakers.NewAPIClient(cfg)
+    // Every request reads the Bearer token from its context
     ctx := context.WithValue(context.Background(), linkbreakers.ContextAccessToken, "your-api-token")
 
-    // Example: List links
-    links, resp, err := client.LinksApi.LinksList(ctx).PageSize(10).Execute()
+    // Create a shortened link
+    request := linkbreakers.NewCreateLinkRequest("https://example.com")
+    request.SetName("My Link")
+
+    created, _, err := client.LinksAPI.LinksServiceCreate(ctx).CreateLinkRequest(*request).Execute()
+    if err != nil {
+        log.Fatalf("Error creating link: %v", err)
+    }
+    link := created.GetLink()
+    fmt.Println("Short link:", link.GetShortlink())
+
+    // List links
+    links, _, err := client.LinksAPI.LinksServiceList(ctx).PageSize(10).Execute()
     if err != nil {
         log.Fatalf("Error listing links: %v", err)
     }
-
     fmt.Printf("Found %d links\n", len(links.GetLinks()))
 }
 ```
 
+Each API is a field on the client (`client.LinksAPI`, `client.VisitorsAPI`, ...) and each operation is named after the API's operation ID (`LinksServiceCreate`, `LinksServiceList`, `VisitorsServiceIdentify`, ...). Path parameters are arguments; query parameters and the request body are builder methods, and `Execute()` sends the request.
+
 ## Authentication
 
-The SDK supports Bearer token authentication:
-
-```go
-cfg := linkbreakers.NewConfiguration()
-client := linkbreakers.NewAPIClient(cfg)
-
-// Add authentication token to context
-ctx := context.WithValue(
-    context.Background(),
-    linkbreakers.ContextAccessToken,
-    "your-api-token",
-)
-
-// Use authenticated context in API calls
-result, resp, err := client.LinksApi.LinksList(ctx).Execute()
-```
+The SDK uses Bearer token authentication. Put your workspace API token in the context passed to each call with `linkbreakers.ContextAccessToken`, as in the example above. Get a token from the [Linkbreakers dashboard](https://app.linkbreakers.com/settings/api).
 
 ## API Documentation
 
@@ -64,7 +59,7 @@ For detailed API documentation, visit: https://docs.linkbreakers.com
 
 ## Auto-Generated
 
-This SDK is automatically generated from the Linkbreakers OpenAPI specification and published when the API is updated.
+This SDK is automatically generated from the Linkbreakers OpenAPI specification and published when the API is updated. This README is written by hand: `scripts/check-docs.sh` compiles every Go block in it against the generated code, on pull requests and before every release.
 
 Current API version: See [OPENAPI_VERSION](./OPENAPI_VERSION)
 

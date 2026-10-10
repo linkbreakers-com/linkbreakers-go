@@ -119,6 +119,10 @@ jobs:
         run: |
           go test ./... || echo "⚠️ Tests failed or no tests found"
 
+      - name: Check README against the generated SDK
+        if: steps.compare.outputs.needs_update == 'true'
+        run: ./scripts/check-docs.sh
+
       - name: Configure Git
         if: steps.compare.outputs.needs_update == 'true'
         run: |
