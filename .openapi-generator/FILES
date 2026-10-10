@@ -205,7 +205,6 @@ model_get_grouped_time_series_request.go
 model_get_grouped_time_series_response.go
 model_get_hour_of_day_distribution_request.go
 model_get_hour_of_day_distribution_response.go
-model_get_lead_score_response.go
 model_get_link_response.go
 model_get_link_setting_response.go
 model_get_media_response.go
@@ -238,8 +237,6 @@ model_import_qrcode_template_request.go
 model_import_qrcode_template_response.go
 model_invite_member_request.go
 model_journey_progress.go
-model_lead_score.go
-model_lead_score_breakdown.go
 model_link.go
 model_link_setting.go
 model_link_sort_field.go

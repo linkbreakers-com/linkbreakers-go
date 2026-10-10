@@ -5,7 +5,7 @@ info:
     url: https://app.linkbreakers.com
   description: This is a documentation of all the APIs of Linkbreakers
   title: Linkbreakers API
-  version: 1.138.5
+  version: 1.140.0
 servers:
 - url: https://api.linkbreakers.com
 security:
@@ -655,10 +655,6 @@ paths:
           dashboard id — the dashboard does not exist yet while the user and the
           assistant are still agreeing on what it should show. Once it exists,
           editing it happens under ASSISTANT_CONTEXT_TYPE_ANALYTICS_DASHBOARD instead.
-           - ASSISTANT_CONTEXT_TYPE_LEAD_SCORE: A conversation about one visit and the lead score it produced. The context
-          id is the EVENT id, not the link id: two visits to the same link are two
-          different subjects, and sharing a thread between them lets one visitor's
-          details bleed into answers about another.
            - ASSISTANT_CONTEXT_TYPE_WORKSPACE: The workspace-wide assistant, with no resource selected. The context id is
           the WORKSPACE id: this thread is not about any one link, dashboard or
           design, and every capability the resource-scoped assistants have is available
@@ -704,10 +700,6 @@ paths:
           dashboard id — the dashboard does not exist yet while the user and the
           assistant are still agreeing on what it should show. Once it exists,
           editing it happens under ASSISTANT_CONTEXT_TYPE_ANALYTICS_DASHBOARD instead.
-           - ASSISTANT_CONTEXT_TYPE_LEAD_SCORE: A conversation about one visit and the lead score it produced. The context
-          id is the EVENT id, not the link id: two visits to the same link are two
-          different subjects, and sharing a thread between them lets one visitor's
-          details bleed into answers about another.
            - ASSISTANT_CONTEXT_TYPE_WORKSPACE: The workspace-wide assistant, with no resource selected. The context id is
           the WORKSPACE id: this thread is not about any one link, dashboard or
           design, and every capability the resource-scoped assistants have is available
@@ -1363,9 +1355,9 @@ paths:
           type: string
         style: form
       - description: |-
-          Optional list of relationships to include: visitor, device, link, workspace, leadScore, journey
+          Optional list of relationships to include: visitor, device, link, workspace, journey
 
-          Optional list of relationships to include: visitor, device, link, workspace, leadScore, journey
+          Optional list of relationships to include: visitor, device, link, workspace, journey
         explode: true
         in: query
         name: include
@@ -2099,48 +2091,6 @@ paths:
       security:
       - bearerAuth: []
       summary: Update a link
-      tags:
-      - Links
-  /v1/links/{linkId}/lead-score/{eventId}:
-    get:
-      description: |-
-        Returns the score exactly as it was recorded when the visitor came through,
-        together with the factor breakdown and the weighting the link was scored
-        on. Nothing is recalculated here.
-      operationId: LinksService_GetLeadScore
-      parameters:
-      - description: The ID of the link (UUID)
-        explode: false
-        in: path
-        name: linkId
-        required: true
-        schema:
-          type: string
-        style: simple
-      - description: The ID of the event for which to generate the explanation (UUID)
-        explode: false
-        in: path
-        name: eventId
-        required: true
-        schema:
-          type: string
-        style: simple
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/GetLeadScoreResponse"
-          description: Everything worked as expected.
-        default:
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-          description: Unexpected error
-      security:
-      - bearerAuth: []
-      summary: Get the stored lead score for an event
       tags:
       - Links
   /v1/links/{linkId}/workflow-steps:
@@ -5957,10 +5907,6 @@ components:
         dashboard id — the dashboard does not exist yet while the user and the
         assistant are still agreeing on what it should show. Once it exists,
         editing it happens under ASSISTANT_CONTEXT_TYPE_ANALYTICS_DASHBOARD instead.
-         - ASSISTANT_CONTEXT_TYPE_LEAD_SCORE: A conversation about one visit and the lead score it produced. The context
-        id is the EVENT id, not the link id: two visits to the same link are two
-        different subjects, and sharing a thread between them lets one visitor's
-        details bleed into answers about another.
          - ASSISTANT_CONTEXT_TYPE_WORKSPACE: The workspace-wide assistant, with no resource selected. The context id is
         the WORKSPACE id: this thread is not about any one link, dashboard or
         design, and every capability the resource-scoped assistants have is available
@@ -5973,7 +5919,6 @@ components:
       - ASSISTANT_CONTEXT_TYPE_QRCODE_DESIGN
       - ASSISTANT_CONTEXT_TYPE_PAGE_THEME
       - ASSISTANT_CONTEXT_TYPE_LINK_ANALYTICS
-      - ASSISTANT_CONTEXT_TYPE_LEAD_SCORE
       - ASSISTANT_CONTEXT_TYPE_WORKSPACE
       title: Assistant context types
       type: string
@@ -6889,9 +6834,8 @@ components:
         purpose:
           description: |-
             What the user is trying to achieve with this link, in one or two sentences.
-            Lead scoring weights the link from this, and the link's assistant
-            conversations read it as context, so it is restated whenever the workflow
-            changes shape.
+            The link's assistant conversations read it as context, so it is restated
+            whenever the workflow changes shape.
           example: "Capture contact details for sales outreach. Good leads: business\
             \ contacts interested in our services."
           type: string
@@ -7030,11 +6974,16 @@ components:
           type: string
         useDefaultWidgets:
           description: |-
-            Fill a workspace dashboard with the standard starter widgets instead of
-            leaving it empty. For the first dashboard in a workspace, which is created
-            by one click rather than by a conversation. Ignored when config is set or
-            when link_id is set, and hidden from the assistant, which agrees its widgets
-            with the user and would otherwise stack them on top of these.
+            Fill the dashboard with a starter set instead of leaving it empty, for a
+            dashboard made in one step rather than agreed in a conversation. Without
+            link_id it is the workspace set (scans over time, top links, geography,
+            technology and more). With link_id it is the link set: scans over time,
+            geography, technology, peak hours, and new versus returning visitors, which
+            is everything any link records. The service applies it to any link; whether
+            it suits one is the caller's judgement, since a workflow that collects
+            answers deserves widgets for them. Ignored when config is set, and hidden
+            from the assistant, which agrees its widgets with the user and would
+            otherwise stack them on top of these.
           type: boolean
     CreateDashboardResponse:
       example:
@@ -7192,9 +7141,8 @@ components:
         purpose:
           description: |-
             What the user is trying to achieve with this link, in one or two sentences.
-            Lead scoring weights the link from this, and the link's assistant
-            conversations read it as context, so it is restated whenever the workflow
-            changes shape.
+            The link's assistant conversations read it as context, so it is restated
+            whenever the workflow changes shape.
           example: "Increase newsletter signups. Good leads: marketing qualified leads\
             \ with budget over $10k."
           type: string
@@ -7539,9 +7487,8 @@ components:
         purpose:
           description: |-
             What the user is trying to achieve with this link, in one or two sentences.
-            Lead scoring weights the link from this, and the link's assistant
-            conversations read it as context, so it is restated whenever the workflow
-            changes shape.
+            The link's assistant conversations read it as context, so it is restated
+            whenever the workflow changes shape.
           example: "Thank visitors after a purchase and measure engagement. Good leads:\
             \ visitors who completed a purchase."
           type: string
@@ -9073,20 +9020,6 @@ components:
         Records each scan or workflow action Linkbreakers processes, stitching together visitor, device, link, and routing
         details so analytics and automations stay in sync.
       example:
-        leadScore:
-          brandSupportiveness: 0
-          leadScore: 1
-          profileFit: 5
-          technologicalAptitude: 7
-          createdAt: 2000-01-23T04:56:07.000+00:00
-          linkId: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
-          id: f3fcbabe-1d52-41fb-8a3f-b6ccf7f84c9d
-          recurringInterest: 5
-          recurringScans: 2
-          engagementLevel: 6
-          updatedAt: 2000-01-23T04:56:07.000+00:00
-          visitorId: 4da3e6a2-2d54-4b0f-9e17-4b6c2af7e9c5
-          workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
         scannedAt: 2000-01-23T04:56:07.000+00:00
         workspace: ""
         journey: ""
@@ -9122,7 +9055,6 @@ components:
         destinationAction: EVENT_ACTION_CLIENT_REDIRECT
         httpMethod: HTTP_METHOD_GET
         deviceId: 6f1b2e90-1234-4c8f-91e1-63cd927bf908
-        leadScoreId: f3fcbabe-1d52-41fb-8a3f-b6ccf7f84c9d
         visitType: VISIT_TYPE_FIRST
         createdAt: 2000-01-23T04:56:07.000+00:00
         linkId: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
@@ -9211,13 +9143,13 @@ components:
           attributes:
           - dateValue: 2000-01-23T04:56:07.000+00:00
             boolValue: true
-            numberValue: 9.301444243932576
+            numberValue: 0.8008281904610115
             type: VISITOR_ATTRIBUTE_TYPE_UNSPECIFIED
             value: "8"
             key: rating
           - dateValue: 2000-01-23T04:56:07.000+00:00
             boolValue: true
-            numberValue: 9.301444243932576
+            numberValue: 0.8008281904610115
             type: VISITOR_ATTRIBUTE_TYPE_UNSPECIFIED
             value: "8"
             key: rating
@@ -9311,12 +9243,6 @@ components:
           description: |-
             How far the visitor got through the link's workflow on this visit
             (include "journey").
-        leadScore:
-          $ref: "#/components/schemas/LeadScore"
-        leadScoreId:
-          example: f3fcbabe-1d52-41fb-8a3f-b6ccf7f84c9d
-          title: Lead score entry computed for this visitor-link pair (UUID)
-          type: string
         link:
           allOf:
           - $ref: "#/components/schemas/Link"
@@ -9341,8 +9267,8 @@ components:
           title: Whether the workflow was triggered by a visitor or automation
         updatedAt:
           format: date-time
-          title: Timestamp when the event object was last updated (e.g. when lead
-            score computed)
+          title: Timestamp when the event object was last updated (e.g. when enrichment
+            completed)
           type: string
         visitType:
           allOf:
@@ -9544,19 +9470,14 @@ components:
       example:
         topDeviceType: DEVICE_TYPE_DESKTOP
         lastAt: 2000-01-23T04:56:07.000+00:00
-        totalCountries: 1
-        totalDeviceTypes: 5
+        totalCountries: 6
+        totalDeviceTypes: 1
         totalEvents: 5
         firstAt: 2000-01-23T04:56:07.000+00:00
         topCity: topCity
         topCountry: topCountry
-        totalCities: 6
-        averageLeadScore: 0.8008281904610115
+        totalCities: 0
       properties:
-        averageLeadScore:
-          format: double
-          title: Average lead score (excluding null values)
-          type: number
         firstAt:
           format: date-time
           title: Timestamp of the first event in the aggregated range
@@ -10475,39 +10396,6 @@ components:
           format: int32
           type: integer
       title: GetHourOfDayDistributionResponse contains 24 data points (one per hour)
-    GetLeadScoreResponse:
-      example:
-        leadScore: 0
-        breakdown: ""
-        scoringRationale: scoringRationale
-        scoringContext: scoringContext
-        recurringScans: 6
-      properties:
-        breakdown:
-          allOf:
-          - $ref: "#/components/schemas/LeadScoreBreakdown"
-          description: |-
-            Breakdown of the scoring factors. A factor that is absent was not
-            measurable for this visitor and was excluded from the score.
-        leadScore:
-          format: int32
-          title: The lead score recorded for this event
-          type: integer
-        recurringScans:
-          format: int32
-          title: Number of recurring scans from this device+link combination
-          type: integer
-        scoringContext:
-          description: |-
-            How this link was classified when its weighting was derived, for example
-            "b2b_enterprise" or "community_social".
-          type: string
-        scoringRationale:
-          description: |-
-            Plain explanation of why the link is weighted the way it is. Empty when the
-            link scores on the deterministic weighting.
-          type: string
-      title: Response containing a stored lead score
     GetLinkResponse:
       example:
         link:
@@ -11058,112 +10946,6 @@ components:
             they reach an exit.
           format: int32
           type: integer
-    LeadScore:
-      description: |-
-        Stores the AI-generated assessment Linkbreakers produces for a visitor's engagement with a link, including reasoning signals
-        and user feedback to continuously refine scoring.
-      example:
-        brandSupportiveness: 0
-        leadScore: 1
-        profileFit: 5
-        technologicalAptitude: 7
-        createdAt: 2000-01-23T04:56:07.000+00:00
-        linkId: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
-        id: f3fcbabe-1d52-41fb-8a3f-b6ccf7f84c9d
-        recurringInterest: 5
-        recurringScans: 2
-        engagementLevel: 6
-        updatedAt: 2000-01-23T04:56:07.000+00:00
-        visitorId: 4da3e6a2-2d54-4b0f-9e17-4b6c2af7e9c5
-        workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
-      properties:
-        brandSupportiveness:
-          format: int32
-          title: "Scaled signal indicating brand sentiment from form responses and\
-            \ ratings (0-100, null if not applicable)"
-          type: integer
-        createdAt:
-          format: date-time
-          title: When the lead score was computed
-          type: string
-        engagementLevel:
-          format: int32
-          title: "Scaled signal indicating engagement effort (steps completed, time\
-            \ spent, interactions) (0-100, null if not applicable)"
-          type: integer
-        id:
-          example: f3fcbabe-1d52-41fb-8a3f-b6ccf7f84c9d
-          title: Lead score identifier (UUID)
-          type: string
-        leadScore:
-          format: int32
-          title: Aggregate score between 0-100 summarizing lead quality
-          type: integer
-        linkId:
-          example: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
-          title: Link associated with this score (UUID)
-          type: string
-        profileFit:
-          format: int32
-          title: "Scaled signal indicating how well visitor matches link's target\
-            \ audience (0-100, null if not applicable)"
-          type: integer
-        recurringInterest:
-          format: int32
-          title: "Scaled bonus for recurring visits and workflow re-entry (0-100,\
-            \ null if not applicable)"
-          type: integer
-        recurringScans:
-          format: int32
-          title: Count of previous visits from the same visitor/device on the link
-            (null if first visit)
-          type: integer
-        technologicalAptitude:
-          format: int32
-          title: "Scaled signal indicating tech comfort level based on device/browser\
-            \ modernity (0-100, null if not applicable)"
-          type: integer
-        updatedAt:
-          format: date-time
-          title: When the lead score record was last updated
-          type: string
-        visitorId:
-          example: 4da3e6a2-2d54-4b0f-9e17-4b6c2af7e9c5
-          title: Visitor associated with this score (UUID)
-          type: string
-        workspaceId:
-          example: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
-          title: Workspace that owns the visitor/link pair (UUID)
-          type: string
-      title: LeadScore
-    LeadScoreBreakdown:
-      properties:
-        brandSupportiveness:
-          format: int32
-          title: "Brand supportiveness score (0-100, null if not applicable) - sentiment\
-            \ from form responses and ratings"
-          type: integer
-        engagementLevel:
-          format: int32
-          title: "Engagement level score (0-100, null if not applicable) - steps completed,\
-            \ time spent, interaction count"
-          type: integer
-        profileFit:
-          format: int32
-          title: "Profile fit score (0-100, null if not applicable) - how well visitor\
-            \ matches link's target audience"
-          type: integer
-        recurringInterest:
-          format: int32
-          title: "Recurring interest bonus score (0-100, null if not applicable) -\
-            \ repeat visits and workflow re-entry"
-          type: integer
-        technologicalAptitude:
-          format: int32
-          title: "Technological aptitude score (0-100, null if not applicable) - device/browser\
-            \ modernity, workflow navigation"
-          type: integer
-      title: Breakdown of lead scoring factors
     Link:
       description: |-
         Core resource that ties a shortlink or QR entrypoint to its workflow, destination, and analytics metadata,
@@ -11485,9 +11267,8 @@ components:
         purpose:
           description: |-
             What the user is trying to achieve with this link, in one or two sentences.
-            Lead scoring weights the link from this, and the link's assistant
-            conversations read it as context, so it is restated whenever the workflow
-            changes shape.
+            The link's assistant conversations read it as context, so it is restated
+            whenever the workflow changes shape.
           example: "Increase newsletter signups. Good leads: marketing qualified leads\
             \ with budget over $10k."
           type: string
@@ -11758,21 +11539,7 @@ components:
         hasMore: true
         totalCount: 240
         events:
-        - leadScore:
-            brandSupportiveness: 0
-            leadScore: 1
-            profileFit: 5
-            technologicalAptitude: 7
-            createdAt: 2000-01-23T04:56:07.000+00:00
-            linkId: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
-            id: f3fcbabe-1d52-41fb-8a3f-b6ccf7f84c9d
-            recurringInterest: 5
-            recurringScans: 2
-            engagementLevel: 6
-            updatedAt: 2000-01-23T04:56:07.000+00:00
-            visitorId: 4da3e6a2-2d54-4b0f-9e17-4b6c2af7e9c5
-            workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
-          scannedAt: 2000-01-23T04:56:07.000+00:00
+        - scannedAt: 2000-01-23T04:56:07.000+00:00
           workspace: ""
           journey: ""
           destination: https://brand.example.com/checkout
@@ -11807,7 +11574,6 @@ components:
           destinationAction: EVENT_ACTION_CLIENT_REDIRECT
           httpMethod: HTTP_METHOD_GET
           deviceId: 6f1b2e90-1234-4c8f-91e1-63cd927bf908
-          leadScoreId: f3fcbabe-1d52-41fb-8a3f-b6ccf7f84c9d
           visitType: VISIT_TYPE_FIRST
           createdAt: 2000-01-23T04:56:07.000+00:00
           linkId: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
@@ -11896,13 +11662,13 @@ components:
             attributes:
             - dateValue: 2000-01-23T04:56:07.000+00:00
               boolValue: true
-              numberValue: 9.301444243932576
+              numberValue: 0.8008281904610115
               type: VISITOR_ATTRIBUTE_TYPE_UNSPECIFIED
               value: "8"
               key: rating
             - dateValue: 2000-01-23T04:56:07.000+00:00
               boolValue: true
-              numberValue: 9.301444243932576
+              numberValue: 0.8008281904610115
               type: VISITOR_ATTRIBUTE_TYPE_UNSPECIFIED
               value: "8"
               key: rating
@@ -11943,21 +11709,7 @@ components:
           updatedAt: 2000-01-23T04:56:07.000+00:00
           visitorId: 4da3e6a2-2d54-4b0f-9e17-4b6c2af7e9c5
           workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
-        - leadScore:
-            brandSupportiveness: 0
-            leadScore: 1
-            profileFit: 5
-            technologicalAptitude: 7
-            createdAt: 2000-01-23T04:56:07.000+00:00
-            linkId: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
-            id: f3fcbabe-1d52-41fb-8a3f-b6ccf7f84c9d
-            recurringInterest: 5
-            recurringScans: 2
-            engagementLevel: 6
-            updatedAt: 2000-01-23T04:56:07.000+00:00
-            visitorId: 4da3e6a2-2d54-4b0f-9e17-4b6c2af7e9c5
-            workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
-          scannedAt: 2000-01-23T04:56:07.000+00:00
+        - scannedAt: 2000-01-23T04:56:07.000+00:00
           workspace: ""
           journey: ""
           destination: https://brand.example.com/checkout
@@ -11992,7 +11744,6 @@ components:
           destinationAction: EVENT_ACTION_CLIENT_REDIRECT
           httpMethod: HTTP_METHOD_GET
           deviceId: 6f1b2e90-1234-4c8f-91e1-63cd927bf908
-          leadScoreId: f3fcbabe-1d52-41fb-8a3f-b6ccf7f84c9d
           visitType: VISIT_TYPE_FIRST
           createdAt: 2000-01-23T04:56:07.000+00:00
           linkId: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
@@ -12081,13 +11832,13 @@ components:
             attributes:
             - dateValue: 2000-01-23T04:56:07.000+00:00
               boolValue: true
-              numberValue: 9.301444243932576
+              numberValue: 0.8008281904610115
               type: VISITOR_ATTRIBUTE_TYPE_UNSPECIFIED
               value: "8"
               key: rating
             - dateValue: 2000-01-23T04:56:07.000+00:00
               boolValue: true
-              numberValue: 9.301444243932576
+              numberValue: 0.8008281904610115
               type: VISITOR_ATTRIBUTE_TYPE_UNSPECIFIED
               value: "8"
               key: rating
@@ -12161,21 +11912,7 @@ components:
           hasMore: true
           totalCount: 240
           events:
-          - leadScore:
-              brandSupportiveness: 0
-              leadScore: 1
-              profileFit: 5
-              technologicalAptitude: 7
-              createdAt: 2000-01-23T04:56:07.000+00:00
-              linkId: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
-              id: f3fcbabe-1d52-41fb-8a3f-b6ccf7f84c9d
-              recurringInterest: 5
-              recurringScans: 2
-              engagementLevel: 6
-              updatedAt: 2000-01-23T04:56:07.000+00:00
-              visitorId: 4da3e6a2-2d54-4b0f-9e17-4b6c2af7e9c5
-              workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
-            scannedAt: 2000-01-23T04:56:07.000+00:00
+          - scannedAt: 2000-01-23T04:56:07.000+00:00
             workspace: ""
             journey: ""
             destination: https://brand.example.com/checkout
@@ -12210,7 +11947,6 @@ components:
             destinationAction: EVENT_ACTION_CLIENT_REDIRECT
             httpMethod: HTTP_METHOD_GET
             deviceId: 6f1b2e90-1234-4c8f-91e1-63cd927bf908
-            leadScoreId: f3fcbabe-1d52-41fb-8a3f-b6ccf7f84c9d
             visitType: VISIT_TYPE_FIRST
             createdAt: 2000-01-23T04:56:07.000+00:00
             linkId: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
@@ -12301,13 +12037,13 @@ components:
               attributes:
               - dateValue: 2000-01-23T04:56:07.000+00:00
                 boolValue: true
-                numberValue: 9.301444243932576
+                numberValue: 0.8008281904610115
                 type: VISITOR_ATTRIBUTE_TYPE_UNSPECIFIED
                 value: "8"
                 key: rating
               - dateValue: 2000-01-23T04:56:07.000+00:00
                 boolValue: true
-                numberValue: 9.301444243932576
+                numberValue: 0.8008281904610115
                 type: VISITOR_ATTRIBUTE_TYPE_UNSPECIFIED
                 value: "8"
                 key: rating
@@ -12348,21 +12084,7 @@ components:
             updatedAt: 2000-01-23T04:56:07.000+00:00
             visitorId: 4da3e6a2-2d54-4b0f-9e17-4b6c2af7e9c5
             workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
-          - leadScore:
-              brandSupportiveness: 0
-              leadScore: 1
-              profileFit: 5
-              technologicalAptitude: 7
-              createdAt: 2000-01-23T04:56:07.000+00:00
-              linkId: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
-              id: f3fcbabe-1d52-41fb-8a3f-b6ccf7f84c9d
-              recurringInterest: 5
-              recurringScans: 2
-              engagementLevel: 6
-              updatedAt: 2000-01-23T04:56:07.000+00:00
-              visitorId: 4da3e6a2-2d54-4b0f-9e17-4b6c2af7e9c5
-              workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
-            scannedAt: 2000-01-23T04:56:07.000+00:00
+          - scannedAt: 2000-01-23T04:56:07.000+00:00
             workspace: ""
             journey: ""
             destination: https://brand.example.com/checkout
@@ -12397,7 +12119,6 @@ components:
             destinationAction: EVENT_ACTION_CLIENT_REDIRECT
             httpMethod: HTTP_METHOD_GET
             deviceId: 6f1b2e90-1234-4c8f-91e1-63cd927bf908
-            leadScoreId: f3fcbabe-1d52-41fb-8a3f-b6ccf7f84c9d
             visitType: VISIT_TYPE_FIRST
             createdAt: 2000-01-23T04:56:07.000+00:00
             linkId: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
@@ -12488,13 +12209,13 @@ components:
               attributes:
               - dateValue: 2000-01-23T04:56:07.000+00:00
                 boolValue: true
-                numberValue: 9.301444243932576
+                numberValue: 0.8008281904610115
                 type: VISITOR_ATTRIBUTE_TYPE_UNSPECIFIED
                 value: "8"
                 key: rating
               - dateValue: 2000-01-23T04:56:07.000+00:00
                 boolValue: true
-                numberValue: 9.301444243932576
+                numberValue: 0.8008281904610115
                 type: VISITOR_ATTRIBUTE_TYPE_UNSPECIFIED
                 value: "8"
                 key: rating
@@ -16828,13 +16549,13 @@ components:
         attributes:
         - dateValue: 2000-01-23T04:56:07.000+00:00
           boolValue: true
-          numberValue: 9.301444243932576
+          numberValue: 0.8008281904610115
           type: VISITOR_ATTRIBUTE_TYPE_UNSPECIFIED
           value: "8"
           key: rating
         - dateValue: 2000-01-23T04:56:07.000+00:00
           boolValue: true
-          numberValue: 9.301444243932576
+          numberValue: 0.8008281904610115
           type: VISITOR_ATTRIBUTE_TYPE_UNSPECIFIED
           value: "8"
           key: rating
@@ -16949,7 +16670,7 @@ components:
       example:
         dateValue: 2000-01-23T04:56:07.000+00:00
         boolValue: true
-        numberValue: 9.301444243932576
+        numberValue: 0.8008281904610115
         type: VISITOR_ATTRIBUTE_TYPE_UNSPECIFIED
         value: "8"
         key: rating
