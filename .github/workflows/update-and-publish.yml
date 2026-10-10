@@ -3,14 +3,14 @@ name: Update and Publish SDK
 on:
   repository_dispatch:
     types: [update-sdk]
-  workflow_dispatch:  # Allow manual trigger
+  workflow_dispatch:
 
 jobs:
   update-and-publish:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      packages: write
+      issues: write
 
     steps:
       - name: Checkout repository
@@ -24,138 +24,93 @@ jobs:
           go-version: '1.26.5'
 
       - name: Install OpenAPI Generator
-        run: |
-          npm install -g @openapitools/openapi-generator-cli
+        run: npm install -g @openapitools/openapi-generator-cli
 
-      - name: Fetch current version from swagger
-        id: fetch-version
-        run: |
-          SWAGGER_URL="https://api.linkbreakers.com/internal/openapi/api/v1/api.swagger.json"
-          NEW_VERSION=$(curl -s "$SWAGGER_URL" | jq -r '.info.version')
-          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
-          echo "Swagger version: $NEW_VERSION"
-
-      - name: Read current OPENAPI_VERSION
-        id: current-version
-        run: |
-          if [ -f OPENAPI_VERSION ]; then
-            CURRENT_VERSION=$(cat OPENAPI_VERSION)
-          else
-            CURRENT_VERSION="0.0.0"
-          fi
-          echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
-          echo "Current version: $CURRENT_VERSION"
-
-      - name: Compare versions
+      - name: Check whether the version is already tagged
         id: compare
         run: |
-          if [ "${{ steps.fetch-version.outputs.new_version }}" == "${{ steps.current-version.outputs.current_version }}" ]; then
+          NEW_VERSION=$(curl -fsS https://api.linkbreakers.com/internal/openapi/api/v1/api.swagger.json | jq -r '.info.version')
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          if git ls-remote --exit-code --tags origin "refs/tags/v$NEW_VERSION" >/dev/null; then
             echo "needs_update=false" >> $GITHUB_OUTPUT
-            echo "✅ Versions match. No update needed."
+            echo "v$NEW_VERSION is already tagged"
           else
             echo "needs_update=true" >> $GITHUB_OUTPUT
-            echo "🔄 Version changed: ${{ steps.current-version.outputs.current_version }} → ${{ steps.fetch-version.outputs.new_version }}"
+            echo "Publishing v$NEW_VERSION"
           fi
 
-      - name: Download and convert OpenAPI spec to 3.1
+      - name: Generate SDK
         if: steps.compare.outputs.needs_update == 'true'
+        env:
+          NEW_VERSION: ${{ steps.compare.outputs.new_version }}
         run: |
-          # Download OpenAPI 3.2.0 spec
-          curl -o openapi-3.2.json https://api.linkbreakers.com/internal/openapi/api/v1/api.swagger.json
+          curl -fsS https://api.linkbreakers.com/internal/openapi/api/v1/api.swagger.json \
+            | jq '.openapi = "3.1.0" | del(.jsonSchemaDialect)' > openapi-3.1.json
 
-          # Convert OpenAPI 3.2 to 3.1 (remove 3.2-specific fields)
-          jq '.openapi = "3.1.0" | del(.jsonSchemaDialect)' openapi-3.2.json > openapi-3.1.json
-
-          echo "✅ OpenAPI spec converted from 3.2 to 3.1"
-
-      - name: Generate SDK using OpenAPI Generator
-        if: steps.compare.outputs.needs_update == 'true'
-        run: |
-          # Backup custom files that we want to preserve
-          mkdir -p .backup
-          cp go.mod .backup/ 2>/dev/null || true
-          cp README.md .backup/ 2>/dev/null || true
-
-          # Remove old generated code (keep workflows, etc.)
-          find . -type f -name "*.go" -delete 2>/dev/null || true
-
-          # Generate SDK using OpenAPI Generator with go generator
+          find . -maxdepth 1 -type f -name "*.go" -delete
+          rm -f go.mod go.sum
           openapi-generator-cli generate \
             -i openapi-3.1.json \
             -g go \
             -o . \
+            -c openapi-config.yaml \
+            -t templates \
             --skip-validate-spec \
             --git-host github.com \
             --git-user-id linkbreakers-com \
             --git-repo-id linkbreakers-go \
-            --global-property apiTests=false,modelTests=false,apiDocs=false,modelDocs=false \
-            --additional-properties=packageName=linkbreakers,isGoSubmodule=false,enumClassPrefix=true
+            --global-property apiTests=false,modelTests=false,apiDocs=false,modelDocs=false
 
-          # Restore custom files if they exist
-          cp .backup/go.mod . 2>/dev/null || true
-          cp .backup/README.md . 2>/dev/null || true
-
-          # Clean up
-          rm -rf .backup
-          rm openapi-3.2.json openapi-3.1.json
-
-          echo "✅ SDK generated successfully"
-
-      - name: Update version files
-        if: steps.compare.outputs.needs_update == 'true'
-        run: |
-          NEW_VERSION="${{ steps.fetch-version.outputs.new_version }}"
-
-          # Update OPENAPI_VERSION file
           echo "$NEW_VERSION" > OPENAPI_VERSION
-
-          echo "✅ Version files updated to $NEW_VERSION"
-
-      - name: Tidy Go modules
-        if: steps.compare.outputs.needs_update == 'true'
-        run: |
+          rm openapi-3.1.json
           go mod tidy
-          echo "✅ Go modules tidied"
 
-      - name: Run tests
+      - name: Smoke check the module and README
         if: steps.compare.outputs.needs_update == 'true'
         run: |
-          go test ./... || echo "⚠️ Tests failed or no tests found"
+          go build ./...
+          ./scripts/check-docs.sh
 
-      - name: Check README against the generated SDK
+      - name: Commit, tag and publish
         if: steps.compare.outputs.needs_update == 'true'
-        run: ./scripts/check-docs.sh
-
-      - name: Configure Git
-        if: steps.compare.outputs.needs_update == 'true'
+        env:
+          NEW_VERSION: ${{ steps.compare.outputs.new_version }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-
-      - name: Commit changes
-        if: steps.compare.outputs.needs_update == 'true'
-        run: |
-          NEW_VERSION="${{ steps.fetch-version.outputs.new_version }}"
-
           git add .
-          git commit -m "chore: update SDK to API version $NEW_VERSION"
-
-          echo "✅ Changes committed"
-
-      - name: Create and push tag
-        if: steps.compare.outputs.needs_update == 'true'
-        run: |
-          NEW_VERSION="${{ steps.fetch-version.outputs.new_version }}"
-
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: update SDK to API version $NEW_VERSION"
+          fi
           git tag "v$NEW_VERSION"
-          git push origin main
-          git push origin "v$NEW_VERSION"
+          git push --atomic origin main "v$NEW_VERSION"
+          curl -fsS "https://proxy.golang.org/github.com/linkbreakers-com/linkbreakers-go/@v/v$NEW_VERSION.info"
 
-          echo "✅ Tag v$NEW_VERSION created and pushed"
-
-      - name: Summary
-        if: steps.compare.outputs.needs_update == 'true'
+      - name: Close release failure issues
+        if: success() && steps.compare.outputs.needs_update == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NEW_VERSION: ${{ steps.compare.outputs.new_version }}
         run: |
-          echo "🎉 SDK successfully updated and published!"
-          echo "Version: ${{ steps.fetch-version.outputs.new_version }}"
-          echo "Go users can install with: go get github.com/linkbreakers-com/linkbreakers-go@v${{ steps.fetch-version.outputs.new_version }}"
+          for number in $(gh issue list --repo "$GITHUB_REPOSITORY" --state open --label release-failure --json number --jq '.[].number'); do
+            gh issue close "$number" --repo "$GITHUB_REPOSITORY" --comment "Published v$NEW_VERSION."
+          done
+
+      - name: Report failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NEW_VERSION: ${{ steps.compare.outputs.new_version || 'unknown' }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          MESSAGE="Publishing linkbreakers-go v$NEW_VERSION failed. Run: $RUN_URL"
+          echo "::error title=Release failed::$MESSAGE"
+          gh label create release-failure --repo "$GITHUB_REPOSITORY" --color B60205 \
+            --description "The update and publish workflow failed" --force
+          EXISTING=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --label release-failure --json number --jq '.[0].number // empty')
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --repo "$GITHUB_REPOSITORY" --body "$MESSAGE"
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --label release-failure \
+              --title "SDK release failing" --body "$MESSAGE"
+          fi

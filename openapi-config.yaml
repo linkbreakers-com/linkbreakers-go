@@ -1,0 +1,4 @@
+additionalProperties:
+  packageName: linkbreakers
+  isGoSubmodule: false
+  enumClassPrefix: true
