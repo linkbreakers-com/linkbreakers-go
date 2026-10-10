@@ -19,13 +19,46 @@ info:
     - No credentials: 300 requests per 60 seconds, per client IP.
 
     Each plan also includes a number of API calls per billing cycle. Past it, calls answer `429` with the code `MAX_PUBLIC_API_QUERIED_REACHED` until the cycle renews or the plan changes.
+
+    ## Pagination
+
+    Every list pages with opaque cursors (AIP-158). Pass `pageSize`, then send the `nextPageToken` of each response back as `pageToken` (or its alias `cursor`) to get the next page. An empty or absent `nextPageToken` means the list is complete. Each list operation describes this in `x-pagination`.
+
+    ## Batches and background jobs
+
+    `POST /v1/links/bulk` creates up to 250 links in one transactional request; `POST /v1/links/batch` takes the same links as a bare JSON array. `POST /v1/links/bulk/jobs` accepts the same batch and answers `202 Accepted` at once with a job and a `Location` header; poll `GET /v1/jobs/{id}` until `status` is `JOB_STATUS_SUCCEEDED` (the created link ids are in `linksBulkCreate.linkIds`) or `JOB_STATUS_FAILED` (`error` says why, and nothing was created). Jobs can be read for 24 hours after they finish.
+
+    ## Versioning and deprecation
+
+    The version is in the path: every operation lives under `/v1`. Within a version, changes are additive only: new operations, new optional request fields, new response fields and new enum values. Clients should ignore fields and enum values they do not know. Anything that would break an existing client ships under a new path version instead.
+
+    An operation is retired in two steps. First it is deprecated: it keeps working, is flagged `deprecated: true` in this document, and every response carries a `Deprecation` header field (RFC 9745) with the time it was deprecated and a `Link` with `rel="deprecation"` to the policy. Then, at least 180 days later, it may be removed; that date is announced in advance in a `Sunset` header field (RFC 8594) and as `x-sunset` on the operation. The full policy: https://linkbreakers.com/help/article/api-versioning-and-deprecation-policy
+
+    ## Idempotent retries
+
+    Every POST, PUT and PATCH accepts an optional `Idempotency-Key` header (draft-ietf-httpapi-idempotency-key-header). Send a new unique value, such as a UUID, with each logical request and reuse it only to retry that request. A retry with the same key and the same request returns the first response, marked `Idempotent-Replayed: true`, instead of running again. Keys are scoped to the token and kept for 24 hours. The same key with a different request is refused with `422`, and a retry while the first request is still running gets `409` with `Retry-After`. Server errors (5xx) and refusals such as 401, 403 and 429 are not stored, so retrying them runs the request again.
   title: Linkbreakers API
-  version: 1.150.0
+  version: 1.157.1
+  x-api-versioning:
+    compatibility: additive changes only within a version
+    currentVersion: v1
+    deprecationHeaders:
+    - Deprecation
+    - Sunset
+    - Link
+    minimumNoticeDays: 180
+    policy: https://linkbreakers.com/help/article/api-versioning-and-deprecation-policy
+    strategy: url-path
 servers:
 - url: https://api.linkbreakers.com
 security:
 - bearerAuth: []
 tags:
+- description: "Claiming a workspace an AI agent registered for itself. An agent registers\
+    \ at the authorization server (https://mcp.linkbreakers.com/agent/identity, see\
+    \ https://linkbreakers.com/auth.md) and hands a person a claim link and a 6-digit\
+    \ code; these endpoints are the person's side of that ceremony."
+  name: Agent Identity
 - description: "What the workspace has used of each limit its plan sets, read from\
     \ the same counters that enforce them."
   name: Allowances
@@ -53,6 +86,11 @@ tags:
 - description: Connect your Google account to automatically sync form responses from
     links that redirect to Google Forms.
   name: Google Forms Integrations
+- description: "Long-running operations. An endpoint that works in the background\
+    \ answers 202 Accepted with a job and a Location header; poll GET /v1/jobs/{id}\
+    \ until the status is JOB_STATUS_SUCCEEDED or JOB_STATUS_FAILED. Jobs can be read\
+    \ for 24 hours after they finish."
+  name: Jobs
 - description: "Endpoints for managing shortened links in Linkbreakers. These endpoints\
     \ allow you to create, retrieve, list, and delete shortened links for your workspace."
   name: Links
@@ -83,6 +121,16 @@ tags:
 - description: "Endpoints for managing QR Code Templates in Linkbreakers. These endpoints\
     \ allow you to create, retrieve, update, and delete QR Code Templates."
   name: QR Code Templates
+- description: "Sandbox workspaces for testing an integration without touching live\
+    \ data. A sandbox is a separate, API-only workspace created from your live workspace.\
+    \ Its tokens start with `lb_test_`, and the API refuses a `lb_test_` prefix on\
+    \ a live token. Sandbox usage is never billed and does not count toward your plan:\
+    \ a sandbox has its own monthly caps (1,000 API calls, 500 counted scans and credits\
+    \ for 50 links) and allows no custom domains, members or credit top-ups. Links\
+    \ resolve and webhooks fire normally; a scan of a sandbox link answers with `X-Linkbreakers-Sandbox:\
+    \ true` and `X-Robots-Tag: noindex`. A sandbox and everything in it is deleted\
+    \ 30 days after it was created. A workspace holds at most 3 sandboxes."
+  name: Sandboxes
 - description: Endpoints for managing link-level data collection settings in Linkbreakers.
   name: Link Settings
 - description: Endpoints for managing the Slack integration. Connect your Slack workspace
@@ -113,12 +161,128 @@ tags:
     allow you to update and get workspaces.
   name: Workspaces
 paths:
+  /v1/agent-identity/claim/complete:
+    post:
+      description: "Check the code the agent handed over, attach the claim email with\
+        \ a password or a Google or Microsoft sign-in to the agent's workspace, and\
+        \ sign in. The email must not already have a Linkbreakers account. Afterwards\
+        \ the agent's token keeps working in the claimed workspace, and the agent\
+        \ can fetch a token with wider scopes from the claim grant."
+      operationId: AgentIdentityService_ClaimAgentWorkspace
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClaimAgentWorkspaceRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Member"
+          description: Everything worked as expected.
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security: []
+      summary: Claim an agent's workspace
+      tags:
+      - Agent Identity
+  /v1/agent-identity/claim/lookup:
+    post:
+      description: "Return the email a claim link is bound to, whether it can still\
+        \ be used, and what the agent may do once the workspace is claimed. The claim_attempt_token\
+        \ is the secret: anyone holding it and the code can claim."
+      operationId: AgentIdentityService_GetAgentClaim
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GetAgentClaimRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentClaim"
+          description: Everything worked as expected.
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security: []
+      summary: Read an agent claim link
+      tags:
+      - Agent Identity
   /v1/allowances:
     get:
       description: |-
         Return every limit the workspace's plan sets with what has been used in the current cycle, when it resets and whether it has been reached.
-
-        Requires the `workspace:read` scope.
 
         Requires the `workspace:read` scope.
       operationId: AllowancesService_ListAllowances
@@ -166,9 +330,18 @@ paths:
         Hide the over-limit notice for one limit, for the calling member, until the limit's next cycle. Only a member can dismiss; an API token gets a permission error.
 
         Requires the `workspace:write` scope.
-
-        Requires the `workspace:write` scope.
       operationId: AllowancesService_DismissAllowanceNotice
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -184,6 +357,8 @@ paths:
                 type: object
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -220,9 +395,18 @@ paths:
         Returns how visitors are spread across the values of one attribute, for example how many gave each rating.
 
         Requires the `analytics:read` scope.
-
-        Requires the `analytics:read` scope.
       operationId: AnalyticsDataService_GetAttributeDistribution
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -237,6 +421,8 @@ paths:
                 $ref: "#/components/schemas/GetAttributeDistributionResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -273,9 +459,18 @@ paths:
         Returns count, average, minimum and maximum for a visitor attribute, plus how much of the audience carries it.
 
         Requires the `analytics:read` scope.
-
-        Requires the `analytics:read` scope.
       operationId: AnalyticsDataService_GetAttributeMetric
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -290,6 +485,8 @@ paths:
                 $ref: "#/components/schemas/GetAttributeMetricResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -326,9 +523,18 @@ paths:
         Returns the individual recorded values of one attribute, most recent first. Intended for free text such as comments.
 
         Requires the `analytics:read` scope.
-
-        Requires the `analytics:read` scope.
       operationId: AnalyticsDataService_GetAttributeValues
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -343,6 +549,8 @@ paths:
                 $ref: "#/components/schemas/GetAttributeValuesResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -379,9 +587,18 @@ paths:
         Returns a ranked breakdown of events by any dimension (browser, platform, device type, country, city, visit type).
 
         Requires the `analytics:read` scope.
-
-        Requires the `analytics:read` scope.
       operationId: AnalyticsDataService_GetBreakdown
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -396,6 +613,8 @@ paths:
                 $ref: "#/components/schemas/GetBreakdownResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -428,10 +647,7 @@ paths:
       x-required-scope: analytics:read
   /v1/analytics/dashboards:
     get:
-      description: |-
-        Requires the `analytics:read` scope.
-
-        Requires the `analytics:read` scope.
+      description: Requires the `analytics:read` scope.
       operationId: AnalyticsDashboardService_ListDashboards
       parameters:
       - description: |-
@@ -477,6 +693,15 @@ paths:
         schema:
           type: string
         style: form
+      - description: "Opaque cursor from the previous page's nextPageToken. Same as\
+          \ pageToken; when both are sent, pageToken wins."
+        explode: true
+        in: query
+        name: cursor
+        required: false
+        schema:
+          type: string
+        style: form
       responses:
         "200":
           content:
@@ -514,13 +739,28 @@ paths:
       summary: List analytics dashboards
       tags:
       - Analytics Dashboard
+      x-pagination:
+        cursorAlias: cursor
+        cursorParam: pageToken
+        endOfList: nextPageToken is empty or absent
+        nextCursorField: nextPageToken
+        pageSizeParam: pageSize
+        type: cursor
       x-required-scope: analytics:read
     post:
-      description: |-
-        Requires the `analytics:write` scope.
-
-        Requires the `analytics:write` scope.
+      description: Requires the `analytics:write` scope.
       operationId: AnalyticsDashboardService_CreateDashboard
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -535,6 +775,8 @@ paths:
                 $ref: "#/components/schemas/CreateDashboardResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -569,8 +811,6 @@ paths:
     get:
       description: |-
         Returns the last generated analysis, and whether the underlying values have changed since.
-
-        Requires the `analytics:read` scope.
 
         Requires the `analytics:read` scope.
       operationId: AnalyticsDashboardService_GetWidgetSummary
@@ -632,8 +872,6 @@ paths:
         Analyses the widget's current values and stores the result. Consumes platform credits, so it runs only when requested.
 
         Requires the `analytics:write` scope.
-
-        Requires the `analytics:write` scope.
       operationId: AnalyticsDashboardService_GenerateWidgetSummary
       parameters:
       - description: Dashboard holding the widget
@@ -652,6 +890,16 @@ paths:
         schema:
           type: string
         style: simple
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -666,6 +914,8 @@ paths:
                 $ref: "#/components/schemas/GenerateWidgetSummaryResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -700,8 +950,6 @@ paths:
     delete:
       description: |-
         Delete a dashboard and its associated assistant conversation.
-
-        Requires the `analytics:write` scope.
 
         Requires the `analytics:write` scope.
       operationId: AnalyticsDashboardService_DeleteDashboard
@@ -752,10 +1000,7 @@ paths:
       - Analytics Dashboard
       x-required-scope: analytics:write
     put:
-      description: |-
-        Requires the `analytics:write` scope.
-
-        Requires the `analytics:write` scope.
+      description: Requires the `analytics:write` scope.
       operationId: AnalyticsDashboardService_UpdateDashboard
       parameters:
       - description: ID of the dashboard to update.
@@ -764,6 +1009,16 @@ paths:
         name: id
         required: true
         schema:
+          type: string
+        style: simple
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
           type: string
         style: simple
       requestBody:
@@ -780,6 +1035,8 @@ paths:
                 $ref: "#/components/schemas/UpdateDashboardResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -816,9 +1073,18 @@ paths:
         Retrieve event distribution across device types.
 
         Requires the `analytics:read` scope.
-
-        Requires the `analytics:read` scope.
       operationId: AnalyticsDataService_GetDeviceDistribution
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -833,6 +1099,8 @@ paths:
                 $ref: "#/components/schemas/GetDeviceDistributionResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -869,9 +1137,18 @@ paths:
         Returns the workflow steps visitors reached, in distinct visitors, ordered from arrival to exit, with the conversion rate and drop-off at each step.
 
         Requires the `analytics:read` scope.
-
-        Requires the `analytics:read` scope.
       operationId: AnalyticsDataService_GetStepFunnel
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -886,6 +1163,8 @@ paths:
                 $ref: "#/components/schemas/GetStepFunnelResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -922,9 +1201,18 @@ paths:
         Retrieve geographic distribution of events grouped by country or city.
 
         Requires the `analytics:read` scope.
-
-        Requires the `analytics:read` scope.
       operationId: AnalyticsDataService_GetGeoBreakdown
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -939,6 +1227,8 @@ paths:
                 $ref: "#/components/schemas/GetGeoBreakdownResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -975,9 +1265,18 @@ paths:
         Retrieve event counts aggregated by hour of day for identifying peak activity times.
 
         Requires the `analytics:read` scope.
-
-        Requires the `analytics:read` scope.
       operationId: AnalyticsDataService_GetHourOfDayDistribution
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -992,6 +1291,8 @@ paths:
                 $ref: "#/components/schemas/GetHourOfDayDistributionResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -1028,9 +1329,18 @@ paths:
         Retrieve time-bucketed event counts grouped by a dimension like country, city, device type, or visit type.
 
         Requires the `analytics:read` scope.
-
-        Requires the `analytics:read` scope.
       operationId: AnalyticsDataService_GetGroupedTimeSeries
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -1045,6 +1355,8 @@ paths:
                 $ref: "#/components/schemas/GetGroupedTimeSeriesResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -1081,9 +1393,18 @@ paths:
         Retrieve links ranked by event count for identifying best performing QR codes and links.
 
         Requires the `analytics:read` scope.
-
-        Requires the `analytics:read` scope.
       operationId: AnalyticsDataService_GetTopLinks
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -1098,6 +1419,8 @@ paths:
                 $ref: "#/components/schemas/GetTopLinksResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -1134,9 +1457,18 @@ paths:
         Retrieve new vs returning visitor counts over time.
 
         Requires the `analytics:read` scope.
-
-        Requires the `analytics:read` scope.
       operationId: AnalyticsDataService_GetVisitorTrends
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -1151,6 +1483,8 @@ paths:
                 $ref: "#/components/schemas/GetVisitorTrendsResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -1363,6 +1697,17 @@ paths:
 
         Requires the `assistant:write` scope.
       operationId: AssistantService_MarkConversationRead
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -1377,6 +1722,8 @@ paths:
                 $ref: "#/components/schemas/AssistantMarkConversationReadResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -1414,6 +1761,17 @@ paths:
 
         Requires the `assistant:write` scope.
       operationId: AssistantService_UploadFile
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -1428,6 +1786,8 @@ paths:
                 $ref: "#/components/schemas/AssistantUploadFileResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -1506,6 +1866,15 @@ paths:
         schema:
           type: string
         style: form
+      - description: "Opaque cursor from the previous page's nextPageToken. Same as\
+          \ pageToken; when both are sent, pageToken wins."
+        explode: true
+        in: query
+        name: cursor
+        required: false
+        schema:
+          type: string
+        style: form
       responses:
         "200":
           content:
@@ -1543,6 +1912,13 @@ paths:
       summary: List custom domains
       tags:
       - Custom Domains
+      x-pagination:
+        cursorAlias: cursor
+        cursorParam: pageToken
+        endOfList: nextPageToken is empty or absent
+        nextCursorField: nextPageToken
+        pageSizeParam: pageSize
+        type: cursor
       x-required-scope: domains:read
     post:
       description: |-
@@ -1550,6 +1926,17 @@ paths:
 
         Requires the `domains:write` scope.
       operationId: CustomDomainsService_Create
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -1564,6 +1951,8 @@ paths:
                 $ref: "#/components/schemas/CreateCustomDomainResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -1728,6 +2117,16 @@ paths:
         schema:
           type: string
         style: simple
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -1742,6 +2141,8 @@ paths:
                 $ref: "#/components/schemas/UpdateCustomDomainResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -1788,6 +2189,16 @@ paths:
         schema:
           type: string
         style: simple
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       responses:
         "200":
           content:
@@ -1796,6 +2207,8 @@ paths:
                 $ref: "#/components/schemas/CheckCustomDomainResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -2009,6 +2422,15 @@ paths:
         schema:
           type: boolean
         style: form
+      - description: "Opaque cursor from the previous page's nextPageToken. Same as\
+          \ pageToken; when both are sent, pageToken wins."
+        explode: true
+        in: query
+        name: cursor
+        required: false
+        schema:
+          type: string
+        style: form
       responses:
         "200":
           content:
@@ -2046,6 +2468,13 @@ paths:
       summary: List directories
       tags:
       - Directories
+      x-pagination:
+        cursorAlias: cursor
+        cursorParam: pageToken
+        endOfList: nextPageToken is empty or absent
+        nextCursorField: nextPageToken
+        pageSizeParam: pageSize
+        type: cursor
       x-required-scope: links:read
     post:
       description: |-
@@ -2053,6 +2482,17 @@ paths:
 
         Requires the `links:write` scope.
       operationId: DirectoriesService_Create
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -2067,6 +2507,8 @@ paths:
                 $ref: "#/components/schemas/CreateDirectoryResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -2234,6 +2676,16 @@ paths:
         schema:
           type: string
         style: simple
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -2248,6 +2700,8 @@ paths:
                 $ref: "#/components/schemas/UpdateDirectoryResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -2378,6 +2832,15 @@ paths:
         schema:
           type: string
         style: form
+      - description: "Opaque cursor from the previous page's nextPageToken. Same as\
+          \ pageToken; when both are sent, pageToken wins."
+        explode: true
+        in: query
+        name: cursor
+        required: false
+        schema:
+          type: string
+        style: form
       responses:
         "200":
           content:
@@ -2415,6 +2878,13 @@ paths:
       summary: List events
       tags:
       - Events
+      x-pagination:
+        cursorAlias: cursor
+        cursorParam: pageToken
+        endOfList: nextPageToken is empty or absent
+        nextCursorField: nextPageToken
+        pageSizeParam: pageSize
+        type: cursor
       x-required-scope: analytics:read
   /v1/events/{eventId}/traces:
     get:
@@ -2566,6 +3036,17 @@ paths:
 
         Requires the `integrations:write` scope.
       operationId: GoogleFormsIntegrationsService_Update
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -2580,6 +3061,8 @@ paths:
                 $ref: "#/components/schemas/UpdateGoogleFormsIntegrationResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -2707,6 +3190,17 @@ paths:
 
         Requires the `integrations:write` scope.
       operationId: GoogleFormsIntegrationsService_CompleteOAuth
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -2721,6 +3215,8 @@ paths:
                 $ref: "#/components/schemas/CompleteGoogleFormsOAuthResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -2758,6 +3254,17 @@ paths:
 
         Requires the `integrations:write` scope.
       operationId: GoogleFormsIntegrationsService_SyncNow
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -2772,6 +3279,8 @@ paths:
                 $ref: "#/components/schemas/SyncGoogleFormsResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -2814,6 +3323,16 @@ paths:
         schema:
           type: string
         style: simple
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       responses:
         "200":
           content:
@@ -2823,6 +3342,8 @@ paths:
                 type: object
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -2848,6 +3369,62 @@ paths:
       summary: Track notifies when an integration installation is attempted
       tags:
       - IntegrationsService
+  /v1/jobs/{id}:
+    get:
+      description: |-
+        Returns the status of a long-running operation and, once it succeeded,
+        its result. Poll this until the status is JOB_STATUS_SUCCEEDED or
+        JOB_STATUS_FAILED.
+
+        Requires the `links:read` scope.
+      operationId: JobsService_Get
+      parameters:
+      - description: The job ID returned when the job was accepted.
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+          description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - links:read
+      - oauth2:
+        - links:read
+      summary: Get a job
+      tags:
+      - Jobs
+      x-required-scope: links:read
   /v1/links:
     get:
       description: |-
@@ -2966,6 +3543,15 @@ paths:
         schema:
           type: string
         style: form
+      - description: "Opaque cursor from the previous page's nextPageToken. Same as\
+          \ pageToken; when both are sent, pageToken wins."
+        explode: true
+        in: query
+        name: cursor
+        required: false
+        schema:
+          type: string
+        style: form
       responses:
         "200":
           content:
@@ -3003,6 +3589,13 @@ paths:
       summary: List links
       tags:
       - Links
+      x-pagination:
+        cursorAlias: cursor
+        cursorParam: pageToken
+        endOfList: nextPageToken is empty or absent
+        nextCursorField: nextPageToken
+        pageSizeParam: pageSize
+        type: cursor
       x-required-scope: links:read
     post:
       description: |-
@@ -3011,6 +3604,17 @@ paths:
 
         Requires the `links:write` scope.
       operationId: LinksService_Create
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -3025,6 +3629,8 @@ paths:
                 $ref: "#/components/schemas/CreateLinkResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -3055,7 +3661,7 @@ paths:
       tags:
       - Links
       x-required-scope: links:write
-  /v1/links/bulk:
+  /v1/links/batch:
     post:
       description: |-
         Creates links in batch using the same per-link options as Create.
@@ -3063,12 +3669,25 @@ paths:
         no links from the batch are created.
 
         Requires the `links:write` scope.
-      operationId: LinksService_CreateBulk
+      operationId: LinksService_CreateBatch
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateBulkLinksRequest"
+              items:
+                $ref: "#/components/schemas/CreateLinkRequest"
+              type: array
         required: true
       responses:
         "200":
@@ -3078,6 +3697,8 @@ paths:
                 $ref: "#/components/schemas/CreateBulkLinksResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -3108,6 +3729,155 @@ paths:
       tags:
       - Links
       x-required-scope: links:write
+  /v1/links/bulk:
+    post:
+      description: |-
+        Creates links in batch using the same per-link options as Create.
+        This operation is transactional: if one link fails validation or insertion,
+        no links from the batch are created.
+
+        Requires the `links:write` scope.
+      operationId: LinksService_CreateBulk
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBulkLinksRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateBulkLinksResponse"
+          description: Everything worked as expected.
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - links:write
+      - oauth2:
+        - links:write
+      summary: Create multiple links in a single request
+      tags:
+      - Links
+      x-required-scope: links:write
+  /v1/links/bulk/jobs:
+    post:
+      description: |-
+        Accepts the same batch as POST /v1/links/bulk, answers 202 Accepted at
+        once with a job and a Location header, and creates the links in the
+        background. Poll GET /v1/jobs/{id} for the result. The batch is
+        transactional: when the job fails, no link was created.
+
+        Requires the `links:write` scope.
+      operationId: LinksService_CreateBulkAsync
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBulkLinksRequest"
+        required: true
+      responses:
+        "202":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+          description: "Accepted. The links are being created; poll the job at the\
+            \ Location header (GET /v1/jobs/{id})."
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
+            Location:
+              description: "Where to poll the job: GET this path until its status\
+                \ is JOB_STATUS_SUCCEEDED or JOB_STATUS_FAILED."
+              explode: false
+              schema:
+                example: /v1/jobs/0b5c7a52-4e0d-4f8a-9a39-5f1f3c0d2e11
+                type: string
+              style: simple
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - links:write
+      - oauth2:
+        - links:write
+      summary: Create links in bulk in the background
+      tags:
+      - Links
+      x-async:
+        idField: id
+        statusField: status
+        statusPath: "/v1/jobs/{id}"
+        terminal:
+        - JOB_STATUS_SUCCEEDED
+        - JOB_STATUS_FAILED
+      x-required-scope: links:write
   /v1/links/contact:
     post:
       description: |-
@@ -3116,6 +3886,17 @@ paths:
 
         Requires the `links:write` scope.
       operationId: LinksService_CreateContactLink
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -3130,6 +3911,8 @@ paths:
                 $ref: "#/components/schemas/CreateContactLinkResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -3167,6 +3950,17 @@ paths:
 
         Requires the `links:read` scope.
       operationId: LinksService_ResolveQrcodeImages
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -3181,6 +3975,8 @@ paths:
                 $ref: "#/components/schemas/ResolveQrcodeImagesResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -3328,6 +4124,17 @@ paths:
 
         Requires the `links:write` scope.
       operationId: LinksService_CreateThankYouLink
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -3342,6 +4149,8 @@ paths:
                 $ref: "#/components/schemas/CreateThankYouLinkResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -3507,6 +4316,16 @@ paths:
         schema:
           type: string
         style: simple
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -3521,6 +4340,8 @@ paths:
                 $ref: "#/components/schemas/UpdateLinkResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -3584,6 +4405,15 @@ paths:
         schema:
           type: string
         style: form
+      - description: "Opaque cursor from the previous page's nextPageToken. Same as\
+          \ pageToken; when both are sent, pageToken wins."
+        explode: true
+        in: query
+        name: cursor
+        required: false
+        schema:
+          type: string
+        style: form
       responses:
         "200":
           content:
@@ -3621,6 +4451,13 @@ paths:
       summary: List workflow steps for a link
       tags:
       - Workflow Steps
+      x-pagination:
+        cursorAlias: cursor
+        cursorParam: pageToken
+        endOfList: nextPageToken is empty or absent
+        nextCursorField: nextPageToken
+        pageSizeParam: pageSize
+        type: cursor
       x-required-scope: workflows:read
     post:
       description: |-
@@ -3638,6 +4475,16 @@ paths:
         schema:
           type: string
         style: simple
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -3652,6 +4499,8 @@ paths:
                 $ref: "#/components/schemas/CreateWorkflowStepResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -3698,6 +4547,16 @@ paths:
         schema:
           type: string
         style: simple
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -3712,6 +4571,8 @@ paths:
                 $ref: "#/components/schemas/AutoLayoutWorkflowResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -3937,6 +4798,16 @@ paths:
         schema:
           type: string
         style: simple
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -3951,6 +4822,8 @@ paths:
                 $ref: "#/components/schemas/UpdateWorkflowStepResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -4094,6 +4967,16 @@ paths:
         schema:
           type: string
         style: simple
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -4108,6 +4991,8 @@ paths:
                 $ref: "#/components/schemas/ConnectWorkflowStepResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -4162,6 +5047,16 @@ paths:
         schema:
           type: string
         style: simple
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -4176,6 +5071,8 @@ paths:
                 $ref: "#/components/schemas/ResolveStepCollisionsResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -4233,6 +5130,15 @@ paths:
         schema:
           type: string
         style: form
+      - description: "Opaque cursor from the previous page's nextPageToken. Same as\
+          \ pageToken; when both are sent, pageToken wins."
+        explode: true
+        in: query
+        name: cursor
+        required: false
+        schema:
+          type: string
+        style: form
       responses:
         "200":
           content:
@@ -4270,6 +5176,13 @@ paths:
       summary: List media files
       tags:
       - Media
+      x-pagination:
+        cursorAlias: cursor
+        cursorParam: pageToken
+        endOfList: nextPageToken is empty or absent
+        nextCursorField: nextPageToken
+        pageSizeParam: pageSize
+        type: cursor
       x-required-scope: media:read
     post:
       description: |-
@@ -4279,6 +5192,17 @@ paths:
 
         Requires the `media:write` scope.
       operationId: MediaService_Create
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -4293,6 +5217,8 @@ paths:
                 $ref: "#/components/schemas/CreateMediaResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -4494,6 +5420,17 @@ paths:
 
         Requires the `members:write` scope.
       operationId: MembersService_UpdateMyself
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -4508,6 +5445,8 @@ paths:
                 $ref: "#/components/schemas/Member"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -4567,6 +5506,15 @@ paths:
         schema:
           type: string
         style: form
+      - description: "Opaque cursor from the previous page's nextPageToken. Same as\
+          \ pageToken; when both are sent, pageToken wins."
+        explode: true
+        in: query
+        name: cursor
+        required: false
+        schema:
+          type: string
+        style: form
       responses:
         "200":
           content:
@@ -4616,6 +5564,13 @@ paths:
       summary: List members
       tags:
       - Members
+      x-pagination:
+        cursorAlias: cursor
+        cursorParam: pageToken
+        endOfList: nextPageToken is empty or absent
+        nextCursorField: nextPageToken
+        pageSizeParam: pageSize
+        type: cursor
       x-required-scope: members:read
   /v1/members/invite:
     post:
@@ -4624,6 +5579,17 @@ paths:
 
         Requires the `members:write` scope.
       operationId: MembersService_Invite
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -4638,6 +5604,8 @@ paths:
                 $ref: "#/components/schemas/Member"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -4650,6 +5618,8 @@ paths:
               schema: {}
           description: Member invited successfully
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -4803,6 +5773,16 @@ paths:
         schema:
           type: string
         style: simple
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -4817,6 +5797,8 @@ paths:
                 $ref: "#/components/schemas/Member"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -4863,6 +5845,16 @@ paths:
         schema:
           type: string
         style: simple
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -4877,6 +5869,8 @@ paths:
                 $ref: "#/components/schemas/Member"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -4923,6 +5917,16 @@ paths:
         schema:
           type: string
         style: simple
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -4937,6 +5941,8 @@ paths:
                 $ref: "#/components/schemas/Member"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -4983,6 +5989,16 @@ paths:
         schema:
           type: string
         style: simple
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -4997,6 +6013,8 @@ paths:
                 $ref: "#/components/schemas/Member"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -5245,6 +6263,15 @@ paths:
         schema:
           type: string
         style: form
+      - description: "Opaque cursor from the previous page's nextPageToken. Same as\
+          \ pageToken; when both are sent, pageToken wins."
+        explode: true
+        in: query
+        name: cursor
+        required: false
+        schema:
+          type: string
+        style: form
       responses:
         "200":
           content:
@@ -5282,6 +6309,13 @@ paths:
       summary: List my page theme templates
       tags:
       - Page Theme Templates
+      x-pagination:
+        cursorAlias: cursor
+        cursorParam: pageToken
+        endOfList: nextPageToken is empty or absent
+        nextCursorField: nextPageToken
+        pageSizeParam: pageSize
+        type: cursor
       x-required-scope: page_themes:read
     post:
       description: |-
@@ -5289,6 +6323,17 @@ paths:
 
         Requires the `page_themes:write` scope.
       operationId: PageThemeTemplatesService_CreatePageThemeTemplate
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -5303,6 +6348,8 @@ paths:
                 $ref: "#/components/schemas/CreatePageThemeTemplateResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -5340,6 +6387,17 @@ paths:
 
         Requires the `page_themes:read` scope.
       operationId: PageThemeTemplatesService_ResolvePageThemeTemplateImages
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -5354,6 +6412,8 @@ paths:
                 $ref: "#/components/schemas/ResolvePageThemeTemplateImagesResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -5391,6 +6451,17 @@ paths:
 
         Requires the `page_themes:write` scope.
       operationId: PageThemeTemplatesService_ImportPageThemeTemplate
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -5405,6 +6476,8 @@ paths:
                 $ref: "#/components/schemas/ImportPageThemeTemplateResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -5576,6 +6649,16 @@ paths:
         schema:
           type: string
         style: simple
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -5590,6 +6673,8 @@ paths:
                 $ref: "#/components/schemas/UpdatePageThemeTemplateResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -5636,6 +6721,16 @@ paths:
         schema:
           type: string
         style: simple
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -5650,6 +6745,8 @@ paths:
                 $ref: "#/components/schemas/PublishPageThemeTemplateResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -5696,6 +6793,16 @@ paths:
         schema:
           type: string
         style: simple
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -5710,6 +6817,8 @@ paths:
                 $ref: "#/components/schemas/UpdatePageThemeTemplateStylingResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -5769,6 +6878,15 @@ paths:
         schema:
           type: string
         style: form
+      - description: "Opaque cursor from the previous page's nextPageToken. Same as\
+          \ pageToken; when both are sent, pageToken wins."
+        explode: true
+        in: query
+        name: cursor
+        required: false
+        schema:
+          type: string
+        style: form
       responses:
         "200":
           content:
@@ -5806,6 +6924,13 @@ paths:
       summary: List page themes for the current workspace
       tags:
       - Page Themes
+      x-pagination:
+        cursorAlias: cursor
+        cursorParam: pageToken
+        endOfList: nextPageToken is empty or absent
+        nextCursorField: nextPageToken
+        pageSizeParam: pageSize
+        type: cursor
       x-required-scope: page_themes:read
   /v1/page-themes/apply-template:
     post:
@@ -5817,6 +6942,17 @@ paths:
 
         Requires the `page_themes:write` scope.
       operationId: PageThemesService_ApplyPageThemeTemplate
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -5831,6 +6967,8 @@ paths:
                 $ref: "#/components/schemas/ApplyPageThemeTemplateResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -6008,6 +7146,16 @@ paths:
         schema:
           type: string
         style: simple
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -6022,6 +7170,8 @@ paths:
                 $ref: "#/components/schemas/UpdatePageThemeResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -6170,6 +7320,15 @@ paths:
         schema:
           type: string
         style: form
+      - description: "Opaque cursor from the previous page's nextPageToken. Same as\
+          \ pageToken; when both are sent, pageToken wins."
+        explode: true
+        in: query
+        name: cursor
+        required: false
+        schema:
+          type: string
+        style: form
       responses:
         "200":
           content:
@@ -6203,6 +7362,13 @@ paths:
       summary: List page theme templates
       tags:
       - Page Theme Templates
+      x-pagination:
+        cursorAlias: cursor
+        cursorParam: pageToken
+        endOfList: nextPageToken is empty or absent
+        nextCursorField: nextPageToken
+        pageSizeParam: pageSize
+        type: cursor
   /v1/public/page-theme-templates/{slug}:
     get:
       description: Retrieve a single published page theme template that is visible
@@ -6267,6 +7433,17 @@ paths:
       description: Provision a QR code styling preset that can be reused across links
         or templates.
       operationId: QrcodeDesignService_PublicCreate
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -6281,6 +7458,8 @@ paths:
                 $ref: "#/components/schemas/PublicCreateQrcodeDesignResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -6293,6 +7472,8 @@ paths:
               schema: {}
           description: QR code design created successfully
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -6373,6 +7554,15 @@ paths:
         schema:
           type: string
         style: form
+      - description: "Opaque cursor from the previous page's nextPageToken. Same as\
+          \ pageToken; when both are sent, pageToken wins."
+        explode: true
+        in: query
+        name: cursor
+        required: false
+        schema:
+          type: string
+        style: form
       responses:
         "200":
           content:
@@ -6406,6 +7596,13 @@ paths:
       summary: List QR code templates
       tags:
       - QR Code Templates
+      x-pagination:
+        cursorAlias: cursor
+        cursorParam: pageToken
+        endOfList: nextPageToken is empty or absent
+        nextCursorField: nextPageToken
+        pageSizeParam: pageSize
+        type: cursor
   /v1/public/qrcode-templates/{slug}:
     get:
       description: Retrieve a single published QR code template that is visible in
@@ -6518,6 +7715,17 @@ paths:
 
         Requires the `qrcodes:write` scope.
       operationId: QrcodeDesignService_ApplyTemplate
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -6532,6 +7740,8 @@ paths:
                 $ref: "#/components/schemas/ApplyQrcodeTemplateResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -6696,6 +7906,16 @@ paths:
         schema:
           type: string
         style: simple
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -6710,6 +7930,8 @@ paths:
                 $ref: "#/components/schemas/UpdateQrcodeDesignResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -6793,6 +8015,15 @@ paths:
         schema:
           type: string
         style: form
+      - description: "Opaque cursor from the previous page's nextPageToken. Same as\
+          \ pageToken; when both are sent, pageToken wins."
+        explode: true
+        in: query
+        name: cursor
+        required: false
+        schema:
+          type: string
+        style: form
       responses:
         "200":
           content:
@@ -6830,6 +8061,13 @@ paths:
       summary: List my QR code templates
       tags:
       - QR Code Templates
+      x-pagination:
+        cursorAlias: cursor
+        cursorParam: pageToken
+        endOfList: nextPageToken is empty or absent
+        nextCursorField: nextPageToken
+        pageSizeParam: pageSize
+        type: cursor
       x-required-scope: qrcodes:read
     post:
       description: |-
@@ -6837,6 +8075,17 @@ paths:
 
         Requires the `qrcodes:write` scope.
       operationId: QrcodeTemplatesService_CreateQrcodeTemplate
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -6851,6 +8100,8 @@ paths:
                 $ref: "#/components/schemas/CreateQrcodeTemplateResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -6888,6 +8139,17 @@ paths:
 
         Requires the `qrcodes:read` scope.
       operationId: QrcodeTemplatesService_ResolveQrcodeTemplateImages
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -6902,6 +8164,8 @@ paths:
                 $ref: "#/components/schemas/ResolveQrcodeTemplateImagesResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -6939,6 +8203,17 @@ paths:
 
         Requires the `qrcodes:write` scope.
       operationId: QrcodeTemplatesService_ImportQrcodeTemplate
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -6953,6 +8228,8 @@ paths:
                 $ref: "#/components/schemas/ImportQrcodeTemplateResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -7124,6 +8401,16 @@ paths:
         schema:
           type: string
         style: simple
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -7138,6 +8425,8 @@ paths:
                 $ref: "#/components/schemas/UpdateQrcodeTemplateResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -7184,6 +8473,16 @@ paths:
         schema:
           type: string
         style: simple
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -7198,6 +8497,8 @@ paths:
                 $ref: "#/components/schemas/PublishQrcodeTemplateResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -7228,6 +8529,169 @@ paths:
       tags:
       - QR Code Templates
       x-required-scope: qrcodes:write
+  /v1/sandboxes:
+    get:
+      description: |-
+        List the sandbox workspaces this workspace created, newest first, with when each one expires.
+
+        Requires the `tokens:read` scope.
+      operationId: SandboxesService_List
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListSandboxesResponse"
+          description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - tokens:read
+      - oauth2:
+        - tokens:read
+      summary: List sandboxes
+      tags:
+      - Sandboxes
+      x-required-scope: tokens:read
+    post:
+      description: |-
+        Create an API-only sandbox workspace and return its first token. The token starts with `lb_test_`, holds the scopes of the credential that created it, and is shown only once. Call this with a live workspace credential; a sandbox cannot create sandboxes.
+
+        Requires the `tokens:write` scope.
+      operationId: SandboxesService_Create
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSandboxRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateSandboxResponse"
+          description: Everything worked as expected.
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - tokens:write
+      - oauth2:
+        - tokens:write
+      summary: Create a sandbox
+      tags:
+      - Sandboxes
+      x-required-scope: tokens:write
+  /v1/sandboxes/{id}:
+    delete:
+      description: |-
+        Delete a sandbox workspace now, with its links, visitors, events and tokens. Sandboxes are also deleted automatically 30 days after creation.
+
+        Requires the `tokens:write` scope.
+      operationId: SandboxesService_Delete
+      parameters:
+      - description: "The sandbox to delete (UUID), with everything in it."
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                properties: {}
+                type: object
+          description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - tokens:write
+      - oauth2:
+        - tokens:write
+      summary: Delete a sandbox
+      tags:
+      - Sandboxes
+      x-required-scope: tokens:write
   /v1/settings/link-setting/{id}:
     get:
       description: |-
@@ -7297,6 +8761,16 @@ paths:
         schema:
           type: string
         style: simple
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -7311,6 +8785,8 @@ paths:
                 $ref: "#/components/schemas/UpdateLinkSettingResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -7437,6 +8913,17 @@ paths:
 
         Requires the `integrations:write` scope.
       operationId: SlackIntegrationsService_Update
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -7451,6 +8938,8 @@ paths:
                 $ref: "#/components/schemas/UpdateSlackIntegrationResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -7578,6 +9067,17 @@ paths:
 
         Requires the `integrations:write` scope.
       operationId: SlackIntegrationsService_CompleteOAuth
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -7592,6 +9092,8 @@ paths:
                 $ref: "#/components/schemas/CompleteSlackOAuthResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -7629,6 +9131,17 @@ paths:
 
         Requires the `integrations:write` scope.
       operationId: SlackIntegrationsService_Test
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -7643,6 +9156,8 @@ paths:
                 $ref: "#/components/schemas/TestSlackIntegrationResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -7762,6 +9277,15 @@ paths:
         schema:
           type: string
         style: form
+      - description: "Opaque cursor from the previous page's nextPageToken. Same as\
+          \ pageToken; when both are sent, pageToken wins."
+        explode: true
+        in: query
+        name: cursor
+        required: false
+        schema:
+          type: string
+        style: form
       responses:
         "200":
           content:
@@ -7799,11 +9323,29 @@ paths:
       summary: List tags
       tags:
       - Tags
+      x-pagination:
+        cursorAlias: cursor
+        cursorParam: pageToken
+        endOfList: nextPageToken is empty or absent
+        nextCursorField: nextPageToken
+        pageSizeParam: pageSize
+        type: cursor
       x-required-scope: links:read
   /v1/timeseries/events:
     post:
       description: Requires the `analytics:read` scope.
       operationId: TimeSeriesService_GetEventsTimeSeries
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -7818,6 +9360,8 @@ paths:
                 $ref: "#/components/schemas/GetEventsTimeSeriesResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -7856,6 +9400,17 @@ paths:
 
         Requires the `visitors:write` scope.
       operationId: VisitorsService_Identify
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -7870,6 +9425,8 @@ paths:
                 $ref: "#/components/schemas/IdentifyResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -7998,6 +9555,15 @@ paths:
         schema:
           type: string
         style: form
+      - description: "Opaque cursor from the previous page's nextPageToken. Same as\
+          \ pageToken; when both are sent, pageToken wins."
+        explode: true
+        in: query
+        name: cursor
+        required: false
+        schema:
+          type: string
+        style: form
       responses:
         "200":
           content:
@@ -8035,6 +9601,13 @@ paths:
       summary: List visitors
       tags:
       - Visitors
+      x-pagination:
+        cursorAlias: cursor
+        cursorParam: pageToken
+        endOfList: nextPageToken is empty or absent
+        nextCursorField: nextPageToken
+        pageSizeParam: pageSize
+        type: cursor
       x-required-scope: visitors:read
   /v1/visitors/attributes:
     get:
@@ -8098,6 +9671,17 @@ paths:
 
         Requires the `visitors:read` scope.
       operationId: VisitorsService_Search
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -8112,6 +9696,8 @@ paths:
                 $ref: "#/components/schemas/ListVisitorsResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -8275,6 +9861,16 @@ paths:
         schema:
           type: string
         style: simple
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -8289,6 +9885,8 @@ paths:
                 $ref: "#/components/schemas/Visitor"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -8424,6 +10022,15 @@ paths:
         schema:
           type: string
         style: form
+      - description: "Opaque cursor from the previous page's nextPageToken. Same as\
+          \ pageToken; when both are sent, pageToken wins."
+        explode: true
+        in: query
+        name: cursor
+        required: false
+        schema:
+          type: string
+        style: form
       responses:
         "200":
           content:
@@ -8461,6 +10068,13 @@ paths:
       summary: List webhooks
       tags:
       - Webhooks
+      x-pagination:
+        cursorAlias: cursor
+        cursorParam: pageToken
+        endOfList: nextPageToken is empty or absent
+        nextCursorField: nextPageToken
+        pageSizeParam: pageSize
+        type: cursor
       x-required-scope: webhooks:read
     post:
       description: |-
@@ -8468,6 +10082,17 @@ paths:
 
         Requires the `webhooks:write` scope.
       operationId: WebhooksService_Create
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -8482,6 +10107,8 @@ paths:
                 $ref: "#/components/schemas/CreateWebhookResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -8635,6 +10262,16 @@ paths:
         schema:
           type: string
         style: simple
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -8649,6 +10286,8 @@ paths:
                 $ref: "#/components/schemas/UpdateWebhookResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -8776,6 +10415,17 @@ paths:
 
         Requires the `workspace:write` scope.
       operationId: WorkspacesService_Update
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -8790,6 +10440,8 @@ paths:
                 $ref: "#/components/schemas/Workspace"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -8848,6 +10500,15 @@ paths:
         schema:
           type: string
         style: form
+      - description: "Opaque cursor from the previous page's nextPageToken. Same as\
+          \ pageToken; when both are sent, pageToken wins."
+        explode: true
+        in: query
+        name: cursor
+        required: false
+        schema:
+          type: string
+        style: form
       responses:
         "200":
           content:
@@ -8885,6 +10546,13 @@ paths:
       summary: List workspace tokens
       tags:
       - Workspace Tokens
+      x-pagination:
+        cursorAlias: cursor
+        cursorParam: pageToken
+        endOfList: nextPageToken is empty or absent
+        nextCursorField: nextPageToken
+        pageSizeParam: pageSize
+        type: cursor
       x-required-scope: tokens:read
     post:
       description: |-
@@ -8892,6 +10560,17 @@ paths:
 
         Requires the `tokens:write` scope.
       operationId: WorkspaceTokensService_Create
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -8906,6 +10585,8 @@ paths:
                 $ref: "#/components/schemas/CreateWorkspaceTokenResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -9059,6 +10740,16 @@ paths:
         schema:
           type: string
         style: simple
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -9073,6 +10764,8 @@ paths:
                 $ref: "#/components/schemas/UpdateWorkspaceTokenResponse"
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -9110,6 +10803,17 @@ paths:
 
         Requires the `workspace:write` scope.
       operationId: WorkspacesService_UpdateOriginInquiry
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -9125,6 +10829,8 @@ paths:
                 type: object
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -9162,6 +10868,17 @@ paths:
 
         Requires the `workspace:write` scope.
       operationId: WorkspacesService_UpdateOriginPurpose
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -9177,6 +10894,8 @@ paths:
                 type: object
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -9214,6 +10933,17 @@ paths:
 
         Requires the `workspace:write` scope.
       operationId: WorkspacesService_RequestEnrollment
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
       requestBody:
         content:
           application/json:
@@ -9229,6 +10959,8 @@ paths:
                 type: object
           description: Everything worked as expected.
           headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
             RateLimit:
               $ref: "#/components/headers/RateLimit"
             RateLimit-Policy:
@@ -9315,6 +11047,22 @@ paths:
       x-required-scope: workspace:read
 components:
   headers:
+    Deprecation:
+      description: "Present when the operation is deprecated (RFC 9745): the Unix\
+        \ time, prefixed with @, at which it was deprecated. A Link field with rel=\"\
+        deprecation\" points to the policy."
+      explode: false
+      schema:
+        example: '@1798761600'
+        type: string
+      style: simple
+    Idempotent-Replayed:
+      description: true when this response is the stored answer to an earlier request
+        with the same Idempotency-Key.
+      explode: false
+      schema:
+        type: boolean
+      style: simple
     RateLimit:
       description: "What is left of the quota: `\"<name>\";r=<remaining requests>;t=<seconds\
         \ until the window resets>` (draft-ietf-httpapi-ratelimit-headers)."
@@ -9359,6 +11107,14 @@ components:
         example: 42
         type: integer
       style: simple
+    Sunset:
+      description: "Present when a deprecated operation has a scheduled end (RFC 8594):\
+        \ the HTTP date after which it may stop working."
+      explode: false
+      schema:
+        example: "Thu, 01 Jul 2027 00:00:00 GMT"
+        type: string
+      style: simple
     X-RateLimit-Limit:
       description: "Same as RateLimit-Limit, for clients that read the X- convention."
       explode: false
@@ -9379,6 +11135,23 @@ components:
       schema:
         example: 1791650400
         type: integer
+      style: simple
+  parameters:
+    IdempotencyKey:
+      description: "A unique value, such as a UUID, that makes retrying this request\
+        \ safe (draft-ietf-httpapi-idempotency-key-header). A retry with the same\
+        \ key and the same request returns the first response, with Idempotent-Replayed:\
+        \ true, instead of running again. Keys are scoped to the token and kept for\
+        \ 24 hours. The same key with a different request is refused with 422; a retry\
+        \ while the first request is still running gets 409 with Retry-After."
+      explode: false
+      in: header
+      name: Idempotency-Key
+      required: false
+      schema:
+        example: 4f7d2c1e-8a8b-4b5e-9f8c-2d3e1a6b7c90
+        maxLength: 255
+        minLength: 1
       style: simple
   responses:
     "200":
@@ -9496,6 +11269,54 @@ components:
       - ACTION_SCAN
       - ACTION_CLICK
       title: The type of event action
+      type: string
+    AgentClaim:
+      description: What a claim link would hand over.
+      example:
+        registeredAt: 2000-01-23T04:56:07.000+00:00
+        email: email
+        expiresAt: 2000-01-23T04:56:07.000+00:00
+        postClaimScopes:
+        - API_SCOPE_UNSPECIFIED
+        - API_SCOPE_UNSPECIFIED
+        status: ""
+      properties:
+        email:
+          description: The email the agent named for this claim. The workspace can
+            only be claimed with it.
+          type: string
+        expiresAt:
+          format: date-time
+          title: When the code stops working
+          type: string
+        postClaimScopes:
+          items:
+            $ref: "#/components/schemas/ApiScope"
+          title: What the agent may do once the workspace is claimed
+          type: array
+        registeredAt:
+          format: date-time
+          title: When the agent registered
+          type: string
+        status:
+          allOf:
+          - $ref: "#/components/schemas/AgentClaimStatus"
+          title: Where the link stands
+      title: AgentClaim
+    AgentClaimStatus:
+      default: AGENT_CLAIM_STATUS_UNSPECIFIED
+      description: |-
+        Where a claim link stands.
+
+         - AGENT_CLAIM_STATUS_PENDING: The link is live: enter the code to claim the workspace
+         - AGENT_CLAIM_STATUS_CLAIMED: The workspace has been claimed
+         - AGENT_CLAIM_STATUS_EXPIRED: The link or the registration expired, or the agent started a newer claim
+      enum:
+      - AGENT_CLAIM_STATUS_UNSPECIFIED
+      - AGENT_CLAIM_STATUS_PENDING
+      - AGENT_CLAIM_STATUS_CLAIMED
+      - AGENT_CLAIM_STATUS_EXPIRED
+      title: AgentClaimStatus
       type: string
     AnalyticsDashboard:
       example:
@@ -9702,7 +11523,7 @@ components:
       example:
         access: ""
         resource: links
-        scope: ""
+        scope: API_SCOPE_UNSPECIFIED
         name: links:read
         description: description
       properties:
@@ -9723,9 +11544,73 @@ components:
           example: links
           type: string
         scope:
-          allOf:
-          - $ref: "#/components/schemas/ApiScope"
-          description: The scope.
+          description: |-
+            ApiScope is one permission an API token or OAuth grant can hold.
+
+            A write scope also grants the read scope of the same resource.
+
+             - API_SCOPE_UNSPECIFIED: Not a scope. Rejected wherever a scope is expected.
+             - API_SCOPE_LINKS_READ: Read links, their QR code images, tags, folders and link settings.
+             - API_SCOPE_LINKS_WRITE: Create, update and delete links, tags, folders and link settings.
+             - API_SCOPE_WORKFLOWS_READ: Read the workflow steps behind a link and validate them.
+             - API_SCOPE_WORKFLOWS_WRITE: Create, connect, update, lay out and delete workflow steps.
+             - API_SCOPE_QRCODES_READ: Read QR code designs and QR code templates.
+             - API_SCOPE_QRCODES_WRITE: Change QR code designs and create, publish and delete QR code templates.
+             - API_SCOPE_PAGE_THEMES_READ: Read page themes and page theme templates.
+             - API_SCOPE_PAGE_THEMES_WRITE: Change page themes and create, publish and delete page theme templates.
+             - API_SCOPE_MEDIA_READ: Read uploaded media.
+             - API_SCOPE_MEDIA_WRITE: Upload and delete media.
+             - API_SCOPE_DOMAINS_READ: Read custom domains and their DNS instructions.
+             - API_SCOPE_DOMAINS_WRITE: Add, verify, update and delete custom domains.
+             - API_SCOPE_VISITORS_READ: Read and search visitors and their attributes.
+             - API_SCOPE_VISITORS_WRITE: Identify, update and delete visitors and their attributes.
+             - API_SCOPE_ANALYTICS_READ: Read events, metrics, time series, analytics data and dashboards.
+             - API_SCOPE_ANALYTICS_WRITE: Create, update and delete analytics dashboards and generate widget summaries.
+             - API_SCOPE_WEBHOOKS_READ: Read webhooks.
+             - API_SCOPE_WEBHOOKS_WRITE: Create, update and delete webhooks.
+             - API_SCOPE_INTEGRATIONS_READ: Read the Slack and Google Forms integrations.
+             - API_SCOPE_INTEGRATIONS_WRITE: Connect, configure, test, sync and disconnect the Slack and Google Forms integrations.
+             - API_SCOPE_WORKSPACE_READ: Read the workspace and its settings.
+             - API_SCOPE_WORKSPACE_WRITE: Update the workspace, request enrollment and delete the workspace.
+             - API_SCOPE_MEMBERS_READ: Read workspace members.
+             - API_SCOPE_MEMBERS_WRITE: Update, revoke, sign out and remove members. Inviting a member or changing a sign-in email or password needs full access.
+             - API_SCOPE_TOKENS_READ: Read API tokens and their scopes, never their secrets.
+             - API_SCOPE_TOKENS_WRITE: Create, update and delete API tokens, limited to the scopes the calling token holds.
+             - API_SCOPE_BILLING_WRITE: Open checkout, credit top-up and billing portal sessions.
+             - API_SCOPE_ASSISTANT_READ: Read the Assistant conversation.
+             - API_SCOPE_ASSISTANT_WRITE: Send files to the Assistant, clear the conversation and contact support.
+          enum:
+          - API_SCOPE_UNSPECIFIED
+          - API_SCOPE_LINKS_READ
+          - API_SCOPE_LINKS_WRITE
+          - API_SCOPE_WORKFLOWS_READ
+          - API_SCOPE_WORKFLOWS_WRITE
+          - API_SCOPE_QRCODES_READ
+          - API_SCOPE_QRCODES_WRITE
+          - API_SCOPE_PAGE_THEMES_READ
+          - API_SCOPE_PAGE_THEMES_WRITE
+          - API_SCOPE_MEDIA_READ
+          - API_SCOPE_MEDIA_WRITE
+          - API_SCOPE_DOMAINS_READ
+          - API_SCOPE_DOMAINS_WRITE
+          - API_SCOPE_VISITORS_READ
+          - API_SCOPE_VISITORS_WRITE
+          - API_SCOPE_ANALYTICS_READ
+          - API_SCOPE_ANALYTICS_WRITE
+          - API_SCOPE_WEBHOOKS_READ
+          - API_SCOPE_WEBHOOKS_WRITE
+          - API_SCOPE_INTEGRATIONS_READ
+          - API_SCOPE_INTEGRATIONS_WRITE
+          - API_SCOPE_WORKSPACE_READ
+          - API_SCOPE_WORKSPACE_WRITE
+          - API_SCOPE_MEMBERS_READ
+          - API_SCOPE_MEMBERS_WRITE
+          - API_SCOPE_TOKENS_READ
+          - API_SCOPE_TOKENS_WRITE
+          - API_SCOPE_BILLING_WRITE
+          - API_SCOPE_ASSISTANT_READ
+          - API_SCOPE_ASSISTANT_WRITE
+          type: string
     ApplyPageThemeTemplateRequest:
       example:
         linkId: linkId
@@ -10259,6 +12144,27 @@ components:
         customDomain:
           $ref: "#/components/schemas/CustomDomain"
       title: Response containing the status of a custom domain
+    ClaimAgentWorkspaceRequest:
+      example:
+        password: password
+        firebaseToken: firebaseToken
+        claimAttemptToken: claimAttemptToken
+        userCode: userCode
+      properties:
+        claimAttemptToken:
+          title: The claim_attempt_token from the link the agent handed over
+          type: string
+        firebaseToken:
+          description: "A Firebase ID token from Google or Microsoft sign-in, for\
+            \ the claim email. Set this or password."
+          type: string
+        password:
+          description: A password for the claim email. Set this or firebase_token.
+          type: string
+        userCode:
+          title: The 6-digit code the agent gave you
+          type: string
+      title: Request to claim an agent's workspace
     ClientRedirectPayload:
       properties:
         conversionTracking:
@@ -11332,6 +13238,35 @@ components:
           title: The created QR code template
       title: CreateQrcodeTemplateResponse represents the response for creating a QR
         code template
+    CreateSandboxRequest:
+      example:
+        name: name
+      properties:
+        name:
+          description: "Optional name, at most 80 characters. Defaults to \"Sandbox\"\
+            \ and the creation time."
+          type: string
+    CreateSandboxResponse:
+      example:
+        sandbox:
+          createdAt: 2000-01-23T04:56:07.000+00:00
+          name: CI integration tests
+          id: 5b1e4d42-c0d3-4afe-a6fd-0c5f5c3962d0
+          expiresAt: 2000-01-23T04:56:07.000+00:00
+        accessToken: accessToken
+        token: ""
+      properties:
+        accessToken:
+          description: "The secret, starting with lb_test_. Returned only once."
+          type: string
+        sandbox:
+          $ref: "#/components/schemas/Sandbox"
+        token:
+          allOf:
+          - $ref: "#/components/schemas/WorkspaceToken"
+          description: |-
+            The sandbox's first API token, with the same scopes as the credential
+            that created the sandbox.
     CreateThankYouLinkRequest:
       description: Request to create a new thank you page link.
       example:
@@ -11585,12 +13520,19 @@ components:
         scopes:
         - API_SCOPE_UNSPECIFIED
         - API_SCOPE_UNSPECIFIED
-        keyType: ""
+        keyType: WORKSPACE_TOKEN_KEY_TYPE_UNSPECIFIED
       properties:
         keyType:
-          allOf:
-          - $ref: "#/components/schemas/WorkspaceTokenKeyType"
+          description: |-
+            - WORKSPACE_TOKEN_KEY_TYPE_UNSPECIFIED: Default value (should not be used)
+             - WORKSPACE_TOKEN_KEY_TYPE_SECRET: Secret key with full API access
+             - WORKSPACE_TOKEN_KEY_TYPE_PUBLISHABLE: Publishable key with limited access
+          enum:
+          - WORKSPACE_TOKEN_KEY_TYPE_UNSPECIFIED
+          - WORKSPACE_TOKEN_KEY_TYPE_SECRET
+          - WORKSPACE_TOKEN_KEY_TYPE_PUBLISHABLE
           title: The key type of the token (required)
+          type: string
         name:
           title: The name of the token
           type: string
@@ -11600,7 +13542,73 @@ components:
             also grants the read scope of the same resource. Publishable keys take no
             scopes. A token can only grant scopes it holds itself.
           items:
-            $ref: "#/components/schemas/ApiScope"
+            description: |-
+              ApiScope is one permission an API token or OAuth grant can hold.
+
+              A write scope also grants the read scope of the same resource.
+
+               - API_SCOPE_UNSPECIFIED: Not a scope. Rejected wherever a scope is expected.
+               - API_SCOPE_LINKS_READ: Read links, their QR code images, tags, folders and link settings.
+               - API_SCOPE_LINKS_WRITE: Create, update and delete links, tags, folders and link settings.
+               - API_SCOPE_WORKFLOWS_READ: Read the workflow steps behind a link and validate them.
+               - API_SCOPE_WORKFLOWS_WRITE: Create, connect, update, lay out and delete workflow steps.
+               - API_SCOPE_QRCODES_READ: Read QR code designs and QR code templates.
+               - API_SCOPE_QRCODES_WRITE: Change QR code designs and create, publish and delete QR code templates.
+               - API_SCOPE_PAGE_THEMES_READ: Read page themes and page theme templates.
+               - API_SCOPE_PAGE_THEMES_WRITE: Change page themes and create, publish and delete page theme templates.
+               - API_SCOPE_MEDIA_READ: Read uploaded media.
+               - API_SCOPE_MEDIA_WRITE: Upload and delete media.
+               - API_SCOPE_DOMAINS_READ: Read custom domains and their DNS instructions.
+               - API_SCOPE_DOMAINS_WRITE: Add, verify, update and delete custom domains.
+               - API_SCOPE_VISITORS_READ: Read and search visitors and their attributes.
+               - API_SCOPE_VISITORS_WRITE: Identify, update and delete visitors and their attributes.
+               - API_SCOPE_ANALYTICS_READ: Read events, metrics, time series, analytics data and dashboards.
+               - API_SCOPE_ANALYTICS_WRITE: Create, update and delete analytics dashboards and generate widget summaries.
+               - API_SCOPE_WEBHOOKS_READ: Read webhooks.
+               - API_SCOPE_WEBHOOKS_WRITE: Create, update and delete webhooks.
+               - API_SCOPE_INTEGRATIONS_READ: Read the Slack and Google Forms integrations.
+               - API_SCOPE_INTEGRATIONS_WRITE: Connect, configure, test, sync and disconnect the Slack and Google Forms integrations.
+               - API_SCOPE_WORKSPACE_READ: Read the workspace and its settings.
+               - API_SCOPE_WORKSPACE_WRITE: Update the workspace, request enrollment and delete the workspace.
+               - API_SCOPE_MEMBERS_READ: Read workspace members.
+               - API_SCOPE_MEMBERS_WRITE: Update, revoke, sign out and remove members. Inviting a member or changing a sign-in email or password needs full access.
+               - API_SCOPE_TOKENS_READ: Read API tokens and their scopes, never their secrets.
+               - API_SCOPE_TOKENS_WRITE: Create, update and delete API tokens, limited to the scopes the calling token holds.
+               - API_SCOPE_BILLING_WRITE: Open checkout, credit top-up and billing portal sessions.
+               - API_SCOPE_ASSISTANT_READ: Read the Assistant conversation.
+               - API_SCOPE_ASSISTANT_WRITE: Send files to the Assistant, clear the conversation and contact support.
+            enum:
+            - API_SCOPE_UNSPECIFIED
+            - API_SCOPE_LINKS_READ
+            - API_SCOPE_LINKS_WRITE
+            - API_SCOPE_WORKFLOWS_READ
+            - API_SCOPE_WORKFLOWS_WRITE
+            - API_SCOPE_QRCODES_READ
+            - API_SCOPE_QRCODES_WRITE
+            - API_SCOPE_PAGE_THEMES_READ
+            - API_SCOPE_PAGE_THEMES_WRITE
+            - API_SCOPE_MEDIA_READ
+            - API_SCOPE_MEDIA_WRITE
+            - API_SCOPE_DOMAINS_READ
+            - API_SCOPE_DOMAINS_WRITE
+            - API_SCOPE_VISITORS_READ
+            - API_SCOPE_VISITORS_WRITE
+            - API_SCOPE_ANALYTICS_READ
+            - API_SCOPE_ANALYTICS_WRITE
+            - API_SCOPE_WEBHOOKS_READ
+            - API_SCOPE_WEBHOOKS_WRITE
+            - API_SCOPE_INTEGRATIONS_READ
+            - API_SCOPE_INTEGRATIONS_WRITE
+            - API_SCOPE_WORKSPACE_READ
+            - API_SCOPE_WORKSPACE_WRITE
+            - API_SCOPE_MEMBERS_READ
+            - API_SCOPE_MEMBERS_WRITE
+            - API_SCOPE_TOKENS_READ
+            - API_SCOPE_TOKENS_WRITE
+            - API_SCOPE_BILLING_WRITE
+            - API_SCOPE_ASSISTANT_READ
+            - API_SCOPE_ASSISTANT_WRITE
+            type: string
           type: array
       required:
       - keyType
@@ -13153,7 +15161,7 @@ components:
           type: string
     ErrorResponse:
       example:
-        code: 1
+        code: 0
         codeType: UNKNOWN
         details:
         - "{}"
@@ -14093,6 +16101,14 @@ components:
           title: Percentage of total events
           type: number
       title: GeoDataPoint represents a geographic location with its event count
+    GetAgentClaimRequest:
+      example:
+        claimAttemptToken: claimAttemptToken
+      properties:
+        claimAttemptToken:
+          title: The claim_attempt_token from the link the agent handed over
+          type: string
+      title: Request to read a claim link
     GetAttributeDistributionRequest:
       example:
         linkId: linkId
@@ -15128,6 +17144,109 @@ components:
         lastName:
           title: Last name used in invitation email and dashboard
           type: string
+    Job:
+      description: A long-running operation.
+      example:
+        createdAt: 2000-01-23T04:56:07.000+00:00
+        completedAt: 2000-01-23T04:56:07.000+00:00
+        statusUrl: statusUrl
+        id: id
+        error: ""
+        linksBulkCreate: ""
+        type: JOB_TYPE_UNSPECIFIED
+        itemCount: 0
+        status: JOB_STATUS_UNSPECIFIED
+      properties:
+        completedAt:
+          description: "When the job finished, once it has."
+          format: date-time
+          type: string
+        createdAt:
+          description: When the job was accepted.
+          format: date-time
+          type: string
+        error:
+          allOf:
+          - $ref: "#/components/schemas/JobError"
+          description: Set when status is JOB_STATUS_FAILED.
+        id:
+          description: Job ID (UUID).
+          type: string
+        itemCount:
+          description: How many items the job was submitted with.
+          format: int32
+          type: integer
+        linksBulkCreate:
+          allOf:
+          - $ref: "#/components/schemas/LinksBulkCreateResult"
+          description: Set when a JOB_TYPE_LINKS_BULK_CREATE job succeeded.
+        status:
+          description: |-
+            Where a job stands.
+
+             - JOB_STATUS_UNSPECIFIED: Not set.
+             - JOB_STATUS_PENDING: Accepted and waiting to run.
+             - JOB_STATUS_RUNNING: Running now.
+             - JOB_STATUS_SUCCEEDED: Finished; the result is set.
+             - JOB_STATUS_FAILED: Finished without doing its work; error says why. Nothing was created.
+          enum:
+          - JOB_STATUS_UNSPECIFIED
+          - JOB_STATUS_PENDING
+          - JOB_STATUS_RUNNING
+          - JOB_STATUS_SUCCEEDED
+          - JOB_STATUS_FAILED
+          type: string
+        statusUrl:
+          description: Path to poll for this job's status.
+          type: string
+        type:
+          description: |-
+            What a job does.
+
+             - JOB_TYPE_UNSPECIFIED: Not set.
+             - JOB_TYPE_LINKS_BULK_CREATE: Creates a batch of links (POST /v1/links/bulk/jobs).
+          enum:
+          - JOB_TYPE_UNSPECIFIED
+          - JOB_TYPE_LINKS_BULK_CREATE
+          type: string
+    JobError:
+      description: Why a job failed.
+      properties:
+        codeType:
+          description: "Stable error code, the same codeType a synchronous call would\
+            \ return."
+          type: string
+        message:
+          description: Human-readable explanation.
+          type: string
+    JobStatus:
+      default: JOB_STATUS_UNSPECIFIED
+      description: |-
+        Where a job stands.
+
+         - JOB_STATUS_UNSPECIFIED: Not set.
+         - JOB_STATUS_PENDING: Accepted and waiting to run.
+         - JOB_STATUS_RUNNING: Running now.
+         - JOB_STATUS_SUCCEEDED: Finished; the result is set.
+         - JOB_STATUS_FAILED: Finished without doing its work; error says why. Nothing was created.
+      enum:
+      - JOB_STATUS_UNSPECIFIED
+      - JOB_STATUS_PENDING
+      - JOB_STATUS_RUNNING
+      - JOB_STATUS_SUCCEEDED
+      - JOB_STATUS_FAILED
+      type: string
+    JobType:
+      default: JOB_TYPE_UNSPECIFIED
+      description: |-
+        What a job does.
+
+         - JOB_TYPE_UNSPECIFIED: Not set.
+         - JOB_TYPE_LINKS_BULK_CREATE: Creates a batch of links (POST /v1/links/bulk/jobs).
+      enum:
+      - JOB_TYPE_UNSPECIFIED
+      - JOB_TYPE_LINKS_BULK_CREATE
+      type: string
     JourneyProgress:
       description: |-
         How far one visit got through a workflow. Conditions are not counted,
@@ -15401,6 +17520,16 @@ components:
       description: Reserved for future link visit specific configuration
       title: Entry payload for EVENT_ACTION_LINK_VISIT (currently no specific fields)
       type: object
+    LinksBulkCreateResult:
+      description: Result of a JOB_TYPE_LINKS_BULK_CREATE job.
+      properties:
+        linkIds:
+          description: |-
+            IDs of the created links, in the order they were submitted. Fetch each
+            with GET /v1/links/{id}.
+          items:
+            type: string
+          type: array
     LinksServiceUpdateBody:
       example:
         expiresAtDelete: true
@@ -15535,12 +17664,12 @@ components:
         scopes:
         - access: ""
           resource: links
-          scope: ""
+          scope: API_SCOPE_UNSPECIFIED
           name: links:read
           description: description
         - access: ""
           resource: links
-          scope: ""
+          scope: API_SCOPE_UNSPECIFIED
           name: links:read
           description: description
       properties:
@@ -16813,19 +18942,6 @@ components:
         - features:
           - PLAN_FEATURE_UNSPECIFIED
           - PLAN_FEATURE_UNSPECIFIED
-          meteredPrices:
-          - unit: ""
-            amounts:
-            - currency: currency
-              amountMinor: 1
-            - currency: currency
-              amountMinor: 1
-          - unit: ""
-            amounts:
-            - currency: currency
-              amountMinor: 1
-            - currency: currency
-              amountMinor: 1
           name: name
           id: PRICING_PLAN_ID_UNSPECIFIED
           prices:
@@ -16862,19 +18978,6 @@ components:
         - features:
           - PLAN_FEATURE_UNSPECIFIED
           - PLAN_FEATURE_UNSPECIFIED
-          meteredPrices:
-          - unit: ""
-            amounts:
-            - currency: currency
-              amountMinor: 1
-            - currency: currency
-              amountMinor: 1
-          - unit: ""
-            amounts:
-            - currency: currency
-              amountMinor: 1
-            - currency: currency
-              amountMinor: 1
           name: name
           id: PRICING_PLAN_ID_UNSPECIFIED
           prices:
@@ -17088,6 +19191,27 @@ components:
             from a page of one. A local-first client reads absence from this list as
             the member having been removed, and may only do so when the count it was
             given matches what it received.
+          format: int64
+          type: string
+    ListSandboxesResponse:
+      example:
+        totalCount: totalCount
+        sandboxes:
+        - createdAt: 2000-01-23T04:56:07.000+00:00
+          name: CI integration tests
+          id: 5b1e4d42-c0d3-4afe-a6fd-0c5f5c3962d0
+          expiresAt: 2000-01-23T04:56:07.000+00:00
+        - createdAt: 2000-01-23T04:56:07.000+00:00
+          name: CI integration tests
+          id: 5b1e4d42-c0d3-4afe-a6fd-0c5f5c3962d0
+          expiresAt: 2000-01-23T04:56:07.000+00:00
+      properties:
+        sandboxes:
+          items:
+            $ref: "#/components/schemas/Sandbox"
+          type: array
+        totalCount:
+          description: How many sandboxes the workspace holds.
           format: int64
           type: string
     ListSlackChannelsResponse:
@@ -17445,7 +19569,7 @@ components:
           scopes:
           - API_SCOPE_UNSPECIFIED
           - API_SCOPE_UNSPECIFIED
-          keyType: ""
+          keyType: WORKSPACE_TOKEN_KEY_TYPE_UNSPECIFIED
           updatedAt: 2000-01-23T04:56:07.000+00:00
           workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
         - createdAt: 2000-01-23T04:56:07.000+00:00
@@ -17457,7 +19581,7 @@ components:
           scopes:
           - API_SCOPE_UNSPECIFIED
           - API_SCOPE_UNSPECIFIED
-          keyType: ""
+          keyType: WORKSPACE_TOKEN_KEY_TYPE_UNSPECIFIED
           updatedAt: 2000-01-23T04:56:07.000+00:00
           workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
         totalCount: totalCount
@@ -17673,10 +19797,18 @@ components:
           title: Last time the member successfully authenticated
           type: string
         role:
-          allOf:
-          - $ref: "#/components/schemas/Role"
+          description: |-
+            Role enumerates the built-in permission tiers that control what teammates can manage inside a workspace.
+
+             - ROLE_UNSPECIFIED: Role not specified (defaults to viewer permissions)
+          enum:
+          - ROLE_UNSPECIFIED
+          - ROLE_VIEWER
+          - ROLE_ADMIN
+          - ROLE_TECH
           example: ROLE_ADMIN
           title: Workspace role that controls product permissions
+          type: string
         updatedAt:
           format: date-time
           title: Timestamp when member metadata was last updated
@@ -17718,10 +19850,18 @@ components:
           title: Last name to display in the product
           type: string
         role:
-          allOf:
-          - $ref: "#/components/schemas/Role"
+          description: |-
+            Role enumerates the built-in permission tiers that control what teammates can manage inside a workspace.
+
+             - ROLE_UNSPECIFIED: Role not specified (defaults to viewer permissions)
+          enum:
+          - ROLE_UNSPECIFIED
+          - ROLE_VIEWER
+          - ROLE_ADMIN
+          - ROLE_TECH
           example: ROLE_TECH
           title: Role that defines workspace permissions
+          type: string
     MessagePageNavigationType:
       default: MESSAGE_PAGE_NAVIGATION_TYPE_UNSPECIFIED
       description: |-
@@ -17766,42 +19906,6 @@ components:
       - navigationType
       - title
       title: MessagePagePayload is a mid-flow informational page with mandatory navigation
-    MeteredPrice:
-      example:
-        unit: ""
-        amounts:
-        - currency: currency
-          amountMinor: 1
-        - currency: currency
-          amountMinor: 1
-      properties:
-        amounts:
-          items:
-            $ref: "#/components/schemas/Money"
-          title: "Price of one unit, one entry per currency"
-          type: array
-        unit:
-          allOf:
-          - $ref: "#/components/schemas/MeteredUnit"
-          title: What is billed
-      title: MeteredPrice is what one unit costs on a plan billed per use
-    MeteredUnit:
-      default: METERED_UNIT_UNSPECIFIED
-      description: |-
-        - METERED_UNIT_UNSPECIFIED: Not set
-         - METERED_UNIT_LINK_CREATED: A link created
-         - METERED_UNIT_LINK_VISITED: A tracked visit
-         - METERED_UNIT_PUBLIC_API_CALL: A public API call
-         - METERED_UNIT_CUSTOM_DOMAIN_CREATED: A custom domain created
-      enum:
-      - METERED_UNIT_UNSPECIFIED
-      - METERED_UNIT_LINK_CREATED
-      - METERED_UNIT_LINK_VISITED
-      - METERED_UNIT_PUBLIC_API_CALL
-      - METERED_UNIT_CUSTOM_DOMAIN_CREATED
-      title: MeteredUnit names something an Enterprise workspace is billed for per
-        unit
-      type: string
     Money:
       example:
         currency: currency
@@ -18679,19 +20783,6 @@ components:
         features:
         - PLAN_FEATURE_UNSPECIFIED
         - PLAN_FEATURE_UNSPECIFIED
-        meteredPrices:
-        - unit: ""
-          amounts:
-          - currency: currency
-            amountMinor: 1
-          - currency: currency
-            amountMinor: 1
-        - unit: ""
-          amounts:
-          - currency: currency
-            amountMinor: 1
-          - currency: currency
-            amountMinor: 1
         name: name
         id: PRICING_PLAN_ID_UNSPECIFIED
         prices:
@@ -18737,7 +20828,7 @@ components:
              - PRICING_PLAN_ID_FREE: Free plan, no payment
              - PRICING_PLAN_ID_LIGHT: Light plan
              - PRICING_PLAN_ID_PRO: Pro plan. Trials and sponsored workspaces are allowed what Pro allows unless a limit says otherwise.
-             - PRICING_PLAN_ID_ENTERPRISE: Enterprise plan, billed per unit used
+             - PRICING_PLAN_ID_ENTERPRISE: Enterprise plan, billed on usage and priced on request through sales
           enum:
           - PRICING_PLAN_ID_UNSPECIFIED
           - PRICING_PLAN_ID_FREE
@@ -18751,18 +20842,13 @@ components:
             $ref: "#/components/schemas/PlanLimit"
           title: Every limit the plan enforces
           type: array
-        meteredPrices:
-          items:
-            $ref: "#/components/schemas/MeteredPrice"
-          title: Per-unit prices for plans billed by use
-          type: array
         name:
           title: Display name
           type: string
         prices:
           description: |-
-            Recurring prices. Empty for the free plan and for Enterprise, which is billed per unit through
-            metered_prices. Also empty for a paid plan whose prices could not be read: treat that as unknown, not free.
+            Recurring prices. Empty for the free plan and for Enterprise, which is priced on request.
+            Also empty for a paid plan whose prices could not be read: treat that as unknown, not free.
           items:
             $ref: "#/components/schemas/PlanPrice"
           type: array
@@ -18779,7 +20865,7 @@ components:
          - PRICING_PLAN_ID_FREE: Free plan, no payment
          - PRICING_PLAN_ID_LIGHT: Light plan
          - PRICING_PLAN_ID_PRO: Pro plan. Trials and sponsored workspaces are allowed what Pro allows unless a limit says otherwise.
-         - PRICING_PLAN_ID_ENTERPRISE: Enterprise plan, billed per unit used
+         - PRICING_PLAN_ID_ENTERPRISE: Enterprise plan, billed on usage and priced on request through sales
       enum:
       - PRICING_PLAN_ID_UNSPECIFIED
       - PRICING_PLAN_ID_FREE
@@ -19686,6 +21772,32 @@ components:
       - ROLE_ADMIN
       - ROLE_TECH
       type: string
+    Sandbox:
+      description: |-
+        A sandbox workspace for testing, empty when created, reachable only through
+        its own lb_test_ API tokens, and purged at expires_at.
+      example:
+        createdAt: 2000-01-23T04:56:07.000+00:00
+        name: CI integration tests
+        id: 5b1e4d42-c0d3-4afe-a6fd-0c5f5c3962d0
+        expiresAt: 2000-01-23T04:56:07.000+00:00
+      properties:
+        createdAt:
+          format: date-time
+          readOnly: true
+          type: string
+        expiresAt:
+          description: When the sandbox and everything in it is deleted.
+          format: date-time
+          readOnly: true
+          type: string
+        id:
+          description: The sandbox workspace id (UUID). Its tokens act on this workspace.
+          example: 5b1e4d42-c0d3-4afe-a6fd-0c5f5c3962d0
+          type: string
+        name:
+          example: CI integration tests
+          type: string
     SettingsServiceUpdateLinkSettingBody:
       description: UpdateLinkSettingRequest changes the visitor-data policy tied to
         a specific link.
@@ -22559,8 +24671,10 @@ components:
         subscriptionType: SUBSCRIPTION_TYPE_PRO_PLAN
         faq: faq
         name: name
+        sandboxExpiresAt: 2000-01-23T04:56:07.000+00:00
         id: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
         digestFrequency: DIGEST_FREQUENCY_UNSPECIFIED
+        isSandbox: true
         slug: slug
         updatedAt: 2000-01-23T04:56:07.000+00:00
       externalDocs:
@@ -22613,6 +24727,11 @@ components:
           title: When the workspace was flagged as inactive due to lack of activity
             (cleared on next sign-in/scan)
           type: string
+        isSandbox:
+          description: "True for a sandbox workspace: API-only, with its own caps,\
+            \ never billed."
+          readOnly: true
+          type: boolean
         linkSettingId:
           example: fbb5c4b6-2a10-4f35-8cb1-60c613a92d2a
           title: Link setting configuration that governs visitor data collection (UUID)
@@ -22623,6 +24742,11 @@ components:
         publishedAt:
           format: date-time
           title: Timestamp when the workspace was published/made public
+          type: string
+        sandboxExpiresAt:
+          description: When a sandbox workspace is deleted. Unset for a live workspace.
+          format: date-time
+          readOnly: true
           type: string
         shortDescription:
           title: Short description for the workspace
@@ -22809,7 +24933,7 @@ components:
         scopes:
         - API_SCOPE_UNSPECIFIED
         - API_SCOPE_UNSPECIFIED
-        keyType: ""
+        keyType: WORKSPACE_TOKEN_KEY_TYPE_UNSPECIFIED
         updatedAt: 2000-01-23T04:56:07.000+00:00
         workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
       properties:
@@ -22833,10 +24957,17 @@ components:
           title: The unique identifier of the workspace token (UUID)
           type: string
         keyType:
-          allOf:
-          - $ref: "#/components/schemas/WorkspaceTokenKeyType"
+          description: |-
+            - WORKSPACE_TOKEN_KEY_TYPE_UNSPECIFIED: Default value (should not be used)
+             - WORKSPACE_TOKEN_KEY_TYPE_SECRET: Secret key with full API access
+             - WORKSPACE_TOKEN_KEY_TYPE_PUBLISHABLE: Publishable key with limited access
+          enum:
+          - WORKSPACE_TOKEN_KEY_TYPE_UNSPECIFIED
+          - WORKSPACE_TOKEN_KEY_TYPE_SECRET
+          - WORKSPACE_TOKEN_KEY_TYPE_PUBLISHABLE
           readOnly: true
           title: The key type of the token (secret or publishable)
+          type: string
         lastUsedAt:
           format: date-time
           readOnly: true
@@ -22850,7 +24981,73 @@ components:
           description: "The scopes the token holds. With full access, every scope\
             \ that exists today."
           items:
-            $ref: "#/components/schemas/ApiScope"
+            description: |-
+              ApiScope is one permission an API token or OAuth grant can hold.
+
+              A write scope also grants the read scope of the same resource.
+
+               - API_SCOPE_UNSPECIFIED: Not a scope. Rejected wherever a scope is expected.
+               - API_SCOPE_LINKS_READ: Read links, their QR code images, tags, folders and link settings.
+               - API_SCOPE_LINKS_WRITE: Create, update and delete links, tags, folders and link settings.
+               - API_SCOPE_WORKFLOWS_READ: Read the workflow steps behind a link and validate them.
+               - API_SCOPE_WORKFLOWS_WRITE: Create, connect, update, lay out and delete workflow steps.
+               - API_SCOPE_QRCODES_READ: Read QR code designs and QR code templates.
+               - API_SCOPE_QRCODES_WRITE: Change QR code designs and create, publish and delete QR code templates.
+               - API_SCOPE_PAGE_THEMES_READ: Read page themes and page theme templates.
+               - API_SCOPE_PAGE_THEMES_WRITE: Change page themes and create, publish and delete page theme templates.
+               - API_SCOPE_MEDIA_READ: Read uploaded media.
+               - API_SCOPE_MEDIA_WRITE: Upload and delete media.
+               - API_SCOPE_DOMAINS_READ: Read custom domains and their DNS instructions.
+               - API_SCOPE_DOMAINS_WRITE: Add, verify, update and delete custom domains.
+               - API_SCOPE_VISITORS_READ: Read and search visitors and their attributes.
+               - API_SCOPE_VISITORS_WRITE: Identify, update and delete visitors and their attributes.
+               - API_SCOPE_ANALYTICS_READ: Read events, metrics, time series, analytics data and dashboards.
+               - API_SCOPE_ANALYTICS_WRITE: Create, update and delete analytics dashboards and generate widget summaries.
+               - API_SCOPE_WEBHOOKS_READ: Read webhooks.
+               - API_SCOPE_WEBHOOKS_WRITE: Create, update and delete webhooks.
+               - API_SCOPE_INTEGRATIONS_READ: Read the Slack and Google Forms integrations.
+               - API_SCOPE_INTEGRATIONS_WRITE: Connect, configure, test, sync and disconnect the Slack and Google Forms integrations.
+               - API_SCOPE_WORKSPACE_READ: Read the workspace and its settings.
+               - API_SCOPE_WORKSPACE_WRITE: Update the workspace, request enrollment and delete the workspace.
+               - API_SCOPE_MEMBERS_READ: Read workspace members.
+               - API_SCOPE_MEMBERS_WRITE: Update, revoke, sign out and remove members. Inviting a member or changing a sign-in email or password needs full access.
+               - API_SCOPE_TOKENS_READ: Read API tokens and their scopes, never their secrets.
+               - API_SCOPE_TOKENS_WRITE: Create, update and delete API tokens, limited to the scopes the calling token holds.
+               - API_SCOPE_BILLING_WRITE: Open checkout, credit top-up and billing portal sessions.
+               - API_SCOPE_ASSISTANT_READ: Read the Assistant conversation.
+               - API_SCOPE_ASSISTANT_WRITE: Send files to the Assistant, clear the conversation and contact support.
+            enum:
+            - API_SCOPE_UNSPECIFIED
+            - API_SCOPE_LINKS_READ
+            - API_SCOPE_LINKS_WRITE
+            - API_SCOPE_WORKFLOWS_READ
+            - API_SCOPE_WORKFLOWS_WRITE
+            - API_SCOPE_QRCODES_READ
+            - API_SCOPE_QRCODES_WRITE
+            - API_SCOPE_PAGE_THEMES_READ
+            - API_SCOPE_PAGE_THEMES_WRITE
+            - API_SCOPE_MEDIA_READ
+            - API_SCOPE_MEDIA_WRITE
+            - API_SCOPE_DOMAINS_READ
+            - API_SCOPE_DOMAINS_WRITE
+            - API_SCOPE_VISITORS_READ
+            - API_SCOPE_VISITORS_WRITE
+            - API_SCOPE_ANALYTICS_READ
+            - API_SCOPE_ANALYTICS_WRITE
+            - API_SCOPE_WEBHOOKS_READ
+            - API_SCOPE_WEBHOOKS_WRITE
+            - API_SCOPE_INTEGRATIONS_READ
+            - API_SCOPE_INTEGRATIONS_WRITE
+            - API_SCOPE_WORKSPACE_READ
+            - API_SCOPE_WORKSPACE_WRITE
+            - API_SCOPE_MEMBERS_READ
+            - API_SCOPE_MEMBERS_WRITE
+            - API_SCOPE_TOKENS_READ
+            - API_SCOPE_TOKENS_WRITE
+            - API_SCOPE_BILLING_WRITE
+            - API_SCOPE_ASSISTANT_READ
+            - API_SCOPE_ASSISTANT_WRITE
+            type: string
           readOnly: true
           type: array
         updatedAt:
@@ -22896,7 +25093,73 @@ components:
           description: Replace the token's scopes with these. Cannot be combined with
             full_access.
           items:
-            $ref: "#/components/schemas/ApiScope"
+            description: |-
+              ApiScope is one permission an API token or OAuth grant can hold.
+
+              A write scope also grants the read scope of the same resource.
+
+               - API_SCOPE_UNSPECIFIED: Not a scope. Rejected wherever a scope is expected.
+               - API_SCOPE_LINKS_READ: Read links, their QR code images, tags, folders and link settings.
+               - API_SCOPE_LINKS_WRITE: Create, update and delete links, tags, folders and link settings.
+               - API_SCOPE_WORKFLOWS_READ: Read the workflow steps behind a link and validate them.
+               - API_SCOPE_WORKFLOWS_WRITE: Create, connect, update, lay out and delete workflow steps.
+               - API_SCOPE_QRCODES_READ: Read QR code designs and QR code templates.
+               - API_SCOPE_QRCODES_WRITE: Change QR code designs and create, publish and delete QR code templates.
+               - API_SCOPE_PAGE_THEMES_READ: Read page themes and page theme templates.
+               - API_SCOPE_PAGE_THEMES_WRITE: Change page themes and create, publish and delete page theme templates.
+               - API_SCOPE_MEDIA_READ: Read uploaded media.
+               - API_SCOPE_MEDIA_WRITE: Upload and delete media.
+               - API_SCOPE_DOMAINS_READ: Read custom domains and their DNS instructions.
+               - API_SCOPE_DOMAINS_WRITE: Add, verify, update and delete custom domains.
+               - API_SCOPE_VISITORS_READ: Read and search visitors and their attributes.
+               - API_SCOPE_VISITORS_WRITE: Identify, update and delete visitors and their attributes.
+               - API_SCOPE_ANALYTICS_READ: Read events, metrics, time series, analytics data and dashboards.
+               - API_SCOPE_ANALYTICS_WRITE: Create, update and delete analytics dashboards and generate widget summaries.
+               - API_SCOPE_WEBHOOKS_READ: Read webhooks.
+               - API_SCOPE_WEBHOOKS_WRITE: Create, update and delete webhooks.
+               - API_SCOPE_INTEGRATIONS_READ: Read the Slack and Google Forms integrations.
+               - API_SCOPE_INTEGRATIONS_WRITE: Connect, configure, test, sync and disconnect the Slack and Google Forms integrations.
+               - API_SCOPE_WORKSPACE_READ: Read the workspace and its settings.
+               - API_SCOPE_WORKSPACE_WRITE: Update the workspace, request enrollment and delete the workspace.
+               - API_SCOPE_MEMBERS_READ: Read workspace members.
+               - API_SCOPE_MEMBERS_WRITE: Update, revoke, sign out and remove members. Inviting a member or changing a sign-in email or password needs full access.
+               - API_SCOPE_TOKENS_READ: Read API tokens and their scopes, never their secrets.
+               - API_SCOPE_TOKENS_WRITE: Create, update and delete API tokens, limited to the scopes the calling token holds.
+               - API_SCOPE_BILLING_WRITE: Open checkout, credit top-up and billing portal sessions.
+               - API_SCOPE_ASSISTANT_READ: Read the Assistant conversation.
+               - API_SCOPE_ASSISTANT_WRITE: Send files to the Assistant, clear the conversation and contact support.
+            enum:
+            - API_SCOPE_UNSPECIFIED
+            - API_SCOPE_LINKS_READ
+            - API_SCOPE_LINKS_WRITE
+            - API_SCOPE_WORKFLOWS_READ
+            - API_SCOPE_WORKFLOWS_WRITE
+            - API_SCOPE_QRCODES_READ
+            - API_SCOPE_QRCODES_WRITE
+            - API_SCOPE_PAGE_THEMES_READ
+            - API_SCOPE_PAGE_THEMES_WRITE
+            - API_SCOPE_MEDIA_READ
+            - API_SCOPE_MEDIA_WRITE
+            - API_SCOPE_DOMAINS_READ
+            - API_SCOPE_DOMAINS_WRITE
+            - API_SCOPE_VISITORS_READ
+            - API_SCOPE_VISITORS_WRITE
+            - API_SCOPE_ANALYTICS_READ
+            - API_SCOPE_ANALYTICS_WRITE
+            - API_SCOPE_WEBHOOKS_READ
+            - API_SCOPE_WEBHOOKS_WRITE
+            - API_SCOPE_INTEGRATIONS_READ
+            - API_SCOPE_INTEGRATIONS_WRITE
+            - API_SCOPE_WORKSPACE_READ
+            - API_SCOPE_WORKSPACE_WRITE
+            - API_SCOPE_MEMBERS_READ
+            - API_SCOPE_MEMBERS_WRITE
+            - API_SCOPE_TOKENS_READ
+            - API_SCOPE_TOKENS_WRITE
+            - API_SCOPE_BILLING_WRITE
+            - API_SCOPE_ASSISTANT_READ
+            - API_SCOPE_ASSISTANT_WRITE
+            type: string
           type: array
     apiTag:
       description: |-
