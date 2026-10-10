@@ -14,97 +14,133 @@ import (
 	"encoding/json"
 )
 
-// checks if the ClientRedirectPayload type satisfies the MappedNullable interface at compile time
-var _ MappedNullable = &ClientRedirectPayload{}
+// checks if the TypeDate type satisfies the MappedNullable interface at compile time
+var _ MappedNullable = &TypeDate{}
 
-// ClientRedirectPayload struct for ClientRedirectPayload
-type ClientRedirectPayload struct {
-	ConversionTracking *bool `json:"conversionTracking,omitempty"`
-	Destination *string `json:"destination,omitempty"`
+// TypeDate * A full date, with non-zero year, month, and day values * A month and day value, with a zero year, such as an anniversary * A year on its own, with zero month and day values * A year and month value, with a zero day, such as a credit card expiration date  Related types are [google.type.TimeOfDay][google.type.TimeOfDay] and `google.protobuf.Timestamp`.
+type TypeDate struct {
+	// Day of a month. Must be from 1 to 31 and valid for the year and month, or 0 to specify a year by itself or a year and month where the day isn't significant.
+	Day *int32 `json:"day,omitempty"`
+	// Month of a year. Must be from 1 to 12, or 0 to specify a year without a month and day.
+	Month *int32 `json:"month,omitempty"`
+	// Year of the date. Must be from 1 to 9999, or 0 to specify a date without a year.
+	Year *int32 `json:"year,omitempty"`
 }
 
-// NewClientRedirectPayload instantiates a new ClientRedirectPayload object
+// NewTypeDate instantiates a new TypeDate object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewClientRedirectPayload() *ClientRedirectPayload {
-	this := ClientRedirectPayload{}
+func NewTypeDate() *TypeDate {
+	this := TypeDate{}
 	return &this
 }
 
-// NewClientRedirectPayloadWithDefaults instantiates a new ClientRedirectPayload object
+// NewTypeDateWithDefaults instantiates a new TypeDate object
 // This constructor will only assign default values to properties that have it defined,
 // but it doesn't guarantee that properties required by API are set
-func NewClientRedirectPayloadWithDefaults() *ClientRedirectPayload {
-	this := ClientRedirectPayload{}
+func NewTypeDateWithDefaults() *TypeDate {
+	this := TypeDate{}
 	return &this
 }
 
-// GetConversionTracking returns the ConversionTracking field value if set, zero value otherwise.
-func (o *ClientRedirectPayload) GetConversionTracking() bool {
-	if o == nil || IsNil(o.ConversionTracking) {
-		var ret bool
+// GetDay returns the Day field value if set, zero value otherwise.
+func (o *TypeDate) GetDay() int32 {
+	if o == nil || IsNil(o.Day) {
+		var ret int32
 		return ret
 	}
-	return *o.ConversionTracking
+	return *o.Day
 }
 
-// GetConversionTrackingOk returns a tuple with the ConversionTracking field value if set, nil otherwise
+// GetDayOk returns a tuple with the Day field value if set, nil otherwise
 // and a boolean to check if the value has been set.
-func (o *ClientRedirectPayload) GetConversionTrackingOk() (*bool, bool) {
-	if o == nil || IsNil(o.ConversionTracking) {
+func (o *TypeDate) GetDayOk() (*int32, bool) {
+	if o == nil || IsNil(o.Day) {
 		return nil, false
 	}
-	return o.ConversionTracking, true
+	return o.Day, true
 }
 
-// HasConversionTracking returns a boolean if a field has been set.
-func (o *ClientRedirectPayload) HasConversionTracking() bool {
-	if o != nil && !IsNil(o.ConversionTracking) {
+// HasDay returns a boolean if a field has been set.
+func (o *TypeDate) HasDay() bool {
+	if o != nil && !IsNil(o.Day) {
 		return true
 	}
 
 	return false
 }
 
-// SetConversionTracking gets a reference to the given bool and assigns it to the ConversionTracking field.
-func (o *ClientRedirectPayload) SetConversionTracking(v bool) {
-	o.ConversionTracking = &v
+// SetDay gets a reference to the given int32 and assigns it to the Day field.
+func (o *TypeDate) SetDay(v int32) {
+	o.Day = &v
 }
 
-// GetDestination returns the Destination field value if set, zero value otherwise.
-func (o *ClientRedirectPayload) GetDestination() string {
-	if o == nil || IsNil(o.Destination) {
-		var ret string
+// GetMonth returns the Month field value if set, zero value otherwise.
+func (o *TypeDate) GetMonth() int32 {
+	if o == nil || IsNil(o.Month) {
+		var ret int32
 		return ret
 	}
-	return *o.Destination
+	return *o.Month
 }
 
-// GetDestinationOk returns a tuple with the Destination field value if set, nil otherwise
+// GetMonthOk returns a tuple with the Month field value if set, nil otherwise
 // and a boolean to check if the value has been set.
-func (o *ClientRedirectPayload) GetDestinationOk() (*string, bool) {
-	if o == nil || IsNil(o.Destination) {
+func (o *TypeDate) GetMonthOk() (*int32, bool) {
+	if o == nil || IsNil(o.Month) {
 		return nil, false
 	}
-	return o.Destination, true
+	return o.Month, true
 }
 
-// HasDestination returns a boolean if a field has been set.
-func (o *ClientRedirectPayload) HasDestination() bool {
-	if o != nil && !IsNil(o.Destination) {
+// HasMonth returns a boolean if a field has been set.
+func (o *TypeDate) HasMonth() bool {
+	if o != nil && !IsNil(o.Month) {
 		return true
 	}
 
 	return false
 }
 
-// SetDestination gets a reference to the given string and assigns it to the Destination field.
-func (o *ClientRedirectPayload) SetDestination(v string) {
-	o.Destination = &v
+// SetMonth gets a reference to the given int32 and assigns it to the Month field.
+func (o *TypeDate) SetMonth(v int32) {
+	o.Month = &v
 }
 
-func (o ClientRedirectPayload) MarshalJSON() ([]byte, error) {
+// GetYear returns the Year field value if set, zero value otherwise.
+func (o *TypeDate) GetYear() int32 {
+	if o == nil || IsNil(o.Year) {
+		var ret int32
+		return ret
+	}
+	return *o.Year
+}
+
+// GetYearOk returns a tuple with the Year field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *TypeDate) GetYearOk() (*int32, bool) {
+	if o == nil || IsNil(o.Year) {
+		return nil, false
+	}
+	return o.Year, true
+}
+
+// HasYear returns a boolean if a field has been set.
+func (o *TypeDate) HasYear() bool {
+	if o != nil && !IsNil(o.Year) {
+		return true
+	}
+
+	return false
+}
+
+// SetYear gets a reference to the given int32 and assigns it to the Year field.
+func (o *TypeDate) SetYear(v int32) {
+	o.Year = &v
+}
+
+func (o TypeDate) MarshalJSON() ([]byte, error) {
 	toSerialize,err := o.ToMap()
 	if err != nil {
 		return []byte{}, err
@@ -112,49 +148,52 @@ func (o ClientRedirectPayload) MarshalJSON() ([]byte, error) {
 	return json.Marshal(toSerialize)
 }
 
-func (o ClientRedirectPayload) ToMap() (map[string]interface{}, error) {
+func (o TypeDate) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
-	if !IsNil(o.ConversionTracking) {
-		toSerialize["conversionTracking"] = o.ConversionTracking
+	if !IsNil(o.Day) {
+		toSerialize["day"] = o.Day
 	}
-	if !IsNil(o.Destination) {
-		toSerialize["destination"] = o.Destination
+	if !IsNil(o.Month) {
+		toSerialize["month"] = o.Month
+	}
+	if !IsNil(o.Year) {
+		toSerialize["year"] = o.Year
 	}
 	return toSerialize, nil
 }
 
-type NullableClientRedirectPayload struct {
-	value *ClientRedirectPayload
+type NullableTypeDate struct {
+	value *TypeDate
 	isSet bool
 }
 
-func (v NullableClientRedirectPayload) Get() *ClientRedirectPayload {
+func (v NullableTypeDate) Get() *TypeDate {
 	return v.value
 }
 
-func (v *NullableClientRedirectPayload) Set(val *ClientRedirectPayload) {
+func (v *NullableTypeDate) Set(val *TypeDate) {
 	v.value = val
 	v.isSet = true
 }
 
-func (v NullableClientRedirectPayload) IsSet() bool {
+func (v NullableTypeDate) IsSet() bool {
 	return v.isSet
 }
 
-func (v *NullableClientRedirectPayload) Unset() {
+func (v *NullableTypeDate) Unset() {
 	v.value = nil
 	v.isSet = false
 }
 
-func NewNullableClientRedirectPayload(val *ClientRedirectPayload) *NullableClientRedirectPayload {
-	return &NullableClientRedirectPayload{value: val, isSet: true}
+func NewNullableTypeDate(val *TypeDate) *NullableTypeDate {
+	return &NullableTypeDate{value: val, isSet: true}
 }
 
-func (v NullableClientRedirectPayload) MarshalJSON() ([]byte, error) {
+func (v NullableTypeDate) MarshalJSON() ([]byte, error) {
 	return json.Marshal(v.value)
 }
 
-func (v *NullableClientRedirectPayload) UnmarshalJSON(src []byte) error {
+func (v *NullableTypeDate) UnmarshalJSON(src []byte) error {
 	v.isSet = true
 	return json.Unmarshal(src, &v.value)
 }
