@@ -107,6 +107,10 @@ model_create_workflow_step_response.go
 model_create_workspace_token_request.go
 model_create_workspace_token_response.go
 model_custom_domain.go
+model_custom_domain_dns_record.go
+model_custom_domain_one_click_setup.go
+model_custom_domain_setup_guide.go
+model_custom_domain_setup_hint.go
 model_custom_domain_status.go
 model_custom_domains_service_update_body.go
 model_dashboard_config.go
@@ -158,6 +162,9 @@ model_digest_frequency.go
 model_directories_service_update_body.go
 model_directory.go
 model_disconnect_workflow_step_response.go
+model_dns_provider.go
+model_dns_record_purpose.go
+model_dns_record_type.go
 model_dots_options.go
 model_dots_type.go
 model_entry_access_trace_data.go
@@ -192,6 +199,7 @@ model_get_attribute_values_response.go
 model_get_breakdown_request.go
 model_get_breakdown_response.go
 model_get_custom_domain_response.go
+model_get_custom_domain_setup_guide_response.go
 model_get_device_distribution_request.go
 model_get_device_distribution_response.go
 model_get_directory_response.go

@@ -5,7 +5,7 @@ info:
     url: https://app.linkbreakers.com
   description: This is a documentation of all the APIs of Linkbreakers
   title: Linkbreakers API
-  version: 1.140.0
+  version: 1.143.0
 servers:
 - url: https://api.linkbreakers.com
 security:
@@ -1022,6 +1022,42 @@ paths:
       security:
       - bearerAuth: []
       summary: Check a custom domain
+      tags:
+      - Custom Domains
+  /v1/custom-domains/{id}/setup-guide:
+    get:
+      description: |-
+        Detects which DNS provider manages the domain from its nameservers and returns
+        everything needed to connect it: the provider's name and a link to its DNS
+        settings, the exact records to add (with the host written the way that
+        provider expects it), provider-specific hints, and a one-click setup URL when
+        the provider supports Domain Connect for Linkbreakers.
+      operationId: CustomDomainsService_GetSetupGuide
+      parameters:
+      - description: The ID of the custom domain (UUID)
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetCustomDomainSetupGuideResponse"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth: []
+      summary: Get the setup guide for a custom domain
       tags:
       - Custom Domains
   /v1/custom-domains/{id}/validation_instructions:
@@ -7811,6 +7847,152 @@ components:
           title: The ID of the workspace this domain belongs to (UUID)
           type: string
       title: Custom domain
+    CustomDomainDnsRecord:
+      example:
+        purpose: ""
+        host: host
+        name: name
+        type: ""
+        value: value
+        required: true
+      properties:
+        host:
+          description: |-
+            What to type in the provider's host field: the name relative to the zone,
+            e.g. "qr". For the zone apex, "@", or empty when the provider wants the
+            field left blank.
+          type: string
+        name:
+          title: "Fully qualified record name, e.g. \"qr.example.com\""
+          type: string
+        purpose:
+          allOf:
+          - $ref: "#/components/schemas/DnsRecordPurpose"
+          title: Why the record is needed
+        required:
+          description: |-
+            Whether the domain cannot work without it. Optional records make setup
+            smoother, such as certificates renewing on their own.
+          type: boolean
+        type:
+          allOf:
+          - $ref: "#/components/schemas/DnsRecordType"
+          title: Record type
+        value:
+          title: Record value (CNAME target or TXT content)
+          type: string
+      title: A DNS record to create at the DNS provider
+    CustomDomainOneClickSetup:
+      properties:
+        applyUrl:
+          description: |-
+            URL that opens the DNS provider's consent screen with every record filled in.
+            The provider sends the user back to Linkbreakers when done.
+          type: string
+        providerName:
+          title: Name of the DNS provider applying the records
+          type: string
+      title: One-click setup through Domain Connect
+    CustomDomainSetupGuide:
+      description: |-
+        Everything needed to connect a custom domain, derived from the domain's DNS:
+        who manages it, where to go, and what to add.
+      example:
+        nameservers:
+        - nameservers
+        - nameservers
+        hostFieldLabel: hostFieldLabel
+        records:
+        - purpose: ""
+          host: host
+          name: name
+          type: ""
+          value: value
+          required: true
+        - purpose: ""
+          host: host
+          name: name
+          type: ""
+          value: value
+          required: true
+        zone: zone
+        hints:
+        - CUSTOM_DOMAIN_SETUP_HINT_UNSPECIFIED
+        - CUSTOM_DOMAIN_SETUP_HINT_UNSPECIFIED
+        domain: domain
+        dnsSettingsUrl: dnsSettingsUrl
+        host: host
+        oneClickSetup: ""
+        dnsProvider: ""
+        customDomainId: customDomainId
+        dnsProviderName: dnsProviderName
+      properties:
+        customDomainId:
+          title: The custom domain ID (UUID)
+          type: string
+        dnsProvider:
+          allOf:
+          - $ref: "#/components/schemas/DnsProvider"
+          title: The DNS provider managing the zone
+        dnsProviderName:
+          title: "Display name of the DNS provider, empty when unknown"
+          type: string
+        dnsSettingsUrl:
+          description: |-
+            Link to the provider's DNS settings for this zone, or to its domain list
+            when no direct link exists. Empty when the provider is unknown.
+          type: string
+        domain:
+          title: "The custom domain, e.g. \"qr.example.com\""
+          type: string
+        hints:
+          items:
+            $ref: "#/components/schemas/CustomDomainSetupHint"
+          title: Provider-specific advice to show alongside the records
+          type: array
+        host:
+          description: "The domain relative to the zone, e.g. \"qr\". Empty when the\
+            \ domain is the zone itself."
+          type: string
+        hostFieldLabel:
+          title: "What the provider calls the host field of a DNS record, e.g. \"\
+            Name\" or \"Host\""
+          type: string
+        nameservers:
+          items:
+            type: string
+          title: The zone's nameservers
+          type: array
+        oneClickSetup:
+          allOf:
+          - $ref: "#/components/schemas/CustomDomainOneClickSetup"
+          title: Present only when the provider supports one-click setup for Linkbreakers
+        records:
+          items:
+            $ref: "#/components/schemas/CustomDomainDnsRecord"
+          title: "Records to create, in the order to add them"
+          type: array
+        zone:
+          title: "The DNS zone the domain lives in, usually the registered domain,\
+            \ e.g. \"example.com\""
+          type: string
+      title: Custom domain setup guide
+    CustomDomainSetupHint:
+      default: CUSTOM_DOMAIN_SETUP_HINT_UNSPECIFIED
+      description: |-
+        - CUSTOM_DOMAIN_SETUP_HINT_UNSPECIFIED: Not specified
+         - CUSTOM_DOMAIN_SETUP_HINT_CLOUDFLARE_DNS_ONLY: Cloudflare: the CNAME's proxy status must be "DNS only" (grey cloud), or Linkbreakers cannot see it
+         - CUSTOM_DOMAIN_SETUP_HINT_APEX_DOMAIN: The domain is a root domain: most providers do not allow a CNAME there, a subdomain such as qr.example.com is recommended
+         - CUSTOM_DOMAIN_SETUP_HINT_NAMESERVERS_NOT_FOUND: The nameservers could not be read: the domain may not be registered yet, or its DNS is not set up
+         - CUSTOM_DOMAIN_SETUP_HINT_GOOGLE_DOMAINS_MOVED: The nameservers are Google's. Domains bought through Google Domains use them too and are now managed at Squarespace
+      enum:
+      - CUSTOM_DOMAIN_SETUP_HINT_UNSPECIFIED
+      - CUSTOM_DOMAIN_SETUP_HINT_CLOUDFLARE_DNS_ONLY
+      - CUSTOM_DOMAIN_SETUP_HINT_APEX_DOMAIN
+      - CUSTOM_DOMAIN_SETUP_HINT_NAMESERVERS_NOT_FOUND
+      - CUSTOM_DOMAIN_SETUP_HINT_GOOGLE_DOMAINS_MOVED
+      title: Provider-specific advice for adding the records
+      type: string
     CustomDomainStatus:
       default: STATUS_UNSPECIFIED
       description: |-
@@ -8934,6 +9116,66 @@ components:
           - $ref: "#/components/schemas/WorkflowStep"
           title: "The step the connection left from, as it now stands"
       title: Response for clearing a workflow step branch
+    DnsProvider:
+      default: DNS_PROVIDER_UNSPECIFIED
+      description: |-
+        - DNS_PROVIDER_UNSPECIFIED: Not detected
+         - DNS_PROVIDER_UNKNOWN: The nameservers do not match any provider Linkbreakers knows
+      enum:
+      - DNS_PROVIDER_UNSPECIFIED
+      - DNS_PROVIDER_UNKNOWN
+      - DNS_PROVIDER_CLOUDFLARE
+      - DNS_PROVIDER_GODADDY
+      - DNS_PROVIDER_NAMECHEAP
+      - DNS_PROVIDER_SQUARESPACE
+      - DNS_PROVIDER_IONOS
+      - DNS_PROVIDER_OVHCLOUD
+      - DNS_PROVIDER_GANDI
+      - DNS_PROVIDER_HOSTINGER
+      - DNS_PROVIDER_WIX
+      - DNS_PROVIDER_AWS_ROUTE53
+      - DNS_PROVIDER_GOOGLE_CLOUD_DNS
+      - DNS_PROVIDER_DIGITALOCEAN
+      - DNS_PROVIDER_VERCEL
+      - DNS_PROVIDER_PORKBUN
+      - DNS_PROVIDER_NAME_COM
+      - DNS_PROVIDER_HOVER
+      - DNS_PROVIDER_NETWORK_SOLUTIONS
+      - DNS_PROVIDER_BLUEHOST
+      - DNS_PROVIDER_NETLIFY
+      - DNS_PROVIDER_AZURE_DNS
+      - DNS_PROVIDER_DYNADOT
+      - DNS_PROVIDER_NAMESILO
+      title: "DNS provider managing a domain, detected from the zone's nameservers"
+      type: string
+    DnsRecordPurpose:
+      default: DNS_RECORD_PURPOSE_UNSPECIFIED
+      description: |-
+        - DNS_RECORD_PURPOSE_UNSPECIFIED: Not specified
+         - DNS_RECORD_PURPOSE_ROUTING: Sends the domain's traffic to Linkbreakers
+         - DNS_RECORD_PURPOSE_CERTIFICATE_DELEGATION: Lets the certificate provider issue and renew the HTTPS certificate on its own
+         - DNS_RECORD_PURPOSE_OWNERSHIP: Proves ownership of the domain
+         - DNS_RECORD_PURPOSE_CERTIFICATE_VALIDATION: Validates the certificate currently being issued
+      enum:
+      - DNS_RECORD_PURPOSE_UNSPECIFIED
+      - DNS_RECORD_PURPOSE_ROUTING
+      - DNS_RECORD_PURPOSE_CERTIFICATE_DELEGATION
+      - DNS_RECORD_PURPOSE_OWNERSHIP
+      - DNS_RECORD_PURPOSE_CERTIFICATE_VALIDATION
+      title: Why a DNS record is needed
+      type: string
+    DnsRecordType:
+      default: DNS_RECORD_TYPE_UNSPECIFIED
+      description: |-
+        - DNS_RECORD_TYPE_UNSPECIFIED: Not specified
+         - DNS_RECORD_TYPE_CNAME: CNAME record
+         - DNS_RECORD_TYPE_TXT: TXT record
+      enum:
+      - DNS_RECORD_TYPE_UNSPECIFIED
+      - DNS_RECORD_TYPE_CNAME
+      - DNS_RECORD_TYPE_TXT
+      title: Type of a DNS record to create
+      type: string
     DotsOptions:
       properties:
         themeColor:
@@ -10148,6 +10390,41 @@ components:
         customDomain:
           $ref: "#/components/schemas/CustomDomain"
       title: Response containing the requested custom domain
+    GetCustomDomainSetupGuideResponse:
+      example:
+        setupGuide:
+          nameservers:
+          - nameservers
+          - nameservers
+          hostFieldLabel: hostFieldLabel
+          records:
+          - purpose: ""
+            host: host
+            name: name
+            type: ""
+            value: value
+            required: true
+          - purpose: ""
+            host: host
+            name: name
+            type: ""
+            value: value
+            required: true
+          zone: zone
+          hints:
+          - CUSTOM_DOMAIN_SETUP_HINT_UNSPECIFIED
+          - CUSTOM_DOMAIN_SETUP_HINT_UNSPECIFIED
+          domain: domain
+          dnsSettingsUrl: dnsSettingsUrl
+          host: host
+          oneClickSetup: ""
+          dnsProvider: ""
+          customDomainId: customDomainId
+          dnsProviderName: dnsProviderName
+      properties:
+        setupGuide:
+          $ref: "#/components/schemas/CustomDomainSetupGuide"
+      title: Response containing the setup guide of a custom domain
     GetDeviceDistributionRequest:
       example:
         linkId: linkId
