@@ -85,6 +85,9 @@ jobs:
             -g go \
             -o . \
             --skip-validate-spec \
+            --git-host github.com \
+            --git-user-id linkbreakers-com \
+            --git-repo-id linkbreakers-go \
             --global-property apiTests=false,modelTests=false,apiDocs=false,modelDocs=false \
             --additional-properties=packageName=linkbreakers,isGoSubmodule=false,enumClassPrefix=true
 
@@ -118,6 +121,10 @@ jobs:
         if: steps.compare.outputs.needs_update == 'true'
         run: |
           go test ./... || echo "⚠️ Tests failed or no tests found"
+
+      - name: Check README against the generated SDK
+        if: steps.compare.outputs.needs_update == 'true'
+        run: ./scripts/check-docs.sh
 
       - name: Configure Git
         if: steps.compare.outputs.needs_update == 'true'
