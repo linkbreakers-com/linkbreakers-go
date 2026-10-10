@@ -5,7 +5,7 @@ info:
     url: https://app.linkbreakers.com
   description: This is a documentation of all the APIs of Linkbreakers
   title: Linkbreakers API
-  version: 1.147.0
+  version: 1.148.0
 servers:
 - url: https://api.linkbreakers.com
 security:
@@ -8970,10 +8970,16 @@ components:
         purpose: ""
         host: host
         name: name
+        detected: true
         type: ""
         value: value
         required: true
       properties:
+        detected:
+          title: |-
+            Whether the record is already published with this value, read from public
+            DNS when the guide was built
+          type: boolean
         host:
           description: |-
             What to type in the provider's host field: the name relative to the zone,
@@ -8989,8 +8995,9 @@ components:
           title: Why the record is needed
         required:
           description: |-
-            Whether the domain cannot work without it. Optional records make setup
-            smoother, such as certificates renewing on their own.
+            Whether setup is incomplete without it. The routing record and the
+            certificate delegation record (which keeps HTTPS renewing on its own) are
+            both required.
           type: boolean
         type:
           allOf:
@@ -9024,12 +9031,14 @@ components:
         - purpose: ""
           host: host
           name: name
+          detected: true
           type: ""
           value: value
           required: true
         - purpose: ""
           host: host
           name: name
+          detected: true
           type: ""
           value: value
           required: true
@@ -11519,12 +11528,14 @@ components:
           - purpose: ""
             host: host
             name: name
+            detected: true
             type: ""
             value: value
             required: true
           - purpose: ""
             host: host
             name: name
+            detected: true
             type: ""
             value: value
             required: true
