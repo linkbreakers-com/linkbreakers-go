@@ -414,6 +414,7 @@ model_time_series_point.go
 model_time_series_series.go
 model_top_link_data_point.go
 model_triggered_by.go
+model_type_date.go
 model_update_custom_domain_response.go
 model_update_dashboard_response.go
 model_update_device_response.go
