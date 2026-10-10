@@ -3,9 +3,24 @@ info:
   contact:
     name: Linkbreakers Support
     url: https://app.linkbreakers.com
-  description: This is a documentation of all the APIs of Linkbreakers
+  description: |-
+    This is a documentation of all the APIs of Linkbreakers
+
+    ## Entry points
+
+    `GET https://api.linkbreakers.com/` and `GET https://api.linkbreakers.com/v1` answer without credentials with the API's name, version and links. This document is served at `https://api.linkbreakers.com/openapi.json`.
+
+    ## Rate limits
+
+    Every response describes where the caller stands in the IETF `RateLimit-Policy` and `RateLimit` header fields (draft-ietf-httpapi-ratelimit-headers), and in `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset` and `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset` (a Unix timestamp) for clients that read those. A request past the limit gets `429 Too Many Requests` with `Retry-After` in seconds.
+
+    - Workspace API token: 600 requests per 60 seconds, per token.
+    - Dashboard session or OAuth token: 500 requests per 60 seconds, per token.
+    - No credentials: 300 requests per 60 seconds, per client IP.
+
+    Each plan also includes a number of API calls per billing cycle. Past it, calls answer `429` with the code `MAX_PUBLIC_API_QUERIED_REACHED` until the cycle renews or the plan changes.
   title: Linkbreakers API
-  version: 1.149.2
+  version: 1.150.0
 servers:
 - url: https://api.linkbreakers.com
 security:
@@ -104,6 +119,8 @@ paths:
         Return every limit the workspace's plan sets with what has been used in the current cycle, when it resets and whether it has been reached.
 
         Requires the `workspace:read` scope.
+
+        Requires the `workspace:read` scope.
       operationId: AllowancesService_ListAllowances
       responses:
         "200":
@@ -112,12 +129,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/ListAllowancesResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - workspace:read
@@ -131,6 +164,8 @@ paths:
     post:
       description: |-
         Hide the over-limit notice for one limit, for the calling member, until the limit's next cycle. Only a member can dismiss; an API token gets a permission error.
+
+        Requires the `workspace:write` scope.
 
         Requires the `workspace:write` scope.
       operationId: AllowancesService_DismissAllowanceNotice
@@ -148,12 +183,28 @@ paths:
                 properties: {}
                 type: object
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - workspace:write
@@ -167,6 +218,8 @@ paths:
     post:
       description: |-
         Returns how visitors are spread across the values of one attribute, for example how many gave each rating.
+
+        Requires the `analytics:read` scope.
 
         Requires the `analytics:read` scope.
       operationId: AnalyticsDataService_GetAttributeDistribution
@@ -183,12 +236,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/GetAttributeDistributionResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - analytics:read
@@ -202,6 +271,8 @@ paths:
     post:
       description: |-
         Returns count, average, minimum and maximum for a visitor attribute, plus how much of the audience carries it.
+
+        Requires the `analytics:read` scope.
 
         Requires the `analytics:read` scope.
       operationId: AnalyticsDataService_GetAttributeMetric
@@ -218,12 +289,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/GetAttributeMetricResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - analytics:read
@@ -237,6 +324,8 @@ paths:
     post:
       description: |-
         Returns the individual recorded values of one attribute, most recent first. Intended for free text such as comments.
+
+        Requires the `analytics:read` scope.
 
         Requires the `analytics:read` scope.
       operationId: AnalyticsDataService_GetAttributeValues
@@ -253,12 +342,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/GetAttributeValuesResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - analytics:read
@@ -272,6 +377,8 @@ paths:
     post:
       description: |-
         Returns a ranked breakdown of events by any dimension (browser, platform, device type, country, city, visit type).
+
+        Requires the `analytics:read` scope.
 
         Requires the `analytics:read` scope.
       operationId: AnalyticsDataService_GetBreakdown
@@ -288,12 +395,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/GetBreakdownResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - analytics:read
@@ -305,7 +428,10 @@ paths:
       x-required-scope: analytics:read
   /v1/analytics/dashboards:
     get:
-      description: Requires the `analytics:read` scope.
+      description: |-
+        Requires the `analytics:read` scope.
+
+        Requires the `analytics:read` scope.
       operationId: AnalyticsDashboardService_ListDashboards
       parameters:
       - description: |-
@@ -358,12 +484,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/ListDashboardsResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - analytics:read
@@ -374,7 +516,10 @@ paths:
       - Analytics Dashboard
       x-required-scope: analytics:read
     post:
-      description: Requires the `analytics:write` scope.
+      description: |-
+        Requires the `analytics:write` scope.
+
+        Requires the `analytics:write` scope.
       operationId: AnalyticsDashboardService_CreateDashboard
       requestBody:
         content:
@@ -389,12 +534,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/CreateDashboardResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - analytics:write
@@ -408,6 +569,8 @@ paths:
     get:
       description: |-
         Returns the last generated analysis, and whether the underlying values have changed since.
+
+        Requires the `analytics:read` scope.
 
         Requires the `analytics:read` scope.
       operationId: AnalyticsDashboardService_GetWidgetSummary
@@ -433,12 +596,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/GetWidgetSummaryResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - analytics:read
@@ -451,6 +630,8 @@ paths:
     post:
       description: |-
         Analyses the widget's current values and stores the result. Consumes platform credits, so it runs only when requested.
+
+        Requires the `analytics:write` scope.
 
         Requires the `analytics:write` scope.
       operationId: AnalyticsDashboardService_GenerateWidgetSummary
@@ -484,12 +665,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/GenerateWidgetSummaryResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - analytics:write
@@ -503,6 +700,8 @@ paths:
     delete:
       description: |-
         Delete a dashboard and its associated assistant conversation.
+
+        Requires the `analytics:write` scope.
 
         Requires the `analytics:write` scope.
       operationId: AnalyticsDashboardService_DeleteDashboard
@@ -521,12 +720,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/DeleteDashboardResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - analytics:write
@@ -537,7 +752,10 @@ paths:
       - Analytics Dashboard
       x-required-scope: analytics:write
     put:
-      description: Requires the `analytics:write` scope.
+      description: |-
+        Requires the `analytics:write` scope.
+
+        Requires the `analytics:write` scope.
       operationId: AnalyticsDashboardService_UpdateDashboard
       parameters:
       - description: ID of the dashboard to update.
@@ -561,12 +779,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/UpdateDashboardResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - analytics:write
@@ -580,6 +814,8 @@ paths:
     post:
       description: |-
         Retrieve event distribution across device types.
+
+        Requires the `analytics:read` scope.
 
         Requires the `analytics:read` scope.
       operationId: AnalyticsDataService_GetDeviceDistribution
@@ -596,12 +832,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/GetDeviceDistributionResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - analytics:read
@@ -615,6 +867,8 @@ paths:
     post:
       description: |-
         Returns the workflow steps visitors reached, in distinct visitors, ordered from arrival to exit, with the conversion rate and drop-off at each step.
+
+        Requires the `analytics:read` scope.
 
         Requires the `analytics:read` scope.
       operationId: AnalyticsDataService_GetStepFunnel
@@ -631,12 +885,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/GetStepFunnelResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - analytics:read
@@ -650,6 +920,8 @@ paths:
     post:
       description: |-
         Retrieve geographic distribution of events grouped by country or city.
+
+        Requires the `analytics:read` scope.
 
         Requires the `analytics:read` scope.
       operationId: AnalyticsDataService_GetGeoBreakdown
@@ -666,12 +938,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/GetGeoBreakdownResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - analytics:read
@@ -685,6 +973,8 @@ paths:
     post:
       description: |-
         Retrieve event counts aggregated by hour of day for identifying peak activity times.
+
+        Requires the `analytics:read` scope.
 
         Requires the `analytics:read` scope.
       operationId: AnalyticsDataService_GetHourOfDayDistribution
@@ -701,12 +991,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/GetHourOfDayDistributionResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - analytics:read
@@ -720,6 +1026,8 @@ paths:
     post:
       description: |-
         Retrieve time-bucketed event counts grouped by a dimension like country, city, device type, or visit type.
+
+        Requires the `analytics:read` scope.
 
         Requires the `analytics:read` scope.
       operationId: AnalyticsDataService_GetGroupedTimeSeries
@@ -736,12 +1044,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/GetGroupedTimeSeriesResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - analytics:read
@@ -755,6 +1079,8 @@ paths:
     post:
       description: |-
         Retrieve links ranked by event count for identifying best performing QR codes and links.
+
+        Requires the `analytics:read` scope.
 
         Requires the `analytics:read` scope.
       operationId: AnalyticsDataService_GetTopLinks
@@ -771,12 +1097,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/GetTopLinksResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - analytics:read
@@ -790,6 +1132,8 @@ paths:
     post:
       description: |-
         Retrieve new vs returning visitor counts over time.
+
+        Requires the `analytics:read` scope.
 
         Requires the `analytics:read` scope.
       operationId: AnalyticsDataService_GetVisitorTrends
@@ -806,12 +1150,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/GetVisitorTrendsResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - analytics:read
@@ -833,12 +1193,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/ListApiScopesResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security: []
       summary: List API scopes
       tags:
@@ -881,12 +1257,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/AssistantClearConversationResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - assistant:write
@@ -933,12 +1325,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/AssistantGetConversationResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - assistant:read
@@ -968,12 +1376,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/AssistantMarkConversationReadResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - assistant:write
@@ -1003,12 +1427,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/AssistantUploadFileResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - assistant:write
@@ -1073,12 +1513,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/ListCustomDomainsResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - domains:read
@@ -1107,12 +1563,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/CreateCustomDomainResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - domains:write
@@ -1145,17 +1617,40 @@ paths:
               schema:
                 $ref: "#/components/schemas/DeleteCustomDomainResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
         "204":
           content:
             application/json:
               schema: {}
           description: Custom domain deleted successfully
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - domains:write
@@ -1187,12 +1682,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/GetCustomDomainResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - domains:read
@@ -1230,12 +1741,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/UpdateCustomDomainResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - domains:write
@@ -1268,12 +1795,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/CheckCustomDomainResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - domains:write
@@ -1310,12 +1853,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/GetCustomDomainSetupGuideResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - domains:read
@@ -1348,12 +1907,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/ValidationInstructionsCustomDomainResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - domains:read
@@ -1441,12 +2016,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/ListDirectoriesResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - links:read
@@ -1475,12 +2066,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/CreateDirectoryResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - links:write
@@ -1515,18 +2122,41 @@ paths:
               schema:
                 $ref: "#/components/schemas/DeleteDirectoryResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
         "412":
           content:
             application/json:
               schema: {}
           description: Directory cannot be deleted because it still contains links
             or child directories.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - links:write
@@ -1558,12 +2188,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/GetDirectoryResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - links:read
@@ -1601,12 +2247,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/UpdateDirectoryResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - links:write
@@ -1723,12 +2385,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/ListEventsResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - analytics:read
@@ -1761,12 +2439,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/ListEventTracesResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - analytics:read
@@ -1791,12 +2485,28 @@ paths:
                 properties: {}
                 type: object
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - integrations:write
@@ -1819,12 +2529,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/GetGoogleFormsIntegrationResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - integrations:read
@@ -1853,12 +2579,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/UpdateGoogleFormsIntegrationResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - integrations:write
@@ -1882,12 +2624,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/ListDetectedGoogleFormsResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - integrations:read
@@ -1911,12 +2669,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/GetGoogleFormsOAuthURLResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - integrations:write
@@ -1946,12 +2720,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/CompleteGoogleFormsOAuthResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - integrations:write
@@ -1981,12 +2771,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/SyncGoogleFormsResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - integrations:write
@@ -2016,12 +2822,28 @@ paths:
                 properties: {}
                 type: object
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security: []
       summary: Track notifies when an integration installation is attempted
       tags:
@@ -2151,12 +2973,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/ListLinksResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - links:read
@@ -2186,12 +3024,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/CreateLinkResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - links:write
@@ -2223,12 +3077,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/CreateBulkLinksResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - links:write
@@ -2259,12 +3129,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/CreateContactLinkResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - links:write
@@ -2294,12 +3180,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/ResolveQrcodeImagesResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - links:read
@@ -2343,12 +3245,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/ShortlinkAvailabilityResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - links:read
@@ -2372,12 +3290,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/ShortlinkRandomResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - links:read
@@ -2407,12 +3341,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/CreateThankYouLinkResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - links:write
@@ -2445,12 +3395,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/DeleteLinkResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - links:write
@@ -2495,12 +3461,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/GetLinkResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - links:read
@@ -2538,12 +3520,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/UpdateLinkResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - links:write
@@ -2593,12 +3591,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/ListWorkflowStepsResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - workflows:read
@@ -2637,12 +3651,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/CreateWorkflowStepResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - workflows:write
@@ -2681,12 +3711,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/AutoLayoutWorkflowResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - workflows:write
@@ -2715,12 +3761,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/ValidateWorkflowResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - workflows:read
@@ -2760,12 +3822,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/DeleteWorkflowStepResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - workflows:write
@@ -2805,12 +3883,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/GetWorkflowStepResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - workflows:read
@@ -2856,12 +3950,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/UpdateWorkflowStepResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - workflows:write
@@ -2911,12 +4021,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/DisconnectWorkflowStepResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - workflows:write
@@ -2981,12 +4107,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/ConnectWorkflowStepResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - workflows:write
@@ -3033,12 +4175,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/ResolveStepCollisionsResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - workflows:write
@@ -3082,12 +4240,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/ListMediaResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - media:read
@@ -3118,12 +4292,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/CreateMediaResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - media:write
@@ -3156,17 +4346,40 @@ paths:
               schema:
                 $ref: "#/components/schemas/DeleteMediaResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
         "204":
           content:
             application/json:
               schema: {}
           description: Media file deleted successfully
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - media:write
@@ -3199,12 +4412,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/GetMediaResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - media:read
@@ -3228,12 +4457,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/Member"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - members:read
@@ -3262,12 +4507,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/Member"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - members:write
@@ -3313,17 +4574,40 @@ paths:
               schema:
                 $ref: "#/components/schemas/ListResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
         "201":
           content:
             application/json:
               schema: {}
           description: Members listed successfully
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - members:read
@@ -3353,17 +4637,40 @@ paths:
               schema:
                 $ref: "#/components/schemas/Member"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
         "201":
           content:
             application/json:
               schema: {}
           description: Member invited successfully
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - members:write
@@ -3397,12 +4704,28 @@ paths:
                 properties: {}
                 type: object
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - members:write
@@ -3434,12 +4757,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/Member"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - members:read
@@ -3477,12 +4816,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/Member"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - members:write
@@ -3521,12 +4876,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/Member"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - members:write
@@ -3565,12 +4936,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/Member"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - members:write
@@ -3609,12 +4996,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/Member"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - members:write
@@ -3668,12 +5071,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/EventsMetric"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - analytics:read
@@ -3697,12 +5116,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/WorkspaceMetric"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - analytics:read
@@ -3726,12 +5161,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/WorkspaceInsight"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - analytics:read
@@ -3801,12 +5252,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/ListPageThemeTemplatesResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - page_themes:read
@@ -3835,12 +5302,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/CreatePageThemeTemplateResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - page_themes:write
@@ -3870,12 +5353,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/ResolvePageThemeTemplateImagesResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - page_themes:read
@@ -3905,12 +5404,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/ImportPageThemeTemplateResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - page_themes:write
@@ -3942,17 +5457,40 @@ paths:
               schema:
                 $ref: "#/components/schemas/DeletePageThemeTemplateResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
         "204":
           content:
             application/json:
               schema: {}
           description: Page theme template deleted successfully
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - page_themes:write
@@ -3992,12 +5530,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/PageThemeTemplate"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - page_themes:read
@@ -4035,12 +5589,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/UpdatePageThemeTemplateResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - page_themes:write
@@ -4079,12 +5649,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/PublishPageThemeTemplateResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - page_themes:write
@@ -4123,12 +5709,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/UpdatePageThemeTemplateStylingResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - page_themes:write
@@ -4174,12 +5776,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/ListPageThemesResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - page_themes:read
@@ -4212,17 +5830,40 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApplyPageThemeTemplateResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
         "404":
           content:
             application/json:
               schema: {}
           description: The requested resource doesn't exist.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - page_themes:write
@@ -4255,12 +5896,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/FindMatchingPageThemeTemplateResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - page_themes:read
@@ -4293,17 +5950,40 @@ paths:
               schema:
                 $ref: "#/components/schemas/GetPageThemeResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
         "404":
           content:
             application/json:
               schema: {}
           description: The requested resource doesn't exist.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - page_themes:read
@@ -4341,23 +6021,53 @@ paths:
               schema:
                 $ref: "#/components/schemas/UpdatePageThemeResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
         "400":
           content:
             application/json:
               schema: {}
           description: "The request was unacceptable, often due to missing a required\
             \ parameter."
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
         "404":
           content:
             application/json:
               schema: {}
           description: The requested resource doesn't exist.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - page_themes:write
@@ -4379,12 +6089,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/ListPricingPlansResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security: []
       summary: List pricing plans
       tags:
@@ -4451,12 +6177,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/PublicListPageThemeTemplatesResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security: []
       summary: List page theme templates
       tags:
@@ -4494,12 +6236,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/PublicPageThemeTemplate"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security: []
       summary: Get a public page theme template
       tags:
@@ -4522,17 +6280,40 @@ paths:
               schema:
                 $ref: "#/components/schemas/PublicCreateQrcodeDesignResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
         "201":
           content:
             application/json:
               schema: {}
           description: QR code design created successfully
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security: []
       summary: Create a new QR code design
       tags:
@@ -4599,12 +6380,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/PublicListQrcodeTemplatesResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security: []
       summary: List QR code templates
       tags:
@@ -4642,12 +6439,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/PublicQrcodeTemplate"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security: []
       summary: Get a public QR code template
       tags:
@@ -4672,12 +6485,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/PublicWorkspace"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security: []
       summary: Get a public workspace by slug
       tags:
@@ -4702,12 +6531,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApplyQrcodeTemplateResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - qrcodes:write
@@ -4740,17 +6585,40 @@ paths:
               schema:
                 $ref: "#/components/schemas/DeleteQrcodeDesignResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
         "204":
           content:
             application/json:
               schema: {}
           description: QR code design deleted successfully
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - qrcodes:write
@@ -4782,12 +6650,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/GetQrcodeDesignResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - qrcodes:read
@@ -4825,12 +6709,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/UpdateQrcodeDesignResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - qrcodes:write
@@ -4900,12 +6800,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/ListQrcodeTemplatesResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - qrcodes:read
@@ -4934,12 +6850,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/CreateQrcodeTemplateResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - qrcodes:write
@@ -4969,12 +6901,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/ResolveQrcodeTemplateImagesResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - qrcodes:read
@@ -5004,12 +6952,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/ImportQrcodeTemplateResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - qrcodes:write
@@ -5041,17 +7005,40 @@ paths:
               schema:
                 $ref: "#/components/schemas/DeleteQrcodeTemplateResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
         "204":
           content:
             application/json:
               schema: {}
           description: QR code template deleted successfully
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - qrcodes:write
@@ -5091,12 +7078,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/QrcodeTemplate"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - qrcodes:read
@@ -5134,12 +7137,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/UpdateQrcodeTemplateResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - qrcodes:write
@@ -5178,12 +7197,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/PublishQrcodeTemplateResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - qrcodes:write
@@ -5216,12 +7251,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/GetLinkSettingResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - links:read
@@ -5259,12 +7310,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/UpdateLinkSettingResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - links:write
@@ -5289,12 +7356,28 @@ paths:
                 properties: {}
                 type: object
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - integrations:write
@@ -5317,12 +7400,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/GetSlackIntegrationResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - integrations:read
@@ -5351,12 +7450,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/UpdateSlackIntegrationResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - integrations:write
@@ -5380,12 +7495,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/ListSlackChannelsResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - integrations:read
@@ -5409,12 +7540,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/GetSlackOAuthURLResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - integrations:write
@@ -5444,12 +7591,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/CompleteSlackOAuthResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - integrations:write
@@ -5479,12 +7642,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/TestSlackIntegrationResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - integrations:write
@@ -5518,12 +7697,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/DeleteTagResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - links:write
@@ -5574,12 +7769,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/ListTagsResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - links:read
@@ -5606,12 +7817,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/GetEventsTimeSeriesResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - analytics:read
@@ -5642,12 +7869,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/IdentifyResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - visitors:write
@@ -5762,12 +8005,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/ListVisitorsResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - visitors:read
@@ -5801,12 +8060,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/ListVisitorAttributeKeysResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - visitors:read
@@ -5836,12 +8111,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/ListVisitorsResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - visitors:read
@@ -5874,12 +8165,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/DeleteVisitorResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - visitors:write
@@ -5922,12 +8229,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/Visitor"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - visitors:read
@@ -5965,12 +8288,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/Visitor"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - visitors:write
@@ -6011,12 +8350,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/DeleteAttributeResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - visitors:write
@@ -6076,12 +8431,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/ListWebhooksResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - webhooks:read
@@ -6110,12 +8481,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/CreateWebhookResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - webhooks:write
@@ -6149,12 +8536,28 @@ paths:
                 properties: {}
                 type: object
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - webhooks:write
@@ -6186,12 +8589,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/GetWebhookResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - webhooks:read
@@ -6229,12 +8648,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/UpdateWebhookResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - webhooks:write
@@ -6260,12 +8695,28 @@ paths:
                 properties: {}
                 type: object
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - workspace:write
@@ -6288,12 +8739,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/Workspace"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - workspace:read
@@ -6322,12 +8789,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/Workspace"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - workspace:write
@@ -6372,12 +8855,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/ListWorkspaceTokensResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - tokens:read
@@ -6406,12 +8905,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/CreateWorkspaceTokenResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - tokens:write
@@ -6445,12 +8960,28 @@ paths:
                 properties: {}
                 type: object
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - tokens:write
@@ -6482,12 +9013,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/GetWorkspaceTokenResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - tokens:read
@@ -6525,12 +9072,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/UpdateWorkspaceTokenResponse"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - tokens:write
@@ -6561,12 +9124,28 @@ paths:
                 properties: {}
                 type: object
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - workspace:write
@@ -6597,12 +9176,28 @@ paths:
                 properties: {}
                 type: object
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - workspace:write
@@ -6633,12 +9228,28 @@ paths:
                 properties: {}
                 type: object
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - workspace:write
@@ -6671,12 +9282,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/Workspace"
           description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         default:
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
           description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
       security:
       - bearerAuth:
         - workspace:read
@@ -6687,6 +9314,72 @@ paths:
       - Workspaces
       x-required-scope: workspace:read
 components:
+  headers:
+    RateLimit:
+      description: "What is left of the quota: `\"<name>\";r=<remaining requests>;t=<seconds\
+        \ until the window resets>` (draft-ietf-httpapi-ratelimit-headers)."
+      explode: false
+      schema:
+        example: '"token";r=598;t=42'
+        type: string
+      style: simple
+    RateLimit-Limit:
+      description: Requests allowed in the current window.
+      explode: false
+      schema:
+        example: 600
+        type: integer
+      style: simple
+    RateLimit-Policy:
+      description: "The quota that applies to this caller, as a structured field:\
+        \ `\"<name>\";q=<requests>;w=<window seconds>` (draft-ietf-httpapi-ratelimit-headers)."
+      explode: false
+      schema:
+        example: '"token";q=600;w=60'
+        type: string
+      style: simple
+    RateLimit-Remaining:
+      description: Requests left in the current window.
+      explode: false
+      schema:
+        example: 598
+        type: integer
+      style: simple
+    RateLimit-Reset:
+      description: Seconds until the current window resets.
+      explode: false
+      schema:
+        example: 42
+        type: integer
+      style: simple
+    Retry-After:
+      description: Seconds to wait before retrying a refused request.
+      explode: false
+      schema:
+        example: 42
+        type: integer
+      style: simple
+    X-RateLimit-Limit:
+      description: "Same as RateLimit-Limit, for clients that read the X- convention."
+      explode: false
+      schema:
+        example: 600
+        type: integer
+      style: simple
+    X-RateLimit-Remaining:
+      description: "Same as RateLimit-Remaining, for clients that read the X- convention."
+      explode: false
+      schema:
+        example: 598
+        type: integer
+      style: simple
+    X-RateLimit-Reset:
+      description: "Unix time, in seconds, at which the current window resets."
+      explode: false
+      schema:
+        example: 1791650400
+        type: integer
+      style: simple
   responses:
     "200":
       description: Everything worked as expected.
@@ -6759,6 +9452,32 @@ components:
           schema:
             $ref: "#/components/schemas/ErrorResponse"
       description: Something went wrong on the server end.
+    TooManyRequests:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+      description: "Too many requests. Wait the number of seconds in Retry-After,\
+        \ or until the RateLimit window resets, then retry."
+      headers:
+        RateLimit:
+          $ref: "#/components/headers/RateLimit"
+        RateLimit-Limit:
+          $ref: "#/components/headers/RateLimit-Limit"
+        RateLimit-Policy:
+          $ref: "#/components/headers/RateLimit-Policy"
+        RateLimit-Remaining:
+          $ref: "#/components/headers/RateLimit-Remaining"
+        RateLimit-Reset:
+          $ref: "#/components/headers/RateLimit-Reset"
+        Retry-After:
+          $ref: "#/components/headers/Retry-After"
+        X-RateLimit-Limit:
+          $ref: "#/components/headers/X-RateLimit-Limit"
+        X-RateLimit-Remaining:
+          $ref: "#/components/headers/X-RateLimit-Remaining"
+        X-RateLimit-Reset:
+          $ref: "#/components/headers/X-RateLimit-Reset"
     default:
       content:
         application/json:
