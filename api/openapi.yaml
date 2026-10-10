@@ -5,12 +5,15 @@ info:
     url: https://app.linkbreakers.com
   description: This is a documentation of all the APIs of Linkbreakers
   title: Linkbreakers API
-  version: 1.148.0
+  version: 1.149.2
 servers:
 - url: https://api.linkbreakers.com
 security:
 - bearerAuth: []
 tags:
+- description: "What the workspace has used of each limit its plan sets, read from\
+    \ the same counters that enforce them."
+  name: Allowances
 - description: "Endpoints for managing analytics dashboards with flexible, config-driven\
     \ widgets. Each widget defines its own data source and visualization."
   name: Analytics Dashboard
@@ -95,6 +98,71 @@ tags:
     allow you to update and get workspaces.
   name: Workspaces
 paths:
+  /v1/allowances:
+    get:
+      description: |-
+        Return every limit the workspace's plan sets with what has been used in the current cycle, when it resets and whether it has been reached.
+
+        Requires the `workspace:read` scope.
+      operationId: AllowancesService_ListAllowances
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListAllowancesResponse"
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth:
+        - workspace:read
+      - oauth2:
+        - workspace:read
+      summary: List allowances
+      tags:
+      - Allowances
+      x-required-scope: workspace:read
+  /v1/allowances/dismiss:
+    post:
+      description: |-
+        Hide the over-limit notice for one limit, for the calling member, until the limit's next cycle. Only a member can dismiss; an API token gets a permission error.
+
+        Requires the `workspace:write` scope.
+      operationId: AllowancesService_DismissAllowanceNotice
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DismissAllowanceNoticeRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                properties: {}
+                type: object
+          description: Everything worked as expected.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+      security:
+      - bearerAuth:
+        - workspace:write
+      - oauth2:
+        - workspace:write
+      summary: Dismiss an allowance notice
+      tags:
+      - Allowances
+      x-required-scope: workspace:write
   /v1/analytics/attributes/distribution:
     post:
       description: |-
@@ -6858,7 +6926,7 @@ components:
          - API_SCOPE_WORKSPACE_READ: Read the workspace and its settings.
          - API_SCOPE_WORKSPACE_WRITE: Update the workspace, request enrollment and delete the workspace.
          - API_SCOPE_MEMBERS_READ: Read workspace members.
-         - API_SCOPE_MEMBERS_WRITE: Invite, update, revoke, sign out and remove members.
+         - API_SCOPE_MEMBERS_WRITE: Update, revoke, sign out and remove members. Inviting a member or changing a sign-in email or password needs full access.
          - API_SCOPE_TOKENS_READ: Read API tokens and their scopes, never their secrets.
          - API_SCOPE_TOKENS_WRITE: Create, update and delete API tokens, limited to the scopes the calling token holds.
          - API_SCOPE_BILLING_WRITE: Open checkout, credit top-up and billing portal sessions.
@@ -10243,6 +10311,16 @@ components:
           - $ref: "#/components/schemas/WorkflowStep"
           title: "The step the connection left from, as it now stands"
       title: Response for clearing a workflow step branch
+    DismissAllowanceNoticeRequest:
+      example:
+        key: ""
+      properties:
+        key:
+          allOf:
+          - $ref: "#/components/schemas/PlanLimitKey"
+          title: The limit whose notice to dismiss
+      title: Request to stop showing the over-limit notice for one limit until its
+        next cycle
     DnsProvider:
       default: DNS_PROVIDER_UNSPECIFIED
       description: |-
@@ -10356,7 +10434,7 @@ components:
           type: string
     ErrorResponse:
       example:
-        code: 5
+        code: 1
         codeType: UNKNOWN
         details:
         - "{}"
@@ -12700,6 +12778,38 @@ components:
             If true, all tags will be removed from the link.
           type: boolean
       title: Request to update a link
+    ListAllowancesResponse:
+      example:
+        allowances:
+        - cycleStartAt: 2000-01-23T04:56:07.000+00:00
+          cycleEndAt: 2000-01-23T04:56:07.000+00:00
+          kind: ""
+          reached: true
+          limit: 0
+          used: 6
+          noticeDismissed: true
+          key: ""
+        - cycleStartAt: 2000-01-23T04:56:07.000+00:00
+          cycleEndAt: 2000-01-23T04:56:07.000+00:00
+          kind: ""
+          reached: true
+          limit: 0
+          used: 6
+          noticeDismissed: true
+          key: ""
+        plan: ""
+      properties:
+        allowances:
+          items:
+            $ref: "#/components/schemas/WorkspaceAllowance"
+          title: One entry per limit the plan sets
+          type: array
+        plan:
+          allOf:
+          - $ref: "#/components/schemas/PricingPlanId"
+          description: The plan the limits come from. A trial or sponsored workspace
+            reports the plan it is allowed what of.
+      title: The workspace's allowances
     ListApiScopesResponse:
       description: ListApiScopesResponse lists every scope a token can hold.
       example:
@@ -13998,7 +14108,7 @@ components:
             - currency: currency
               amountMinor: 1
           name: name
-          id: ""
+          id: PRICING_PLAN_ID_UNSPECIFIED
           prices:
           - monthlyEquivalents:
             - currency: currency
@@ -14023,12 +14133,12 @@ components:
               amountMinor: 1
             interval: ""
           limits:
-          - kind: ""
+          - kind: PLAN_LIMIT_KIND_UNSPECIFIED
             value: 6
-            key: ""
-          - kind: ""
+            key: PLAN_LIMIT_KEY_UNSPECIFIED
+          - kind: PLAN_LIMIT_KIND_UNSPECIFIED
             value: 6
-            key: ""
+            key: PLAN_LIMIT_KEY_UNSPECIFIED
           trial: ""
         - features:
           - PLAN_FEATURE_UNSPECIFIED
@@ -14047,7 +14157,7 @@ components:
             - currency: currency
               amountMinor: 1
           name: name
-          id: ""
+          id: PRICING_PLAN_ID_UNSPECIFIED
           prices:
           - monthlyEquivalents:
             - currency: currency
@@ -14072,12 +14182,12 @@ components:
               amountMinor: 1
             interval: ""
           limits:
-          - kind: ""
+          - kind: PLAN_LIMIT_KIND_UNSPECIFIED
             value: 6
-            key: ""
-          - kind: ""
+            key: PLAN_LIMIT_KEY_UNSPECIFIED
+          - kind: PLAN_LIMIT_KIND_UNSPECIFIED
             value: 6
-            key: ""
+            key: PLAN_LIMIT_KEY_UNSPECIFIED
           trial: ""
         creditTopup: ""
         linkCreatedCreditCost: 0
@@ -15686,18 +15796,50 @@ components:
       type: string
     PlanLimit:
       example:
-        kind: ""
+        kind: PLAN_LIMIT_KIND_UNSPECIFIED
         value: 6
-        key: ""
+        key: PLAN_LIMIT_KEY_UNSPECIFIED
       properties:
         key:
-          allOf:
-          - $ref: "#/components/schemas/PlanLimitKey"
+          description: |-
+            - PLAN_LIMIT_KEY_UNSPECIFIED: Not set
+             - PLAN_LIMIT_KEY_CUSTOM_DOMAINS: Custom domains connected to the workspace
+             - PLAN_LIMIT_KEY_TEAM_MEMBERS: Members of the workspace
+             - PLAN_LIMIT_KEY_PLATFORM_CREDITS: Platform credits, spent by creating links and by AI features
+             - PLAN_LIMIT_KEY_TRACKED_VISITS: Tracked visits (scans and clicks)
+             - PLAN_LIMIT_KEY_PUBLIC_API_CALLS: Public API calls
+             - PLAN_LIMIT_KEY_WEBHOOKS: Webhooks configured in the workspace
+             - PLAN_LIMIT_KEY_ASSISTANT_MESSAGES_PER_MINUTE: Assistant messages per minute
+             - PLAN_LIMIT_KEY_LINKS_INCLUDED: Links the monthly platform credits pay for. Links are not capped on their own: each one spends credits.
+          enum:
+          - PLAN_LIMIT_KEY_UNSPECIFIED
+          - PLAN_LIMIT_KEY_CUSTOM_DOMAINS
+          - PLAN_LIMIT_KEY_TEAM_MEMBERS
+          - PLAN_LIMIT_KEY_PLATFORM_CREDITS
+          - PLAN_LIMIT_KEY_TRACKED_VISITS
+          - PLAN_LIMIT_KEY_PUBLIC_API_CALLS
+          - PLAN_LIMIT_KEY_WEBHOOKS
+          - PLAN_LIMIT_KEY_ASSISTANT_MESSAGES_PER_MINUTE
+          - PLAN_LIMIT_KEY_LINKS_INCLUDED
           title: What the limit is on
+          type: string
         kind:
-          allOf:
-          - $ref: "#/components/schemas/PlanLimitKind"
+          description: |-
+            - PLAN_LIMIT_KIND_UNSPECIFIED: Not set
+             - PLAN_LIMIT_KIND_TOTAL: A standing total that does not refill, such as connected domains
+             - PLAN_LIMIT_KIND_MONTHLY: An allowance that refills every month
+             - PLAN_LIMIT_KIND_PER_MINUTE: A rate that refills every minute
+             - PLAN_LIMIT_KIND_UNLIMITED: No ceiling
+             - PLAN_LIMIT_KIND_METERED: No ceiling; every unit is billed
+          enum:
+          - PLAN_LIMIT_KIND_UNSPECIFIED
+          - PLAN_LIMIT_KIND_TOTAL
+          - PLAN_LIMIT_KIND_MONTHLY
+          - PLAN_LIMIT_KIND_PER_MINUTE
+          - PLAN_LIMIT_KIND_UNLIMITED
+          - PLAN_LIMIT_KIND_METERED
           title: How the limit behaves
+          type: string
         value:
           description: The ceiling. Absent when kind is PLAN_LIMIT_KIND_UNLIMITED
             or PLAN_LIMIT_KIND_METERED.
@@ -15832,7 +15974,7 @@ components:
           - currency: currency
             amountMinor: 1
         name: name
-        id: ""
+        id: PRICING_PLAN_ID_UNSPECIFIED
         prices:
         - monthlyEquivalents:
           - currency: currency
@@ -15857,12 +15999,12 @@ components:
             amountMinor: 1
           interval: ""
         limits:
-        - kind: ""
+        - kind: PLAN_LIMIT_KIND_UNSPECIFIED
           value: 6
-          key: ""
-        - kind: ""
+          key: PLAN_LIMIT_KEY_UNSPECIFIED
+        - kind: PLAN_LIMIT_KIND_UNSPECIFIED
           value: 6
-          key: ""
+          key: PLAN_LIMIT_KEY_UNSPECIFIED
         trial: ""
       properties:
         features:
@@ -15871,9 +16013,20 @@ components:
           title: Capabilities the plan includes
           type: array
         id:
-          allOf:
-          - $ref: "#/components/schemas/PricingPlanId"
+          description: |-
+            - PRICING_PLAN_ID_UNSPECIFIED: Not set
+             - PRICING_PLAN_ID_FREE: Free plan, no payment
+             - PRICING_PLAN_ID_LIGHT: Light plan
+             - PRICING_PLAN_ID_PRO: Pro plan. Trials and sponsored workspaces are allowed what Pro allows unless a limit says otherwise.
+             - PRICING_PLAN_ID_ENTERPRISE: Enterprise plan, billed per unit used
+          enum:
+          - PRICING_PLAN_ID_UNSPECIFIED
+          - PRICING_PLAN_ID_FREE
+          - PRICING_PLAN_ID_LIGHT
+          - PRICING_PLAN_ID_PRO
+          - PRICING_PLAN_ID_ENTERPRISE
           title: Plan identifier
+          type: string
         limits:
           items:
             $ref: "#/components/schemas/PlanLimit"
@@ -19799,6 +19952,57 @@ components:
           title: Website URL for the workspace
           type: string
       title: Workspace
+    WorkspaceAllowance:
+      description: "One limit the workspace's plan sets, with what the workspace has\
+        \ used of it."
+      example:
+        cycleStartAt: 2000-01-23T04:56:07.000+00:00
+        cycleEndAt: 2000-01-23T04:56:07.000+00:00
+        kind: ""
+        reached: true
+        limit: 0
+        used: 6
+        noticeDismissed: true
+        key: ""
+      properties:
+        cycleEndAt:
+          description: When the allowance refills. Absent for totals that never refill
+            and when nothing has been counted yet.
+          format: date-time
+          type: string
+        cycleStartAt:
+          description: Start of the current cycle. Absent when nothing has been counted
+            yet.
+          format: date-time
+          type: string
+        key:
+          allOf:
+          - $ref: "#/components/schemas/PlanLimitKey"
+          title: What the limit is on
+        kind:
+          allOf:
+          - $ref: "#/components/schemas/PlanLimitKind"
+          title: How the limit behaves
+        limit:
+          description: The ceiling. Absent when kind is PLAN_LIMIT_KIND_UNLIMITED
+            or PLAN_LIMIT_KIND_METERED.
+          format: int32
+          type: integer
+        noticeDismissed:
+          title: Whether the calling member dismissed the over-limit notice for this
+            limit in the current cycle
+          type: boolean
+        reached:
+          description: Whether the limit is used up for the current cycle. Platform
+            credits count as reached only once purchased top-up credits are used up
+            too.
+          type: boolean
+        used:
+          description: "Units used in the current cycle. For a total such as custom\
+            \ domains, what the workspace holds."
+          format: int32
+          type: integer
+      title: WorkspaceAllowance
     WorkspaceInsight:
       description: |-
         Derived workspace usage insight that helps the UI pre-select the right link type when creating new links.
@@ -20075,7 +20279,8 @@ components:
             media:read: Read uploaded media.
             media:write: Upload and delete media.
             members:read: Read workspace members.
-            members:write: "Invite, update, revoke, sign out and remove members."
+            members:write: "Update, revoke, sign out and remove members. Inviting\
+              \ a member or changing a sign-in email or password needs full access."
             page_themes:read: Read page themes and page theme templates.
             page_themes:write: "Change page themes and create, publish and delete\
               \ page theme templates."

@@ -2,6 +2,7 @@
 .travis.yml
 README.md
 api/openapi.yaml
+api_allowances.go
 api_analytics_dashboard.go
 api_analytics_data.go
 api_api_scopes.go
@@ -169,6 +170,7 @@ model_digest_frequency.go
 model_directories_service_update_body.go
 model_directory.go
 model_disconnect_workflow_step_response.go
+model_dismiss_allowance_notice_request.go
 model_dns_provider.go
 model_dns_record_purpose.go
 model_dns_record_type.go
@@ -257,6 +259,7 @@ model_link_setting.go
 model_link_sort_field.go
 model_link_view.go
 model_links_service_update_body.go
+model_list_allowances_response.go
 model_list_api_scopes_response.go
 model_list_custom_domains_response.go
 model_list_dashboards_response.go
@@ -470,6 +473,7 @@ model_workflow_steps_service_connect_step_body.go
 model_workflow_steps_service_create_body.go
 model_workflow_steps_service_update_body.go
 model_workspace.go
+model_workspace_allowance.go
 model_workspace_insight.go
 model_workspace_metric.go
 model_workspace_token.go
