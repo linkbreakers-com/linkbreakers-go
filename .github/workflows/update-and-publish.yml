@@ -85,6 +85,9 @@ jobs:
             -g go \
             -o . \
             --skip-validate-spec \
+            --git-host github.com \
+            --git-user-id linkbreakers-com \
+            --git-repo-id linkbreakers-go \
             --global-property apiTests=false,modelTests=false,apiDocs=false,modelDocs=false \
             --additional-properties=packageName=linkbreakers,isGoSubmodule=false,enumClassPrefix=true
 
