@@ -285,6 +285,7 @@ model_list_events_json_response.go
 model_list_events_response.go
 model_list_links_response.go
 model_list_media_response.go
+model_list_my_workspaces_response.go
 model_list_page_theme_templates_response.go
 model_list_page_themes_response.go
 model_list_pricing_plans_response.go
@@ -306,6 +307,7 @@ model_media_selection.go
 model_media_type.go
 model_media_visibility.go
 model_member.go
+model_members_service_switch_workspace_body.go
 model_members_service_update_body.go
 model_message_page_navigation_type.go
 model_message_page_payload.go
@@ -315,6 +317,7 @@ model_multi_link_payload.go
 model_multi_link_trace_button.go
 model_multi_link_trace_data.go
 model_multi_link_trace_selected_button.go
+model_my_workspace.go
 model_output_file_format.go
 model_page_theme.go
 model_page_theme_badge_shape.go
@@ -401,6 +404,7 @@ model_specific_date_condition_trace_data.go
 model_specific_date_condition_trace_option.go
 model_specific_date_option.go
 model_subscription_type.go
+model_switch_workspace_response.go
 model_sync_google_forms_response.go
 model_test_slack_integration_response.go
 model_thank_you_page_payload.go
