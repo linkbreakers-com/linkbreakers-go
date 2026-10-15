@@ -312,6 +312,8 @@ model_list_workflow_steps_response.go
 model_list_workspace_tokens_response.go
 model_media.go
 model_media_kind.go
+model_media_reference.go
+model_media_reference_type.go
 model_media_selection.go
 model_media_status.go
 model_media_type.go
@@ -371,6 +373,7 @@ model_qrcode_template.go
 model_qrcode_template_scope.go
 model_qrcode_templates_service_update_qrcode_template_body.go
 model_redirect_trace_data.go
+model_redirect_trace_data_fallback_reason.go
 model_request_workspace_enrollment_request.go
 model_resolve_page_theme_template_images_request.go
 model_resolve_page_theme_template_images_response.go
