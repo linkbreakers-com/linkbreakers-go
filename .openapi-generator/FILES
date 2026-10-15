@@ -67,6 +67,7 @@ model_attribute_value_entry.go
 model_attribute_write.go
 model_attribute_write_mode.go
 model_auto_layout_workflow_response.go
+model_back_button.go
 model_background_options.go
 model_billing_interval.go
 model_breakdown_data_point.go
@@ -79,6 +80,7 @@ model_claim_agent_workspace_request.go
 model_client_redirect_payload.go
 model_complete_google_forms_o_auth_request.go
 model_complete_google_forms_o_auth_response.go
+model_complete_media_upload_response.go
 model_complete_slack_o_auth_request.go
 model_complete_slack_o_auth_response.go
 model_connect_workflow_step_response.go
@@ -104,10 +106,14 @@ model_create_dashboard_response.go
 model_create_directory_request.go
 model_create_directory_response.go
 model_create_event_trace_response.go
+model_create_file_link_request.go
+model_create_file_link_response.go
 model_create_link_request.go
 model_create_link_response.go
 model_create_media_request.go
 model_create_media_response.go
+model_create_media_upload_request.go
+model_create_media_upload_response.go
 model_create_page_theme_template_request.go
 model_create_page_theme_template_response.go
 model_create_qrcode_template_request.go
@@ -195,6 +201,8 @@ model_events_service_create_event_trace_body.go
 model_events_service_update_device_body.go
 model_events_time_series.go
 model_events_time_series_data.go
+model_file_payload.go
+model_file_trace_data.go
 model_find_matching_page_theme_template_response.go
 model_font_config.go
 model_form_field.go
@@ -303,8 +311,11 @@ model_list_webhooks_response.go
 model_list_workflow_steps_response.go
 model_list_workspace_tokens_response.go
 model_media.go
+model_media_kind.go
 model_media_selection.go
+model_media_status.go
 model_media_type.go
+model_media_usage.go
 model_media_visibility.go
 model_member.go
 model_members_service_switch_workspace_body.go
