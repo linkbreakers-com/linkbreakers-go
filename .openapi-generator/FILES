@@ -106,14 +106,14 @@ model_create_dashboard_response.go
 model_create_directory_request.go
 model_create_directory_response.go
 model_create_event_trace_response.go
-model_create_file_link_request.go
-model_create_file_link_response.go
 model_create_link_request.go
 model_create_link_response.go
 model_create_media_request.go
 model_create_media_response.go
 model_create_media_upload_request.go
 model_create_media_upload_response.go
+model_create_open_media_link_request.go
+model_create_open_media_link_response.go
 model_create_page_theme_template_request.go
 model_create_page_theme_template_response.go
 model_create_qrcode_template_request.go
@@ -201,8 +201,6 @@ model_events_service_create_event_trace_body.go
 model_events_service_update_device_body.go
 model_events_time_series.go
 model_events_time_series_data.go
-model_file_payload.go
-model_file_trace_data.go
 model_find_matching_page_theme_template_response.go
 model_font_config.go
 model_form_field.go
@@ -316,7 +314,9 @@ model_media_reference.go
 model_media_reference_type.go
 model_media_selection.go
 model_media_status.go
+model_media_trace_data.go
 model_media_type.go
+model_media_upload_origin.go
 model_media_usage.go
 model_media_visibility.go
 model_member.go
@@ -331,6 +331,7 @@ model_multi_link_trace_button.go
 model_multi_link_trace_data.go
 model_multi_link_trace_selected_button.go
 model_my_workspace.go
+model_open_media_payload.go
 model_output_file_format.go
 model_page_theme.go
 model_page_theme_badge_shape.go
