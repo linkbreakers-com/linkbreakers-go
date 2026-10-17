@@ -38,7 +38,7 @@ info:
 
     Every POST, PUT and PATCH accepts an optional `Idempotency-Key` header (draft-ietf-httpapi-idempotency-key-header). Send a new unique value, such as a UUID, with each logical request and reuse it only to retry that request. A retry with the same key and the same request returns the first response, marked `Idempotent-Replayed: true`, instead of running again. Keys are scoped to the token and kept for 24 hours. The same key with a different request is refused with `422`, and a retry while the first request is still running gets `409` with `Retry-After`. Server errors (5xx) and refusals such as 401, 403 and 429 are not stored, so retrying them runs the request again.
   title: Linkbreakers API
-  version: 1.180.0
+  version: 1.181.0
   x-api-versioning:
     compatibility: additive changes only within a version
     currentVersion: v1
@@ -5715,6 +5715,262 @@ paths:
       tags:
       - Media
       x-required-scope: media:read
+  /v1/media/{id}/replace-uploads:
+    post:
+      description: |-
+        Starts replacing the file of an existing media item with a new one uploaded straight to storage.
+        The media keeps its id, so everything using it follows: Open media steps hand out the new file and
+        page themes show it as their background cover, badge or footer logo from the next visit. Declare the
+        new file's name, MIME type and exact size in bytes, and optionally its sha256. Then PUT its bytes to
+        upload_url with the upload_headers before upload_expires_at, and call CompleteReplace with the
+        replacement_id. Until then the media is unchanged; a replacement not completed within an hour is
+        discarded.
+
+        The new file must be acceptable to every use rendered from the media's file: a page theme cover,
+        badge or footer logo takes an image of at most 3 MB, an Open media step takes any media. When one
+        refuses it, the replacement is refused with MEDIA_REPLACE_NOT_ALLOWED, whose message names each
+        refusing use and why, and whose metadata lists them in refusals (a JSON array). Media used only by
+        Open media steps may change kind, a PDF for an MP4 video for example. A QR code design keeps its own
+        copy of its logo: it never refuses a replacement, keeps its current logo, and is detached from the
+        media when the replacement completes.
+
+        A file another media item of the workspace holds is refused with 409 MEDIA_ALREADY_EXISTS (metadata
+        existingMediaId and existingFileName). Declaring the media's own file returns unchanged true and no
+        upload_url: there is nothing to replace. Only the difference in size counts against the workspace's
+        storage allowance.
+
+        Requires the `media:write` scope.
+      operationId: MediaService_CreateReplaceUpload
+      parameters:
+      - description: The ID of the media item whose file is replaced (UUID)
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MediaServiceCreateReplaceUploadBody"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateMediaReplaceUploadResponse"
+          description: Everything worked as expected.
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - media:write
+      - oauth2:
+        - media:write
+      summary: Start replacing a media file
+      tags:
+      - Media
+      x-required-scope: media:write
+  /v1/media/{id}/replace-uploads/{replacementId}:complete:
+    post:
+      description: |-
+        Checks the new file PUT to the replacement's upload_url like CompleteUpload does (its size, its real
+        format read from its first bytes, its SHA-256 established by the server), checks again that every
+        use rendered from the media accepts it and that it fits the storage allowance, then swaps it in. The
+        media keeps its id and takes the new file's name, MIME type, kind, size and sha256; its old file is
+        deleted. QR code designs that used the media as their logo keep their current logo and are detached
+        from it; they are returned in detached_references. On any refusal the new file is discarded and the
+        media keeps its current file. A new file identical to the media's own changes nothing and returns
+        unchanged true.
+
+        Requires the `media:write` scope.
+      operationId: MediaService_CompleteReplace
+      parameters:
+      - description: The ID of the media item whose file is replaced (UUID)
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: "The replacement's id (UUID), from CreateReplaceUpload"
+        explode: false
+        in: path
+        name: replacementId
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MediaServiceCompleteReplaceBody"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompleteMediaReplaceResponse"
+          description: Everything worked as expected.
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - media:write
+      - oauth2:
+        - media:write
+      summary: Complete replacing a media file
+      tags:
+      - Media
+      x-required-scope: media:write
+  /v1/media/{id}/replace:import:
+    post:
+      description: |-
+        Replaces the file of an existing media item with one fetched server-side, from a public https url or
+        a file the caller attached to their own Assistant conversation, in one call. The same checks as
+        CompleteReplace apply, with the same limits and URL rules as Import: every use rendered from the
+        media must accept the new file (MEDIA_REPLACE_NOT_ALLOWED lists each refusing use and why), a file
+        another media item holds is refused with MEDIA_ALREADY_EXISTS, and only the size difference counts
+        against the storage allowance. The media keeps its id; QR code designs using it as a logo keep their
+        current logo and are detached from it. A file identical to the media's own returns unchanged true.
+
+        Requires the `media:write` scope.
+      operationId: MediaService_ReplaceImport
+      parameters:
+      - description: The ID of the media item whose file is replaced (UUID)
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MediaServiceReplaceImportBody"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReplaceMediaImportResponse"
+          description: Everything worked as expected.
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - media:write
+      - oauth2:
+        - media:write
+      summary: Replace a media file from a URL
+      tags:
+      - Media
+      x-required-scope: media:write
   /v1/media/{id}:complete:
     post:
       description: |-
@@ -12929,6 +13185,44 @@ components:
       properties:
         integration:
           $ref: "#/components/schemas/GoogleFormsIntegration"
+    CompleteMediaReplaceResponse:
+      example:
+        unchanged: true
+        media: ""
+        detachedReferences:
+        - linkId: linkId
+          qrcodeTemplateId: qrcodeTemplateId
+          pageThemeTemplateId: pageThemeTemplateId
+          qrcodeTemplateName: qrcodeTemplateName
+          pageThemeTemplateName: pageThemeTemplateName
+          type: ""
+          linkName: linkName
+          workflowStepId: workflowStepId
+        - linkId: linkId
+          qrcodeTemplateId: qrcodeTemplateId
+          pageThemeTemplateId: pageThemeTemplateId
+          qrcodeTemplateName: qrcodeTemplateName
+          pageThemeTemplateName: pageThemeTemplateName
+          type: ""
+          linkName: linkName
+          workflowStepId: workflowStepId
+      properties:
+        detachedReferences:
+          description: |-
+            The uses detached from the media because they keep their own copy of the old file: QR code designs
+            that used it as their logo. They keep showing their current logo.
+          items:
+            $ref: "#/components/schemas/MediaReference"
+          type: array
+        media:
+          allOf:
+          - $ref: "#/components/schemas/Media"
+          title: "The media item, same id, holding the new file, with a signed URL\
+            \ and its references"
+        unchanged:
+          title: "True when the new file was the media's own: nothing changed"
+          type: boolean
+      title: The media item after its file was replaced
     CompleteMediaUploadResponse:
       example:
         media: ""
@@ -13838,6 +14132,50 @@ components:
           readOnly: true
           type: array
       title: Response containing the created link
+    CreateMediaReplaceUploadResponse:
+      example:
+        uploadMethod: uploadMethod
+        uploadHeaders:
+          key: uploadHeaders
+        uploadUrl: uploadUrl
+        uploadExpiresAt: 2000-01-23T04:56:07.000+00:00
+        unchanged: true
+        replacementId: replacementId
+        media: ""
+      properties:
+        media:
+          allOf:
+          - $ref: "#/components/schemas/Media"
+          description: |-
+            The media item as it is now, with its references: the uses the replacement will change. It keeps its
+            current file until CompleteReplace.
+        replacementId:
+          description: "The replacement's id (UUID), which CompleteReplace takes.\
+            \ Empty when unchanged."
+          type: string
+        unchanged:
+          description: "True when the declared sha256 is the media's own file: nothing\
+            \ to upload, nothing changes."
+          type: boolean
+        uploadExpiresAt:
+          format: date-time
+          title: When upload_url stops accepting the file
+          type: string
+        uploadHeaders:
+          additionalProperties:
+            type: string
+          description: "Headers the upload must carry, exactly as given: Content-Type,\
+            \ and x-amz-checksum-sha256 when sha256 was declared. The Content-Length\
+            \ must equal the declared size."
+        uploadMethod:
+          description: "The HTTP method to send them with: always PUT. Empty when\
+            \ unchanged."
+          type: string
+        uploadUrl:
+          description: "Where to send the new file's bytes, directly to storage. Short-lived.\
+            \ Empty when unchanged."
+          type: string
+      title: A reserved replacement and where to upload the new file
     CreateMediaRequest:
       example:
         fileName: example.jpg
@@ -21103,6 +21441,7 @@ components:
          - TYPE_PAGE_THEME_FOOTER_LOGO: A page theme shows the media as its footer logo. It blocks deleting the media.
          - TYPE_QR_CODE_LOGO: A QR code design uses the media as its logo, in the center of the QR code. The design keeps its
         own copy of the image, so this does not block deleting the media; deleting it clears this use.
+        Replacing the media's file detaches it too: the design keeps its current logo.
       enum:
       - TYPE_UNSPECIFIED
       - TYPE_OPEN_MEDIA_STEP
@@ -21127,9 +21466,73 @@ components:
           type: object
         id:
           type: string
+    MediaServiceCompleteReplaceBody:
+      title: Request to complete replacing a media item's file
+      type: object
     MediaServiceCompleteUploadBody:
       title: Request to complete a direct upload
       type: object
+    MediaServiceCreateReplaceUploadBody:
+      example:
+        fileName: menu-autumn.pdf
+        sha256: 9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08
+        size: 7340032
+        mimeType: application/pdf
+      properties:
+        fileName:
+          description: The new file's name. The media takes it once the replacement
+            completes; visitors download the file under it.
+          example: menu-autumn.pdf
+          type: string
+        mimeType:
+          description: "The new file's MIME type: image/png, image/jpeg, image/webp,\
+            \ image/svg+xml, application/pdf or video/mp4. The uploaded bytes must\
+            \ be this format."
+          example: application/pdf
+          type: string
+        sha256:
+          description: |-
+            Optional: the new file's SHA-256 digest, 64 hexadecimal characters. When given, a file another media
+            item holds is refused at once with 409 MEDIA_ALREADY_EXISTS, the media's own file returns unchanged
+            true, and storage refuses a PUT whose bytes do not match it, so the PUT must carry the
+            x-amz-checksum-sha256 header from upload_headers.
+          example: 9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08
+          type: string
+        size:
+          description: The new file's exact size in bytes. The PUT must send exactly
+            this many bytes.
+          example: 7340032
+          format: int64
+          type: integer
+      required:
+      - fileName
+      - mimeType
+      - size
+      title: Request to start replacing a media item's file
+    MediaServiceReplaceImportBody:
+      example:
+        fileName: menu-autumn.pdf
+        assistantAttachmentId: assistantAttachmentId
+        url: https://example.com/menu-autumn.pdf
+      properties:
+        assistantAttachmentId:
+          description: |-
+            The id of a file the caller attached to their own Assistant conversation. Attachments are
+            short-lived and belong to the member who attached them, in that workspace.
+          type: string
+        fileName:
+          description: |-
+            The name the media takes. Empty takes the attachment's name, or the last segment of the URL's path,
+            or keeps the media's current name.
+          example: menu-autumn.pdf
+          type: string
+        url:
+          description: |-
+            A public https URL the new file is downloaded from, on port 443. Redirects are followed only to
+            other public https URLs, at most five. The file's kind is read from its bytes.
+          example: https://example.com/menu-autumn.pdf
+          type: string
+      title: Request to replace a media item's file with one fetched server-side
     MediaStatus:
       default: STATUS_UNSPECIFIED
       description: |-
@@ -23350,6 +23753,44 @@ components:
       - FALLBACK_REASON_MEDIA_MISSING
       title: FallbackReason says why a visitor was sent to the link's fallback destination
       type: string
+    ReplaceMediaImportResponse:
+      example:
+        unchanged: true
+        media: ""
+        detachedReferences:
+        - linkId: linkId
+          qrcodeTemplateId: qrcodeTemplateId
+          pageThemeTemplateId: pageThemeTemplateId
+          qrcodeTemplateName: qrcodeTemplateName
+          pageThemeTemplateName: pageThemeTemplateName
+          type: ""
+          linkName: linkName
+          workflowStepId: workflowStepId
+        - linkId: linkId
+          qrcodeTemplateId: qrcodeTemplateId
+          pageThemeTemplateId: pageThemeTemplateId
+          qrcodeTemplateName: qrcodeTemplateName
+          pageThemeTemplateName: pageThemeTemplateName
+          type: ""
+          linkName: linkName
+          workflowStepId: workflowStepId
+      properties:
+        detachedReferences:
+          description: |-
+            The uses detached from the media because they keep their own copy of the old file: QR code designs
+            that used it as their logo. They keep showing their current logo.
+          items:
+            $ref: "#/components/schemas/MediaReference"
+          type: array
+        media:
+          allOf:
+          - $ref: "#/components/schemas/Media"
+          title: "The media item, same id, holding the new file, with a signed URL\
+            \ and its references"
+        unchanged:
+          title: "True when the new file was the media's own: nothing changed"
+          type: boolean
+      title: The media item after its file was replaced
     RequestWorkspaceEnrollmentRequest:
       example:
         message: message
