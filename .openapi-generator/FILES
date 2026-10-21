@@ -8,6 +8,7 @@ api_analytics_dashboard.go
 api_analytics_data.go
 api_api_scopes.go
 api_assistant.go
+api_auth.go
 api_custom_domains.go
 api_directories.go
 api_events.go
@@ -385,6 +386,7 @@ model_qrcode_templates_service_update_qrcode_template_body.go
 model_redirect_trace_data.go
 model_redirect_trace_data_fallback_reason.go
 model_replace_media_import_response.go
+model_request_email_verification_request.go
 model_request_workspace_enrollment_request.go
 model_resolve_page_theme_template_images_request.go
 model_resolve_page_theme_template_images_response.go

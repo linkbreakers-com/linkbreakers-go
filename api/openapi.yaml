@@ -38,7 +38,7 @@ info:
 
     Every POST, PUT and PATCH accepts an optional `Idempotency-Key` header (draft-ietf-httpapi-idempotency-key-header). Send a new unique value, such as a UUID, with each logical request and reuse it only to retry that request. A retry with the same key and the same request returns the first response, marked `Idempotent-Replayed: true`, instead of running again. Keys are scoped to the token and kept for 24 hours. The same key with a different request is refused with `422`, and a retry while the first request is still running gets `409` with `Retry-After`. Server errors (5xx) and refusals such as 401, 403 and 429 are not stored, so retrying them runs the request again.
   title: Linkbreakers API
-  version: 1.183.0
+  version: 1.183.1
   x-api-versioning:
     compatibility: additive changes only within a version
     currentVersion: v1
@@ -74,6 +74,9 @@ tags:
 - description: Context-aware assistant that delegates to specialized sub-assistants
     based on the resource being edited.
   name: Assistant
+- description: "Endpoints for handling authentication in Linkbreakers. These endpoints\
+    \ allow you to sign in, request password reset, and reset passwords."
+  name: Auth
 - description: "Endpoints for managing custom domains in Linkbreakers. These endpoints\
     \ allow you to register, verify, and manage custom domains for your workspace."
   name: Custom Domains
@@ -1954,6 +1957,69 @@ paths:
       tags:
       - Assistant
       x-required-scope: assistant:write
+  /v1/auth/email/verification/request:
+    post:
+      description: |-
+        Send a verification email to a member of the caller's workspace whose email is not verified yet. Opening the link verifies the address and the workspace, which lifts a WORKSPACE_UNVERIFIED pause. Callable while the workspace is paused. The email must belong to a member of the workspace; one email per address per minute and 5 per day.
+
+        Requires the `members:write` scope.
+      operationId: AuthService_RequestEmailVerification
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RequestEmailVerificationRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: {}
+          description: Everything worked as expected.
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - members:write
+      - oauth2:
+        - members:write
+      summary: Request email verification
+      tags:
+      - Auth
+      x-required-scope: members:write
   /v1/custom-domains:
     get:
       description: |-
@@ -10268,7 +10334,6 @@ paths:
       tags:
       - Time Series
       x-required-scope: analytics:read
-  /v1/visitor/devices/{id}/update: {}
   /v1/visitor/identify:
     post:
       description: |-
@@ -11194,7 +11259,6 @@ paths:
       tags:
       - Webhooks
       x-required-scope: webhooks:write
-  /v1/websocket/contract: {}
   /v1/workspace:
     delete:
       description: |-
@@ -13489,6 +13553,7 @@ components:
           purpose: "Increase newsletter signups. Good leads: marketing qualified leads\
             \ with budget over $10k."
           conversionTracking: true
+          qrcodeEnabled: false
           destination: https://example.com
           customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
           fallbackDestination: https://example.com/fallback
@@ -13509,6 +13574,7 @@ components:
           purpose: "Increase newsletter signups. Good leads: marketing qualified leads\
             \ with budget over $10k."
           conversionTracking: true
+          qrcodeEnabled: false
           destination: https://example.com
           customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
           fallbackDestination: https://example.com/fallback
@@ -13543,6 +13609,7 @@ components:
             key: metadata
           qrcodeDesign: ""
           purpose: purpose
+          qrcodeEnabled: true
           eventCount: 128
           fallbackDestination: https://brand.example.com/fallback
           createdAt: 2000-01-23T04:56:07.000+00:00
@@ -13577,6 +13644,7 @@ components:
             key: metadata
           qrcodeDesign: ""
           purpose: purpose
+          qrcodeEnabled: true
           eventCount: 128
           fallbackDestination: https://brand.example.com/fallback
           createdAt: 2000-01-23T04:56:07.000+00:00
@@ -13618,6 +13686,7 @@ components:
           key: metadata
         purpose: "Capture contact details for sales outreach. Good leads: business\
           \ contacts interested in our services."
+        qrcodeEnabled: false
         customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
         fallbackDestination: https://company.com/contact
         expiredDestination: https://example.com/campaign-over
@@ -13699,6 +13768,15 @@ components:
             Trying to use a design that's already assigned will cause an error.
           example: a8c5e111-8894-4f8a-b5db-9efe0d12a210
           type: string
+        qrcodeEnabled:
+          description: "Whether the link has a QR code. Defaults to true. When false,\
+            \ the link is created without any QR code: no QR code design is created,\
+            \ no image is generated, qrcode_design_id stays empty and qrcode_signed_url\
+            \ is never set. The shortlink and workflow are unaffected. qrcode_template_id\
+            \ is still stored and used if the QR code is turned on later. Cannot be\
+            \ combined with qrcode_design_id or wait_for_qrcode=true."
+          example: false
+          type: boolean
         qrcodeTemplateId:
           description: |-
             The ID of the QR Code template (UUID)
@@ -13738,6 +13816,7 @@ components:
             key: metadata
           qrcodeDesign: ""
           purpose: purpose
+          qrcodeEnabled: true
           eventCount: 128
           fallbackDestination: https://brand.example.com/fallback
           createdAt: 2000-01-23T04:56:07.000+00:00
@@ -13921,6 +14000,7 @@ components:
         purpose: "Increase newsletter signups. Good leads: marketing qualified leads\
           \ with budget over $10k."
         conversionTracking: true
+        qrcodeEnabled: false
         destination: https://example.com
         customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
         fallbackDestination: https://example.com/fallback
@@ -14002,6 +14082,15 @@ components:
           description: The QR Code design ID (UUID).
           example: a8c5e111-8894-4f8a-b5db-9efe0d12a210
           type: string
+        qrcodeEnabled:
+          description: "Whether the link has a QR code. Defaults to true. When false,\
+            \ the link is created without any QR code: no QR code design is created,\
+            \ no image is generated, qrcode_design_id stays empty and qrcode_signed_url\
+            \ is never set. The shortlink and workflow are unaffected. qrcode_template_id\
+            \ is still stored and used if the QR code is turned on later. Cannot be\
+            \ combined with qrcode_design_id or wait_for_qrcode=true."
+          example: false
+          type: boolean
         qrcodeTemplateId:
           example: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
           title: The ID of the QR Code template (UUID)
@@ -14088,6 +14177,7 @@ components:
             key: metadata
           qrcodeDesign: ""
           purpose: purpose
+          qrcodeEnabled: true
           eventCount: 128
           fallbackDestination: https://brand.example.com/fallback
           createdAt: 2000-01-23T04:56:07.000+00:00
@@ -14329,6 +14419,7 @@ components:
         metadata:
           key: metadata
         purpose: Let restaurant guests open the spring menu from the table QR code.
+        qrcodeEnabled: false
         customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
         mediaId: 5f1c2d3e-4b5a-6c7d-8e9f-0a1b2c3d4e5f
         expiredDestination: https://example.com/campaign-over
@@ -14405,6 +14496,15 @@ components:
             Trying to use a design that's already assigned will cause an error.
           example: a8c5e111-8894-4f8a-b5db-9efe0d12a210
           type: string
+        qrcodeEnabled:
+          description: "Whether the link has a QR code. Defaults to true. When false,\
+            \ the link is created without any QR code: no QR code design is created,\
+            \ no image is generated, qrcode_design_id stays empty and qrcode_signed_url\
+            \ is never set. The shortlink and workflow are unaffected. qrcode_template_id\
+            \ is still stored and used if the QR code is turned on later. Cannot be\
+            \ combined with qrcode_design_id or wait_for_qrcode=true."
+          example: false
+          type: boolean
         qrcodeTemplateId:
           description: |-
             The ID of the QR Code template (UUID)
@@ -14494,6 +14594,7 @@ components:
             key: metadata
           qrcodeDesign: ""
           purpose: purpose
+          qrcodeEnabled: true
           eventCount: 128
           fallbackDestination: https://brand.example.com/fallback
           createdAt: 2000-01-23T04:56:07.000+00:00
@@ -14673,6 +14774,7 @@ components:
           key: metadata
         purpose: "Thank visitors after a purchase and measure engagement. Good leads:\
           \ visitors who completed a purchase."
+        qrcodeEnabled: false
         description: We appreciate your visit.
         customDomainId: d290f1ee-6c54-4b01-90e6-d701748f0851
         title: Thank you!
@@ -14751,6 +14853,15 @@ components:
             Trying to use a design that's already assigned will cause an error.
           example: a8c5e111-8894-4f8a-b5db-9efe0d12a210
           type: string
+        qrcodeEnabled:
+          description: "Whether the link has a QR code. Defaults to true. When false,\
+            \ the link is created without any QR code: no QR code design is created,\
+            \ no image is generated, qrcode_design_id stays empty and qrcode_signed_url\
+            \ is never set. The shortlink and workflow are unaffected. qrcode_template_id\
+            \ is still stored and used if the QR code is turned on later. Cannot be\
+            \ combined with qrcode_design_id or wait_for_qrcode=true."
+          example: false
+          type: boolean
         qrcodeTemplateId:
           description: |-
             The ID of the QR Code template (UUID)
@@ -14790,6 +14901,7 @@ components:
             key: metadata
           qrcodeDesign: ""
           purpose: purpose
+          qrcodeEnabled: true
           eventCount: 128
           fallbackDestination: https://brand.example.com/fallback
           createdAt: 2000-01-23T04:56:07.000+00:00
@@ -18038,6 +18150,7 @@ components:
             key: metadata
           qrcodeDesign: ""
           purpose: purpose
+          qrcodeEnabled: true
           eventCount: 128
           fallbackDestination: https://brand.example.com/fallback
           createdAt: 2000-01-23T04:56:07.000+00:00
@@ -18759,6 +18872,7 @@ components:
           key: metadata
         qrcodeDesign: ""
         purpose: purpose
+        qrcodeEnabled: true
         eventCount: 128
         fallbackDestination: https://brand.example.com/fallback
         createdAt: 2000-01-23T04:56:07.000+00:00
@@ -18896,6 +19010,14 @@ components:
             If not defined, the design from the QR Code template will be used.
           example: a8c5e111-8894-4f8a-b5db-9efe0d12a210
           type: string
+        qrcodeEnabled:
+          description: |-
+            Whether the link has a QR code. When false the link has no QR code at
+            all: qrcode_design_id, qrcode_design and qrcode_signed_url are empty, and
+            the QR code design endpoints refuse the link until it is turned back on
+            with UpdateLink.
+          example: true
+          type: boolean
         qrcodePendingUpdateSince:
           description: |-
             When the link is pending QR Code update.
@@ -19017,6 +19139,7 @@ components:
         purpose: "Increase newsletter signups. Good leads: marketing qualified leads\
           \ with budget over $10k."
         directoryIdDelete: true
+        qrcodeEnabled: false
         fallbackDestination: https://example.com/fallback
         expiredDestination: https://example.com/campaign-over
         expiresAt: 2026-12-31T23:59:59Z
@@ -19084,6 +19207,16 @@ components:
           example: "Increase newsletter signups. Good leads: marketing qualified leads\
             \ with budget over $10k."
           type: string
+        qrcodeEnabled:
+          description: Turn the QR code on or off. Omit to leave it unchanged. false
+            permanently deletes the link's QR code image and QR code design (including
+            any customization) and empties qrcode_design_id and qrcode_signed_url;
+            already printed QR codes keep working because the shortlink does not change.
+            true creates a new QR code design from the link's qrcode_template_id (or
+            the default template) and generates the image in the background; earlier
+            customizations are not restored.
+          example: false
+          type: boolean
         qrcodeTemplateId:
           example: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
           title: QR code template ID to assign to this link
@@ -20166,6 +20299,7 @@ components:
             key: metadata
           qrcodeDesign: ""
           purpose: purpose
+          qrcodeEnabled: true
           eventCount: 128
           fallbackDestination: https://brand.example.com/fallback
           createdAt: 2000-01-23T04:56:07.000+00:00
@@ -20200,6 +20334,7 @@ components:
             key: metadata
           qrcodeDesign: ""
           purpose: purpose
+          qrcodeEnabled: true
           eventCount: 128
           fallbackDestination: https://brand.example.com/fallback
           createdAt: 2000-01-23T04:56:07.000+00:00
@@ -23793,6 +23928,22 @@ components:
           title: "True when the new file was the media's own: nothing changed"
           type: boolean
       title: The media item after its file was replaced
+    RequestEmailVerificationRequest:
+      description: |-
+        RequestEmailVerificationRequest sends a verification email to one member of
+        the caller's workspace.
+      example:
+        email: you@example.com
+      properties:
+        email:
+          description: |-
+            Email address of the workspace member who should receive the
+            verification email. Required. It must belong to a member of the
+            caller's workspace whose email is not verified yet; the signed-in
+            member's own address is returned by GET /v1/member. Opening the link in
+            the email verifies that address and, with it, the workspace.
+          example: you@example.com
+          type: string
     RequestWorkspaceEnrollmentRequest:
       example:
         message: message
@@ -24863,6 +25014,7 @@ components:
             key: metadata
           qrcodeDesign: ""
           purpose: purpose
+          qrcodeEnabled: true
           eventCount: 128
           fallbackDestination: https://brand.example.com/fallback
           createdAt: 2000-01-23T04:56:07.000+00:00
@@ -26934,6 +27086,7 @@ components:
         enforceMfa: true
         enrollRequestedAt: 2000-01-23T04:56:07.000+00:00
         trialEndsAt: 2000-01-23T04:56:07.000+00:00
+        unverifiedPauseAt: 2000-01-23T04:56:07.000+00:00
         inactiveSince: 2000-01-23T04:56:07.000+00:00
         subscriptionType: SUBSCRIPTION_TYPE_PRO_PLAN
         faq: faq
@@ -27048,6 +27201,19 @@ components:
         trialEndsAt:
           format: date-time
           title: When the free trial period ends (null if not on trial)
+          type: string
+        unverifiedPauseAt:
+          description: |-
+            When the workspace is paused for not having a verified email address.
+            While it is in the future, the workspace works normally and a member has
+            until then to verify their email. Once it has passed, every API call
+            other than signing in, reading the member and workspace, switching
+            workspace and requesting a verification email answers
+            WORKSPACE_UNVERIFIED, until a member verifies their email. QR codes and
+            links keep working for visitors throughout. Empty when the workspace is
+            verified, paying, or a sandbox.
+          format: date-time
+          readOnly: true
           type: string
         updatedAt:
           format: date-time
