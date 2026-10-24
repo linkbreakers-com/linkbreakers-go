@@ -59,7 +59,8 @@ jobs:
             --git-host github.com \
             --git-user-id linkbreakers-com \
             --git-repo-id linkbreakers-go \
-            --global-property apiTests=false,modelTests=false,apiDocs=false,modelDocs=false
+            --global-property apiTests=false,modelTests=false,apiDocs=false,modelDocs=false \
+            --additional-properties=packageVersion=$NEW_VERSION
 
           echo "$NEW_VERSION" > OPENAPI_VERSION
           rm openapi-3.1.json
