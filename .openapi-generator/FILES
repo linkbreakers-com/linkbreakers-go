@@ -24,7 +24,6 @@ api_page_themes.go
 api_pricing.go
 api_qr_code_designs.go
 api_qr_code_templates.go
-api_sandboxes.go
 api_slack_integrations.go
 api_tags.go
 api_time_series.go
@@ -118,14 +117,14 @@ model_create_media_request.go
 model_create_media_response.go
 model_create_media_upload_request.go
 model_create_media_upload_response.go
+model_create_my_workspace_request.go
+model_create_my_workspace_response.go
 model_create_open_media_link_request.go
 model_create_open_media_link_response.go
 model_create_page_theme_template_request.go
 model_create_page_theme_template_response.go
 model_create_qrcode_template_request.go
 model_create_qrcode_template_response.go
-model_create_sandbox_request.go
-model_create_sandbox_response.go
 model_create_thank_you_link_request.go
 model_create_thank_you_link_response.go
 model_create_webhook_request.go
@@ -305,7 +304,6 @@ model_list_page_themes_response.go
 model_list_pricing_plans_response.go
 model_list_qrcode_templates_response.go
 model_list_response.go
-model_list_sandboxes_response.go
 model_list_slack_channels_response.go
 model_list_tags_response.go
 model_list_visitor_attribute_keys_response.go
@@ -316,6 +314,9 @@ model_list_visitors_response.go
 model_list_webhooks_response.go
 model_list_workflow_steps_response.go
 model_list_workspace_tokens_response.go
+model_location_request_outcome.go
+model_location_request_payload.go
+model_location_request_trace_data.go
 model_media.go
 model_media_kind.go
 model_media_reference.go
@@ -397,7 +398,6 @@ model_resolve_qrcode_template_images_response.go
 model_resolve_step_collisions_response.go
 model_response_format.go
 model_role.go
-model_sandbox.go
 model_settings_service_update_link_setting_body.go
 model_shape.go
 model_shortlink_availability_response.go
