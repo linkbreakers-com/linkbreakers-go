@@ -12,6 +12,7 @@ api_auth.go
 api_custom_domains.go
 api_directories.go
 api_events.go
+api_google_analytics_integrations.go
 api_google_forms_integrations.go
 api_integrations_service.go
 api_jobs.go
@@ -24,6 +25,7 @@ api_page_themes.go
 api_pricing.go
 api_qr_code_designs.go
 api_qr_code_templates.go
+api_retargeting_pixels.go
 api_slack_integrations.go
 api_tags.go
 api_time_series.go
@@ -229,6 +231,7 @@ model_get_breakdown_request.go
 model_get_breakdown_response.go
 model_get_custom_domain_response.go
 model_get_custom_domain_setup_guide_response.go
+model_get_data_collection_response.go
 model_get_device_distribution_request.go
 model_get_device_distribution_response.go
 model_get_directory_response.go
@@ -236,6 +239,7 @@ model_get_events_time_series_request.go
 model_get_events_time_series_response.go
 model_get_geo_breakdown_request.go
 model_get_geo_breakdown_response.go
+model_get_google_analytics_integration_response.go
 model_get_google_forms_integration_response.go
 model_get_google_forms_o_auth_url_response.go
 model_get_grouped_time_series_request.go
@@ -247,6 +251,7 @@ model_get_link_setting_response.go
 model_get_media_response.go
 model_get_page_theme_response.go
 model_get_qrcode_design_response.go
+model_get_retargeting_pixels_response.go
 model_get_slack_integration_response.go
 model_get_slack_o_auth_url_response.go
 model_get_step_funnel_request.go
@@ -259,6 +264,7 @@ model_get_webhook_response.go
 model_get_widget_summary_response.go
 model_get_workflow_step_response.go
 model_get_workspace_token_response.go
+model_google_analytics_integration.go
 model_google_forms_integration.go
 model_google_forms_integration_status.go
 model_googlerpc_status.go
@@ -280,6 +286,10 @@ model_job_error.go
 model_job_status.go
 model_job_type.go
 model_journey_progress.go
+model_language_condition_outcome.go
+model_language_condition_payload.go
+model_language_condition_trace_data.go
+model_language_condition_trace_option.go
 model_link.go
 model_link_setting.go
 model_link_sort_field.go
@@ -387,6 +397,7 @@ model_qrcode_templates_service_update_qrcode_template_body.go
 model_redirect_trace_data.go
 model_redirect_trace_data_fallback_reason.go
 model_replace_media_import_response.go
+model_report_step_search_miss_request.go
 model_request_email_verification_request.go
 model_request_workspace_enrollment_request.go
 model_resolve_page_theme_template_images_request.go
@@ -397,6 +408,7 @@ model_resolve_qrcode_template_images_request.go
 model_resolve_qrcode_template_images_response.go
 model_resolve_step_collisions_response.go
 model_response_format.go
+model_retargeting_pixels.go
 model_role.go
 model_settings_service_update_link_setting_body.go
 model_shape.go
@@ -433,6 +445,7 @@ model_specific_date_option.go
 model_subscription_type.go
 model_switch_workspace_response.go
 model_sync_google_forms_response.go
+model_test_google_analytics_integration_response.go
 model_test_slack_integration_response.go
 model_thank_you_page_payload.go
 model_theme_color.go
@@ -448,8 +461,12 @@ model_triggered_by.go
 model_type_date.go
 model_update_custom_domain_response.go
 model_update_dashboard_response.go
+model_update_data_collection_request.go
+model_update_data_collection_response.go
 model_update_device_response.go
 model_update_directory_response.go
+model_update_google_analytics_integration_request.go
+model_update_google_analytics_integration_response.go
 model_update_google_forms_integration_request.go
 model_update_google_forms_integration_response.go
 model_update_link_response.go
@@ -460,6 +477,8 @@ model_update_page_theme_template_response.go
 model_update_page_theme_template_styling_response.go
 model_update_qrcode_design_response.go
 model_update_qrcode_template_response.go
+model_update_retargeting_pixels_request.go
+model_update_retargeting_pixels_response.go
 model_update_slack_integration_request.go
 model_update_slack_integration_response.go
 model_update_webhook_response.go

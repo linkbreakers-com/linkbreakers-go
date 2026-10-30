@@ -38,7 +38,7 @@ info:
 
     Every POST, PUT and PATCH accepts an optional `Idempotency-Key` header (draft-ietf-httpapi-idempotency-key-header). Send a new unique value, such as a UUID, with each logical request and reuse it only to retry that request. A retry with the same key and the same request returns the first response, marked `Idempotent-Replayed: true`, instead of running again. Keys are scoped to the token and kept for 24 hours. The same key with a different request is refused with `422`, and a retry while the first request is still running gets `409` with `Retry-After`. Server errors (5xx) and refusals such as 401, 403 and 429 are not stored, so retrying them runs the request again.
   title: Linkbreakers API
-  version: 1.186.1
+  version: 1.186.2
   x-api-versioning:
     compatibility: additive changes only within a version
     currentVersion: v1
@@ -86,6 +86,10 @@ tags:
 - description: Endpoints for managing events in Linkbreakers. These endpoints allow
     you to collect data and list events.
   name: Events
+- description: "Send every QR code scan and link visit, form submission and piece\
+    \ of visitor data captured to Google Analytics 4, server side through the Measurement\
+    \ Protocol, with no delay for the visitor."
+  name: Google Analytics Integrations
 - description: Connect your Google account to automatically sync form responses from
     links that redirect to Google Forms.
   name: Google Forms Integrations
@@ -118,12 +122,19 @@ tags:
     \ Prices come from the billing provider and limits from the code that enforces\
     \ them."
   name: Pricing
+- description: "What the dashboard reports about how people use it, so the team learns\
+    \ what they look for. Not part of the public API."
+  name: Internal
 - description: "Endpoints for managing QR Code Designs in Linkbreakers. These endpoints\
     \ allow you to create, retrieve, update, and delete QR Code Designs."
   name: QR Code Designs
 - description: "Endpoints for managing QR Code Templates in Linkbreakers. These endpoints\
     \ allow you to create, retrieve, update, and delete QR Code Templates."
   name: QR Code Templates
+- description: "Fire your ad platforms' retargeting pixels (Meta, Google, TikTok,\
+    \ LinkedIn, Google Tag Manager) when someone visits one of your links or scans\
+    \ one of your QR codes, so you can retarget them later."
+  name: Retargeting Pixels
 - description: Endpoints for managing link-level data collection settings in Linkbreakers.
   name: Link Settings
 - description: Endpoints for managing the Slack integration. Connect your Slack workspace
@@ -141,8 +152,6 @@ tags:
 - description: "Endpoints for managing webhooks in Linkbreakers. These endpoints allow\
     \ you to create, list, and delete webhooks for event notifications."
   name: Webhooks
-- description: Not part of the public API.
-  name: Internal
 - description: "Endpoints for managing workflow steps in Linkbreakers. Workflow steps\
     \ define the behavior of links, such as redirection destinations and data collection\
     \ flows."
@@ -3536,6 +3545,223 @@ paths:
       summary: Sync now
       tags:
       - Google Forms Integrations
+      x-required-scope: integrations:write
+  /v1/integrations/google-analytics:
+    delete:
+      description: |-
+        Stop sending visits to Google Analytics 4 and delete the stored API secret.
+
+        Requires the `integrations:write` scope.
+      operationId: GoogleAnalyticsIntegrationsService_Delete
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                properties: {}
+                type: object
+          description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - integrations:write
+      - oauth2:
+        - integrations:write
+      summary: Disconnect Google Analytics
+      tags:
+      - Google Analytics Integrations
+      x-required-scope: integrations:write
+    get:
+      description: |-
+        Return the Google Analytics 4 property the workspace sends its visits to, without the API secret.
+
+        Requires the `integrations:read` scope.
+      operationId: GoogleAnalyticsIntegrationsService_Get
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetGoogleAnalyticsIntegrationResponse"
+          description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - integrations:read
+      - oauth2:
+        - integrations:read
+      summary: Get Google Analytics integration
+      tags:
+      - Google Analytics Integrations
+      x-required-scope: integrations:read
+    put:
+      description: |-
+        Connect a Google Analytics 4 property, or change it. Every person's visit, form submission and piece of visitor data captured is then sent to it through the Measurement Protocol, without personal data.
+
+        Requires the `integrations:write` scope.
+      operationId: GoogleAnalyticsIntegrationsService_Update
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateGoogleAnalyticsIntegrationRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpdateGoogleAnalyticsIntegrationResponse"
+          description: Everything worked as expected.
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - integrations:write
+      - oauth2:
+        - integrations:write
+      summary: Connect Google Analytics
+      tags:
+      - Google Analytics Integrations
+      x-required-scope: integrations:write
+  /v1/integrations/google-analytics/test:
+    post:
+      description: |-
+        Send a linkbreakers_test event to the connected property in debug mode, so it shows in GA4 DebugView. Google accepts events even with a wrong API secret, so check DebugView to confirm.
+
+        Requires the `integrations:write` scope.
+      operationId: GoogleAnalyticsIntegrationsService_Test
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TestGoogleAnalyticsIntegrationRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TestGoogleAnalyticsIntegrationResponse"
+          description: Everything worked as expected.
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - integrations:write
+      - oauth2:
+        - integrations:write
+      summary: Send a test event to Google Analytics
+      tags:
+      - Google Analytics Integrations
       x-required-scope: integrations:write
   /v1/integrations/{slug}:
     post:
@@ -9591,6 +9817,222 @@ paths:
       tags:
       - QR Code Templates
       x-required-scope: qrcodes:write
+  /v1/retargeting-pixels:
+    get:
+      description: |-
+        Return the ad platform pixels the workspace fires on every visit to its links.
+
+        Requires the `integrations:read` scope.
+      operationId: RetargetingPixelsService_Get
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetRetargetingPixelsResponse"
+          description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - integrations:read
+      - oauth2:
+        - integrations:read
+      summary: Get retargeting pixels
+      tags:
+      - Retargeting Pixels
+      x-required-scope: integrations:read
+    put:
+      description: |-
+        Set, change or remove the ad platform pixels fired on every link visit. Omitted fields keep their value and an empty string removes a pixel. Once any pixel is set, link visits go through a short browser page that fires the pixels and then redirects, which adds a short delay.
+
+        Requires the `integrations:write` scope.
+      operationId: RetargetingPixelsService_Update
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateRetargetingPixelsRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpdateRetargetingPixelsResponse"
+          description: Everything worked as expected.
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - integrations:write
+      - oauth2:
+        - integrations:write
+      summary: Update retargeting pixels
+      tags:
+      - Retargeting Pixels
+      x-required-scope: integrations:write
+  /v1/settings/data-collection:
+    get:
+      description: |-
+        Return the data collection level of the caller's workspace, which applies to every link.
+
+        Requires the `links:read` scope.
+      operationId: SettingsService_GetDataCollection
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetDataCollectionResponse"
+          description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - links:read
+      - oauth2:
+        - links:read
+      summary: Get the data collection level
+      tags:
+      - Link Settings
+      x-required-scope: links:read
+    put:
+      description: |-
+        Set the data collection level of the caller's workspace. ADVANCED needs a paid plan.
+
+        Requires the `links:write` scope.
+      operationId: SettingsService_UpdateDataCollection
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateDataCollectionRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpdateDataCollectionResponse"
+          description: Everything worked as expected.
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - links:write
+      - oauth2:
+        - links:write
+      summary: Update the data collection level
+      tags:
+      - Link Settings
+      x-required-scope: links:write
   /v1/settings/link-setting/{id}:
     get:
       description: |-
@@ -13775,7 +14217,8 @@ components:
           type: string
         shortlink:
           description: |-
-            The shortlink for the link
+            The shortlink for the link, one path segment or several ("menu/lunch").
+            On a custom domain, {name} segments make it dynamic ("p/{serial}").
             If not given, the shortlink will be generated by the system.
           example: jane-contact
           type: string
@@ -14089,6 +14532,10 @@ components:
           description: |-
             The shortlink (URL slug) for the link.
             If not given, a unique one is generated by the system.
+            It can span several path segments ("menu/lunch"). On a custom domain it
+            can be dynamic: a segment written {name} matches any value and saves it
+            on the visitor as the attribute "name", so "01/09506000134352/10/{batch}"
+            answers every batch of a GS1 Digital Link and saves batch=LOT42.
           example: my-link
           type: string
         tags:
@@ -14537,7 +14984,8 @@ components:
           type: string
         shortlink:
           description: |-
-            The shortlink for the link
+            The shortlink for the link, one path segment or several ("menu/lunch").
+            On a custom domain, {name} segments make it dynamic ("p/{serial}").
             If not given, the shortlink will be generated by the system.
           example: menu
           type: string
@@ -14865,7 +15313,8 @@ components:
           type: string
         shortlink:
           description: |-
-            The shortlink for the link
+            The shortlink for the link, one path segment or several ("menu/lunch").
+            On a custom domain, {name} segments make it dynamic ("p/{serial}").
             If not given, the shortlink will be generated by the system.
           example: thank-you
           type: string
@@ -17050,6 +17499,9 @@ components:
          - EVENT_ACTION_LOCATION_REQUEST: Ask the visitor for their precise location (GPS) through the browser, with
         their permission (composite: two branches, "location" when it was shared,
         "else" when it was refused, skipped or is unavailable).
+         - EVENT_ACTION_LANGUAGE_CONDITION: Route visitors based on their phone or browser language (the first
+        language it sends, matched on its two-letter ISO 639-1 base, so "fr"
+        catches fr-FR and fr-CA)
       enum:
       - EVENT_ACTION_UNSPECIFIED
       - EVENT_ACTION_CLIENT_REDIRECT
@@ -17075,6 +17527,7 @@ components:
       - EVENT_ACTION_MESSAGE_PAGE
       - EVENT_ACTION_OPEN_MEDIA
       - EVENT_ACTION_LOCATION_REQUEST
+      - EVENT_ACTION_LANGUAGE_CONDITION
       title: Event action types for workflow steps
       type: string
     EventTrace:
@@ -17174,6 +17627,8 @@ components:
           $ref: "#/components/schemas/FormTraceData"
         identifyVisitor:
           $ref: "#/components/schemas/IdentifyVisitorTraceData"
+        languageCondition:
+          $ref: "#/components/schemas/LanguageConditionTraceData"
         locationRequest:
           $ref: "#/components/schemas/LocationRequestTraceData"
         media:
@@ -18035,6 +18490,15 @@ components:
         setupGuide:
           $ref: "#/components/schemas/CustomDomainSetupGuide"
       title: Response containing the setup guide of a custom domain
+    GetDataCollectionResponse:
+      description: GetDataCollectionResponse returns the workspace's link setting.
+      example:
+        linkSetting: ""
+      properties:
+        linkSetting:
+          allOf:
+          - $ref: "#/components/schemas/LinkSetting"
+          title: "The workspace's link setting, with its data collection level"
     GetDeviceDistributionRequest:
       example:
         linkId: linkId
@@ -18254,6 +18718,14 @@ components:
           title: Total number of events in the date range
           type: integer
       title: GetGeoBreakdownResponse contains geographic breakdown data
+    GetGoogleAnalyticsIntegrationResponse:
+      example:
+        integration: ""
+      properties:
+        integration:
+          allOf:
+          - $ref: "#/components/schemas/GoogleAnalyticsIntegration"
+          description: Absent when Google Analytics is not connected.
     GetGoogleFormsIntegrationResponse:
       example:
         integration:
@@ -18536,6 +19008,18 @@ components:
           allOf:
           - $ref: "#/components/schemas/QrcodeDesign"
           title: The QR code design
+    GetRetargetingPixelsResponse:
+      example:
+        pixels:
+          linkedinPartnerId: linkedinPartnerId
+          googleTagId: googleTagId
+          gtmContainerId: gtmContainerId
+          tiktokPixelId: tiktokPixelId
+          metaPixelId: metaPixelId
+          updatedAt: 2000-01-23T04:56:07.000+00:00
+      properties:
+        pixels:
+          $ref: "#/components/schemas/RetargetingPixels"
     GetSlackIntegrationResponse:
       example:
         slackIntegration: ""
@@ -18858,6 +19342,45 @@ components:
           title: Token metadata (does not include the secret access token)
       title: GetWorkspaceTokenResponse represents the response containing a workspace
         token
+    GoogleAnalyticsIntegration:
+      description: The Google Analytics 4 property a workspace sends its visits to.
+      example:
+        createdAt: 2000-01-23T04:56:07.000+00:00
+        apiSecretSet: true
+        lastError: lastError
+        lastErrorAt: 2000-01-23T04:56:07.000+00:00
+        lastSentAt: 2000-01-23T04:56:07.000+00:00
+        measurementId: measurementId
+        updatedAt: 2000-01-23T04:56:07.000+00:00
+      properties:
+        apiSecretSet:
+          description: |-
+            Whether a Measurement Protocol API secret is stored. The secret itself is
+            never returned.
+          type: boolean
+        createdAt:
+          description: When the integration was connected.
+          format: date-time
+          type: string
+        lastError:
+          description: "The last error met sending events, cleared by the next success."
+          type: string
+        lastErrorAt:
+          description: When that error happened.
+          format: date-time
+          type: string
+        lastSentAt:
+          description: When an event was last accepted by Google Analytics.
+          format: date-time
+          type: string
+        measurementId:
+          description: "GA4 Measurement ID, e.g. \"G-ABC123DEF4\"."
+          type: string
+        updatedAt:
+          description: When it was last changed.
+          format: date-time
+          type: string
+      title: GoogleAnalyticsIntegration
     GoogleFormsIntegration:
       description: |-
         GoogleFormsIntegration represents a connected Google account.
@@ -19227,6 +19750,54 @@ components:
             they reach an exit.
           format: int32
           type: integer
+    LanguageConditionOutcome:
+      properties:
+        languageCode:
+          description: |-
+            Two-letter ISO 639-1 language code, lowercase (e.g., "en", "fr", "es").
+            Matches every regional variant of the language: "fr" matches fr-FR and fr-CA.
+          example: fr
+          type: string
+        nextStepId:
+          example: 123e4567-e89b-12d3-a456-426614174000
+          title: Workflow step ID to route to for this language (UUID)
+          type: string
+      title: Language condition outcome definition for EVENT_ACTION_LANGUAGE_CONDITION
+    LanguageConditionPayload:
+      description: |-
+        Language condition payload for EVENT_ACTION_LANGUAGE_CONDITION. The
+        visitor's language is the first one their phone or browser sends; visitors
+        whose language is not listed, or who send none, take the "else" branch.
+      properties:
+        elseNextStepId:
+          example: 987fcdeb-a321-45e6-b789-123456789012
+          title: Workflow step ID to route to if the language doesn't match any configured
+            option (UUID)
+          type: string
+        languages:
+          items:
+            $ref: "#/components/schemas/LanguageConditionOutcome"
+          title: "Language routing configuration, one branch per language code"
+          type: array
+    LanguageConditionTraceData:
+      description: LanguageConditionTraceData stores language condition routing metadata.
+      properties:
+        hasElse:
+          type: boolean
+        language:
+          title: "The visitor's language base code, e.g. \"fr\"; empty when none was\
+            \ sent"
+          type: string
+        languages:
+          items:
+            $ref: "#/components/schemas/LanguageConditionTraceOption"
+          type: array
+    LanguageConditionTraceOption:
+      properties:
+        hasRoute:
+          type: boolean
+        languageCode:
+          type: string
     Link:
       description: |-
         Core resource that ties a shortlink or QR entrypoint to its workflow, destination, and analytics metadata,
@@ -19408,8 +19979,9 @@ components:
         shortlink:
           description: |-
             The short link for the link.
-            This is the path segment that is attached to the URL. It can be defined by the client or generated by the system but is never null.
+            This is the path attached to the URL, one segment or several ("menu/lunch"). It can be defined by the client or generated by the system but is never null.
             It is unique within a custom domain or Linkbreakers default domain.
+            On a custom domain it can be dynamic, with {name} segments that match any value and save it on the visitor ("01/09506000134352/10/{batch}").
           example: 4BnH-R19p
           type: string
         tags:
@@ -24352,6 +24924,22 @@ components:
           title: "True when the new file was the media's own: nothing changed"
           type: boolean
       title: The media item after its file was replaced
+    ReportStepSearchMissRequest:
+      description: |-
+        ReportStepSearchMissRequest is a search in the step picker that found no
+        step, sent once the picker closes.
+      properties:
+        chosenStep:
+          description: |-
+            The step type they chose after the search found nothing, empty when
+            they closed the picker without choosing one.
+          type: string
+        linkId:
+          description: The link whose workflow they were editing.
+          type: string
+        query:
+          description: What the person typed.
+          type: string
     RequestEmailVerificationRequest:
       description: |-
         RequestEmailVerificationRequest sends a verification email to one member of
@@ -24481,6 +25069,44 @@ components:
       - RESPONSE_FORMAT_JSON
       - RESPONSE_FORMAT_CSV
       type: string
+    RetargetingPixels:
+      description: The ad platform pixels a workspace fires on every visit to its
+        links.
+      example:
+        linkedinPartnerId: linkedinPartnerId
+        googleTagId: googleTagId
+        gtmContainerId: gtmContainerId
+        tiktokPixelId: tiktokPixelId
+        metaPixelId: metaPixelId
+        updatedAt: 2000-01-23T04:56:07.000+00:00
+      properties:
+        googleTagId:
+          description: |-
+            Google tag ID: a Google Analytics 4 measurement ID ("G-XXXXXXX") or a
+            Google Ads tag ("AW-123456789").
+          type: string
+        gtmContainerId:
+          description: |-
+            Google Tag Manager container ID ("GTM-XXXXXXX"), to fire anything else
+            set up in that container.
+          type: string
+        linkedinPartnerId:
+          description: "LinkedIn Insight Tag partner ID, digits only, e.g. \"1234567\"\
+            ."
+          type: string
+        metaPixelId:
+          description: "Meta (Facebook, Instagram) Pixel ID, digits only, e.g. \"\
+            123456789012345\"."
+          type: string
+        tiktokPixelId:
+          description: "TikTok pixel ID, e.g. \"C4ABCDEFGHIJKLMNOPQR\"."
+          type: string
+        updatedAt:
+          description: When the pixels were last changed. Absent when none were ever
+            set.
+          format: date-time
+          type: string
+      title: RetargetingPixels
     Role:
       default: ROLE_UNSPECIFIED
       description: |-
@@ -25115,6 +25741,20 @@ components:
         visitorsEnriched:
           format: int64
           type: integer
+    TestGoogleAnalyticsIntegrationRequest:
+      type: object
+    TestGoogleAnalyticsIntegrationResponse:
+      example:
+        validationMessages:
+        - validationMessages
+        - validationMessages
+      properties:
+        validationMessages:
+          description: "Problems Google's validation server found in the event, empty\
+            \ when none."
+          items:
+            type: string
+          type: array
     TestSlackIntegrationRequest:
       title: TestSlackIntegrationRequest sends a test notification
       type: object
@@ -25359,6 +25999,27 @@ components:
       properties:
         dashboard:
           $ref: "#/components/schemas/AnalyticsDashboard"
+    UpdateDataCollectionRequest:
+      description: UpdateDataCollectionRequest sets the caller's workspace data collection
+        level.
+      example:
+        dataCollection: ""
+      properties:
+        dataCollection:
+          allOf:
+          - $ref: "#/components/schemas/DataCollection"
+          title: The new data collection level
+    UpdateDataCollectionResponse:
+      description: UpdateDataCollectionResponse returns the updated link setting.
+      example:
+        linkSetting:
+          createdAt: 2000-01-23T04:56:07.000+00:00
+          id: fbb5c4b6-2a10-4f35-8cb1-60c613a92d2a
+          dataCollection: DATA_COLLECTION_BASIC
+          updatedAt: 2000-01-23T04:56:07.000+00:00
+      properties:
+        linkSetting:
+          $ref: "#/components/schemas/LinkSetting"
     UpdateDeviceResponse:
       properties:
         success:
@@ -25379,6 +26040,33 @@ components:
         directory:
           $ref: "#/components/schemas/Directory"
       title: Response containing the updated directory
+    UpdateGoogleAnalyticsIntegrationRequest:
+      description: "Connects Google Analytics, or changes the property it sends to."
+      example:
+        apiSecret: apiSecret
+        measurementId: measurementId
+      properties:
+        apiSecret:
+          description: |-
+            Measurement Protocol API secret. Required to connect; omit it to keep the
+            stored one when only changing the Measurement ID.
+          type: string
+        measurementId:
+          description: "GA4 Measurement ID, e.g. \"G-ABC123DEF4\"."
+          type: string
+    UpdateGoogleAnalyticsIntegrationResponse:
+      example:
+        integration:
+          createdAt: 2000-01-23T04:56:07.000+00:00
+          apiSecretSet: true
+          lastError: lastError
+          lastErrorAt: 2000-01-23T04:56:07.000+00:00
+          lastSentAt: 2000-01-23T04:56:07.000+00:00
+          measurementId: measurementId
+          updatedAt: 2000-01-23T04:56:07.000+00:00
+      properties:
+        integration:
+          $ref: "#/components/schemas/GoogleAnalyticsIntegration"
     UpdateGoogleFormsIntegrationRequest:
       example:
         status: ""
@@ -25566,6 +26254,45 @@ components:
           title: The updated QR code template
       title: UpdateQrcodeTemplateResponse represents the response after updating a
         QR code template
+    UpdateRetargetingPixelsRequest:
+      description: |-
+        Send only the pixels to change. An empty string removes that pixel; an
+        omitted field keeps its current value.
+      example:
+        linkedinPartnerId: linkedinPartnerId
+        googleTagId: googleTagId
+        gtmContainerId: gtmContainerId
+        tiktokPixelId: tiktokPixelId
+        metaPixelId: metaPixelId
+      properties:
+        googleTagId:
+          description: "Google tag ID: \"G-...\" (Google Analytics 4) or \"AW-...\"\
+            \ (Google Ads)."
+          type: string
+        gtmContainerId:
+          description: "Google Tag Manager container ID, \"GTM-...\"."
+          type: string
+        linkedinPartnerId:
+          description: "LinkedIn Insight Tag partner ID, digits only."
+          type: string
+        metaPixelId:
+          description: "Meta (Facebook, Instagram) Pixel ID, digits only."
+          type: string
+        tiktokPixelId:
+          description: TikTok pixel ID.
+          type: string
+    UpdateRetargetingPixelsResponse:
+      example:
+        pixels:
+          linkedinPartnerId: linkedinPartnerId
+          googleTagId: googleTagId
+          gtmContainerId: gtmContainerId
+          tiktokPixelId: tiktokPixelId
+          metaPixelId: metaPixelId
+          updatedAt: 2000-01-23T04:56:07.000+00:00
+      properties:
+        pixels:
+          $ref: "#/components/schemas/RetargetingPixels"
     UpdateSlackIntegrationRequest:
       example:
         linkId: linkId
@@ -27089,6 +27816,9 @@ components:
              - EVENT_ACTION_LOCATION_REQUEST: Ask the visitor for their precise location (GPS) through the browser, with
             their permission (composite: two branches, "location" when it was shared,
             "else" when it was refused, skipped or is unavailable).
+             - EVENT_ACTION_LANGUAGE_CONDITION: Route visitors based on their phone or browser language (the first
+            language it sends, matched on its two-letter ISO 639-1 base, so "fr"
+            catches fr-FR and fr-CA)
           enum:
           - EVENT_ACTION_UNSPECIFIED
           - EVENT_ACTION_CLIENT_REDIRECT
@@ -27114,6 +27844,7 @@ components:
           - EVENT_ACTION_MESSAGE_PAGE
           - EVENT_ACTION_OPEN_MEDIA
           - EVENT_ACTION_LOCATION_REQUEST
+          - EVENT_ACTION_LANGUAGE_CONDITION
           example: EVENT_ACTION_CLIENT_REDIRECT
           title: The event action type for this workflow step
           type: string
@@ -27291,6 +28022,8 @@ components:
           $ref: "#/components/schemas/DeviceTypeConditionPayload"
         form:
           $ref: "#/components/schemas/FormPayload"
+        languageCondition:
+          $ref: "#/components/schemas/LanguageConditionPayload"
         linkVisit:
           description: Reserved for future link visit specific configuration
           title: Entry payload for EVENT_ACTION_LINK_VISIT (currently no specific
@@ -27409,6 +28142,9 @@ components:
              - EVENT_ACTION_LOCATION_REQUEST: Ask the visitor for their precise location (GPS) through the browser, with
             their permission (composite: two branches, "location" when it was shared,
             "else" when it was refused, skipped or is unavailable).
+             - EVENT_ACTION_LANGUAGE_CONDITION: Route visitors based on their phone or browser language (the first
+            language it sends, matched on its two-letter ISO 639-1 base, so "fr"
+            catches fr-FR and fr-CA)
           enum:
           - EVENT_ACTION_UNSPECIFIED
           - EVENT_ACTION_CLIENT_REDIRECT
@@ -27434,6 +28170,7 @@ components:
           - EVENT_ACTION_MESSAGE_PAGE
           - EVENT_ACTION_OPEN_MEDIA
           - EVENT_ACTION_LOCATION_REQUEST
+          - EVENT_ACTION_LANGUAGE_CONDITION
           example: EVENT_ACTION_FORM_SUBMIT
           title: The event action type for this workflow step
           type: string
