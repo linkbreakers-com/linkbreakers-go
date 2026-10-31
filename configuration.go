@@ -14,6 +14,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"runtime"
 	"strings"
 )
 
@@ -91,8 +92,8 @@ type Configuration struct {
 // NewConfiguration returns a new Configuration object
 func NewConfiguration() *Configuration {
 	cfg := &Configuration{
-		DefaultHeader:    make(map[string]string),
-		UserAgent:        "OpenAPI-Generator/1.0.0/go",
+		DefaultHeader:    map[string]string{ClientHeaderName: ClientHeader()},
+		UserAgent:        "linkbreakers-go-sdk/" + SDKVersion,
 		Debug:            false,
 		Servers:          ServerConfigurations{
 			{
@@ -104,6 +105,19 @@ func NewConfiguration() *Configuration {
 		},
 	}
 	return cfg
+}
+
+// SDKVersion is this SDK's version, written by the release from the API version
+// it was generated from.
+const SDKVersion = "1.183.3"
+
+// ClientHeaderName tells the API which client sent a request. It is sent with
+// every request; set it in DefaultHeader to send something else.
+const ClientHeaderName = "Linkbreakers-Client"
+
+// ClientHeader is "sdk-go/<version> (<go version>; <os>)".
+func ClientHeader() string {
+	return "sdk-go/" + SDKVersion + " (" + runtime.Version() + "; " + runtime.GOOS + ")"
 }
 
 // AddDefaultHeader adds a new HTTP header to the default header in the request
