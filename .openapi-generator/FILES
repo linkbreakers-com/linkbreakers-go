@@ -26,6 +26,7 @@ api_pricing.go
 api_qr_code_designs.go
 api_qr_code_templates.go
 api_retargeting_pixels.go
+api_review_rewards.go
 api_slack_integrations.go
 api_tags.go
 api_time_series.go
@@ -209,6 +210,7 @@ model_events_service_update_device_body.go
 model_events_time_series.go
 model_events_time_series_data.go
 model_find_matching_page_theme_template_response.go
+model_firing_retargeting_pixel.go
 model_font_config.go
 model_form_field.go
 model_form_field_option.go
@@ -252,6 +254,7 @@ model_get_media_response.go
 model_get_page_theme_response.go
 model_get_qrcode_design_response.go
 model_get_retargeting_pixels_response.go
+model_get_review_reward_offer_response.go
 model_get_slack_integration_response.go
 model_get_slack_o_auth_url_response.go
 model_get_step_funnel_request.go
@@ -260,10 +263,12 @@ model_get_top_links_request.go
 model_get_top_links_response.go
 model_get_visitor_trends_request.go
 model_get_visitor_trends_response.go
+model_get_wallet_pass_support_response.go
 model_get_webhook_response.go
 model_get_widget_summary_response.go
 model_get_workflow_step_response.go
 model_get_workspace_token_response.go
+model_google_analytics_attribute_keys.go
 model_google_analytics_integration.go
 model_google_forms_integration.go
 model_google_forms_integration_status.go
@@ -295,6 +300,7 @@ model_link_setting.go
 model_link_sort_field.go
 model_link_view.go
 model_links_bulk_create_result.go
+model_links_service_render_qrcode_images_body.go
 model_links_service_update_body.go
 model_list_allowances_response.go
 model_list_api_scopes_response.go
@@ -314,9 +320,11 @@ model_list_page_themes_response.go
 model_list_pricing_plans_response.go
 model_list_qrcode_templates_response.go
 model_list_response.go
+model_list_retargeting_pixels_for_link_response.go
 model_list_slack_channels_response.go
 model_list_tags_response.go
 model_list_visitor_attribute_keys_response.go
+model_list_visitor_countries_response.go
 model_list_visitors_csv_response.go
 model_list_visitors_json_response.go
 model_list_visitors_request.go
@@ -366,6 +374,7 @@ model_page_theme_template_images.go
 model_page_theme_template_scope.go
 model_page_theme_templates_service_update_page_theme_template_body.go
 model_page_theme_templates_service_update_page_theme_template_styling_body.go
+model_page_theme_visitor_experience.go
 model_page_themes_service_update_page_theme_body.go
 model_password_payload.go
 model_password_trace_data.go
@@ -391,11 +400,15 @@ model_publish_page_theme_template_response.go
 model_publish_qrcode_template_response.go
 model_qrcode_design.go
 model_qrcode_design_service_update_body.go
+model_qrcode_render_format.go
+model_qrcode_render_item.go
 model_qrcode_template.go
 model_qrcode_template_scope.go
 model_qrcode_templates_service_update_qrcode_template_body.go
 model_redirect_trace_data.go
 model_redirect_trace_data_fallback_reason.go
+model_render_qrcode_images_response.go
+model_rendered_qrcode.go
 model_replace_media_import_response.go
 model_report_step_search_miss_request.go
 model_request_email_verification_request.go
@@ -408,7 +421,15 @@ model_resolve_qrcode_template_images_request.go
 model_resolve_qrcode_template_images_response.go
 model_resolve_step_collisions_response.go
 model_response_format.go
+model_retargeting_pixel.go
+model_retargeting_pixel_scope.go
+model_retargeting_pixel_scope_type.go
 model_retargeting_pixels.go
+model_review_platform.go
+model_review_platform_profile.go
+model_review_reward.go
+model_review_reward_ineligible_reason.go
+model_review_reward_status.go
 model_role.go
 model_settings_service_update_link_setting_body.go
 model_shape.go
@@ -442,6 +463,8 @@ model_specific_date_condition_payload.go
 model_specific_date_condition_trace_data.go
 model_specific_date_condition_trace_option.go
 model_specific_date_option.go
+model_submit_review_reward_request.go
+model_submit_review_reward_response.go
 model_subscription_type.go
 model_switch_workspace_response.go
 model_sync_google_forms_response.go
@@ -506,6 +529,7 @@ model_visitor_attribute_filter.go
 model_visitor_attribute_filter_operator.go
 model_visitor_attribute_key.go
 model_visitor_attribute_type.go
+model_visitor_country.go
 model_visitor_data_condition_option.go
 model_visitor_data_condition_payload.go
 model_visitor_data_condition_trace_data.go
