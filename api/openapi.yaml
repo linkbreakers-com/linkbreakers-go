@@ -42,7 +42,7 @@ info:
 
     Send a `Linkbreakers-Client` request header saying which client made the call: `<client>/<version> (<details>)`, for example `my-integration/1.2.0 (python 3.12; linux)`. The official SDKs, the CLI and the MCP bridge set it for you, as `sdk-python/2.3.1 (python 3.12.4; linux)` or `cli/1.4.0 (darwin arm64)`. It is optional and changes nothing about how a request is handled; it tells us which clients and versions are in use, so we know what can be retired and what to fix first. Keep the details short and free of personal data. Browsers may send it too: it is allowed by CORS.
   title: Linkbreakers API
-  version: 1.187.0
+  version: 1.187.1
   x-api-versioning:
     compatibility: additive changes only within a version
     currentVersion: v1
@@ -63,6 +63,10 @@ tags:
     \ https://linkbreakers.com/auth.md) and hands a person a claim link and a 6-digit\
     \ code; these endpoints are the person's side of that ceremony."
   name: Agent Identity
+- description: "Agents are chat personas a workspace builds: a role, a tone, guardrails\
+    \ and knowledge documents. An agent talks to visitors from the workflow steps\
+    \ it is plugged into, such as the Chat Bot step."
+  name: Agents
 - description: "What the workspace has used of each limit its plan sets, read from\
     \ the same counters that enforce them."
   name: Allowances
@@ -290,6 +294,586 @@ paths:
       summary: Read an agent claim link
       tags:
       - Agent Identity
+  /v1/agent-presets:
+    get:
+      description: |-
+        List every preset agent settings can take, with labels and descriptions.
+
+        Requires the `agents:read` scope.
+      operationId: AgentsService_ListPresets
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListAgentPresetsResponse"
+          description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - agents:read
+      - oauth2:
+        - agents:read
+      summary: List agent presets
+      tags:
+      - Agents
+      x-required-scope: agents:read
+  /v1/agents:
+    get:
+      description: |-
+        List the workspace's agents, without their knowledge documents.
+
+        Requires the `agents:read` scope.
+      operationId: AgentsService_List
+      parameters:
+      - description: Maximum number of agents to return. Defaults to 50.
+        explode: true
+        in: query
+        name: pageSize
+        required: false
+        schema:
+          format: int64
+          type: integer
+        style: form
+      - description: Token from a previous response's next_page_token.
+        explode: true
+        in: query
+        name: pageToken
+        required: false
+        schema:
+          type: string
+        style: form
+      - description: "Opaque cursor from the previous page's nextPageToken. Same as\
+          \ pageToken; when both are sent, pageToken wins."
+        explode: true
+        in: query
+        name: cursor
+        required: false
+        schema:
+          type: string
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListAgentsResponse"
+          description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - agents:read
+      - oauth2:
+        - agents:read
+      summary: List agents
+      tags:
+      - Agents
+      x-pagination:
+        cursorAlias: cursor
+        cursorParam: pageToken
+        endOfList: nextPageToken is empty or absent
+        nextCursorField: nextPageToken
+        pageSizeParam: pageSize
+        type: cursor
+      x-required-scope: agents:read
+    post:
+      description: |-
+        Create an agent. Presets left unset take their defaults.
+
+        Requires the `agents:write` scope.
+      operationId: AgentsService_Create
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAgentRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateAgentResponse"
+          description: Everything worked as expected.
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - agents:write
+      - oauth2:
+        - agents:write
+      summary: Create an agent
+      tags:
+      - Agents
+      x-required-scope: agents:write
+  /v1/agents/{agentId}/knowledge-documents:
+    post:
+      description: |-
+        Add a Markdown document to an agent's knowledge.
+
+        Requires the `agents:write` scope.
+      operationId: AgentsService_CreateKnowledgeDocument
+      parameters:
+      - description: The agent's ID (UUID).
+        explode: false
+        in: path
+        name: agentId
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AgentsServiceCreateKnowledgeDocumentBody"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateAgentKnowledgeDocumentResponse"
+          description: Everything worked as expected.
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - agents:write
+      - oauth2:
+        - agents:write
+      summary: Add a knowledge document
+      tags:
+      - Agents
+      x-required-scope: agents:write
+  /v1/agents/{agentId}/knowledge-documents/{id}:
+    delete:
+      description: |-
+        Remove a document from an agent's knowledge.
+
+        Requires the `agents:write` scope.
+      operationId: AgentsService_DeleteKnowledgeDocument
+      parameters:
+      - description: The agent's ID (UUID).
+        explode: false
+        in: path
+        name: agentId
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: The document's ID (UUID).
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                properties: {}
+                type: object
+          description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - agents:write
+      - oauth2:
+        - agents:write
+      summary: Delete a knowledge document
+      tags:
+      - Agents
+      x-required-scope: agents:write
+    patch:
+      description: |-
+        Change a knowledge document's title or content.
+
+        Requires the `agents:write` scope.
+      operationId: AgentsService_UpdateKnowledgeDocument
+      parameters:
+      - description: The agent's ID (UUID).
+        explode: false
+        in: path
+        name: agentId
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: The document's ID (UUID).
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AgentsServiceUpdateKnowledgeDocumentBody"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpdateAgentKnowledgeDocumentResponse"
+          description: Everything worked as expected.
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - agents:write
+      - oauth2:
+        - agents:write
+      summary: Update a knowledge document
+      tags:
+      - Agents
+      x-required-scope: agents:write
+  /v1/agents/{id}:
+    delete:
+      description: |-
+        Delete an agent and its knowledge documents.
+
+        Requires the `agents:write` scope.
+      operationId: AgentsService_Delete
+      parameters:
+      - description: The agent's ID (UUID).
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                properties: {}
+                type: object
+          description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - agents:write
+      - oauth2:
+        - agents:write
+      summary: Delete an agent
+      tags:
+      - Agents
+      x-required-scope: agents:write
+    get:
+      description: |-
+        Retrieve an agent with its knowledge documents.
+
+        Requires the `agents:read` scope.
+      operationId: AgentsService_Get
+      parameters:
+      - description: The agent's ID (UUID).
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetAgentResponse"
+          description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - agents:read
+      - oauth2:
+        - agents:read
+      summary: Get an agent
+      tags:
+      - Agents
+      x-required-scope: agents:read
+    patch:
+      description: |-
+        Change an agent's settings. Fields left unset keep their value.
+
+        Requires the `agents:write` scope.
+      operationId: AgentsService_Update
+      parameters:
+      - description: The agent's ID (UUID).
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AgentsServiceUpdateBody"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpdateAgentResponse"
+          description: Everything worked as expected.
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - agents:write
+      - oauth2:
+        - agents:write
+      summary: Update an agent
+      tags:
+      - Agents
+      x-required-scope: agents:write
   /v1/allowances:
     get:
       description: |-
@@ -12975,6 +13559,139 @@ components:
       - ACTION_CLICK
       title: The type of event action
       type: string
+    Agent:
+      description: Agent is a chat persona the workspace builds and plugs into workflow
+        steps.
+      example:
+        instructions: "You work for Hotel Lumiere, a boutique hotel in Lyon."
+        role: ""
+        tone: ""
+        questionHandling: ""
+        language: fr
+        customRules: customRules
+        createdAt: 2000-01-23T04:56:07.000+00:00
+        knowledgeDocuments:
+        - createdAt: 2000-01-23T04:56:07.000+00:00
+          agentId: agentId
+          id: id
+          title: Opening hours and prices
+          content: |-
+            # Opening hours
+
+            Monday to Friday, 9am to 6pm.
+          updatedAt: 2000-01-23T04:56:07.000+00:00
+        - createdAt: 2000-01-23T04:56:07.000+00:00
+          agentId: agentId
+          id: id
+          title: Opening hours and prices
+          content: |-
+            # Opening hours
+
+            Monday to Friday, 9am to 6pm.
+          updatedAt: 2000-01-23T04:56:07.000+00:00
+        knowledgeDocumentCount: 0
+        replyLength: ""
+        guardrails:
+        - AGENT_GUARDRAIL_UNSPECIFIED
+        - AGENT_GUARDRAIL_UNSPECIFIED
+        name: Front desk
+        styleNotes: Address visitors informally.
+        id: 3f9a1c52-8d1e-4b7a-9c3e-2a6f5d8b1e40
+        usages:
+        - linkId: linkId
+          linkName: linkName
+          workflowStepId: workflowStepId
+        - linkId: linkId
+          linkName: linkName
+          workflowStepId: workflowStepId
+        emojiEnabled: true
+        updatedAt: 2000-01-23T04:56:07.000+00:00
+        workspaceId: workspaceId
+      properties:
+        createdAt:
+          description: When the agent was created.
+          format: date-time
+          readOnly: true
+          type: string
+        customRules:
+          description: "Free-text rules the agent never breaks, on top of the guardrails."
+          type: string
+        emojiEnabled:
+          description: Whether the agent may use emoji.
+          type: boolean
+        guardrails:
+          description: The preset rules the agent never breaks.
+          items:
+            $ref: "#/components/schemas/AgentGuardrail"
+          type: array
+        id:
+          description: The unique identifier of the agent (UUID).
+          example: 3f9a1c52-8d1e-4b7a-9c3e-2a6f5d8b1e40
+          readOnly: true
+          type: string
+        instructions:
+          description: "Free-text instructions that refine the role: who the business\
+            \ is, what matters to it."
+          example: "You work for Hotel Lumiere, a boutique hotel in Lyon."
+          type: string
+        knowledgeDocumentCount:
+          description: How many knowledge documents the agent has.
+          format: int32
+          readOnly: true
+          type: integer
+        knowledgeDocuments:
+          description: The agent's knowledge documents. agents_get returns them with
+            their content; agents_list leaves them out.
+          items:
+            $ref: "#/components/schemas/AgentKnowledgeDocument"
+          readOnly: true
+          type: array
+        language:
+          description: ISO 639-1 code of the language the agent always speaks. Empty
+            matches the visitor's language.
+          example: fr
+          type: string
+        name:
+          description: "The agent's name, shown to the workspace and used by the agent\
+            \ to introduce itself."
+          example: Front desk
+          type: string
+        questionHandling:
+          allOf:
+          - $ref: "#/components/schemas/AgentQuestionHandling"
+          description: What the agent does when a visitor asks it something.
+        replyLength:
+          allOf:
+          - $ref: "#/components/schemas/AgentReplyLength"
+          description: How long the agent's messages are.
+        role:
+          allOf:
+          - $ref: "#/components/schemas/AgentRole"
+          description: The job the agent does.
+        styleNotes:
+          description: Free-text notes that refine the tone.
+          example: Address visitors informally.
+          type: string
+        tone:
+          allOf:
+          - $ref: "#/components/schemas/AgentTone"
+          description: How the agent sounds.
+        updatedAt:
+          description: When the agent was last updated.
+          format: date-time
+          readOnly: true
+          type: string
+        usages:
+          description: The workflow steps that talk through this agent. An agent in
+            use cannot be deleted.
+          items:
+            $ref: "#/components/schemas/AgentUsage"
+          readOnly: true
+          type: array
+        workspaceId:
+          description: The workspace the agent belongs to (UUID).
+          readOnly: true
+          type: string
     AgentClaim:
       description: What a claim link would hand over.
       example:
@@ -13023,6 +13740,387 @@ components:
       - AGENT_CLAIM_STATUS_EXPIRED
       title: AgentClaimStatus
       type: string
+    AgentGuardrail:
+      default: AGENT_GUARDRAIL_UNSPECIFIED
+      description: |-
+        AgentGuardrail is a rule the agent never breaks.
+
+         - AGENT_GUARDRAIL_UNSPECIFIED: Not a guardrail. Rejected.
+         - AGENT_GUARDRAIL_STAY_ON_TOPIC: Stays on the business's topics.
+         - AGENT_GUARDRAIL_KNOWLEDGE_ONLY: Answers only from its knowledge.
+         - AGENT_GUARDRAIL_NO_COMMITMENTS: Makes no promises.
+         - AGENT_GUARDRAIL_NO_COMPETITORS: Does not discuss competitors.
+         - AGENT_GUARDRAIL_NO_PROFESSIONAL_ADVICE: Gives no legal, medical or financial advice.
+         - AGENT_GUARDRAIL_DECLINE_OFFENSIVE: Declines offensive requests politely.
+      enum:
+      - AGENT_GUARDRAIL_UNSPECIFIED
+      - AGENT_GUARDRAIL_STAY_ON_TOPIC
+      - AGENT_GUARDRAIL_KNOWLEDGE_ONLY
+      - AGENT_GUARDRAIL_NO_COMMITMENTS
+      - AGENT_GUARDRAIL_NO_COMPETITORS
+      - AGENT_GUARDRAIL_NO_PROFESSIONAL_ADVICE
+      - AGENT_GUARDRAIL_DECLINE_OFFENSIVE
+      type: string
+    AgentGuardrailList:
+      description: AgentGuardrailList wraps guardrails so an update can tell "unchanged"
+        from "none".
+      properties:
+        values:
+          description: The guardrails. Empty removes them all.
+          items:
+            $ref: "#/components/schemas/AgentGuardrail"
+          type: array
+    AgentGuardrailPreset:
+      description: AgentGuardrailPreset is one guardrail an agent can follow.
+      example:
+        defaultEnabled: true
+        description: description
+        label: label
+        value: ""
+      properties:
+        defaultEnabled:
+          description: Whether new agents get this guardrail by default.
+          type: boolean
+        description:
+          description: What the guardrail prevents.
+          type: string
+        label:
+          description: Short name shown in the picker.
+          type: string
+        value:
+          allOf:
+          - $ref: "#/components/schemas/AgentGuardrail"
+          description: The guardrail.
+    AgentKnowledgeDocument:
+      description: AgentKnowledgeDocument is one Markdown document the agent knows.
+      example:
+        createdAt: 2000-01-23T04:56:07.000+00:00
+        agentId: agentId
+        id: id
+        title: Opening hours and prices
+        content: |-
+          # Opening hours
+
+          Monday to Friday, 9am to 6pm.
+        updatedAt: 2000-01-23T04:56:07.000+00:00
+      properties:
+        agentId:
+          description: The agent the document belongs to (UUID).
+          readOnly: true
+          type: string
+        content:
+          description: The document's Markdown content.
+          example: |-
+            # Opening hours
+
+            Monday to Friday, 9am to 6pm.
+          type: string
+        createdAt:
+          description: When the document was created.
+          format: date-time
+          readOnly: true
+          type: string
+        id:
+          description: The unique identifier of the document (UUID).
+          readOnly: true
+          type: string
+        title:
+          description: The document's title.
+          example: Opening hours and prices
+          type: string
+        updatedAt:
+          description: When the document was last updated.
+          format: date-time
+          readOnly: true
+          type: string
+    AgentLimits:
+      description: AgentLimits are the sizes agent settings and knowledge must stay
+        within.
+      properties:
+        chatBotDefaultExchanges:
+          description: Messages a chat bot step allows when it does not say.
+          format: int32
+          type: integer
+        chatBotMaxExchanges:
+          description: Most messages a chat bot step can allow a visitor.
+          format: int32
+          type: integer
+        chatBotMaxObjectives:
+          description: Most objectives a chat bot step can have.
+          format: int32
+          type: integer
+        chatBotMinExchanges:
+          description: Fewest messages a chat bot step can allow a visitor.
+          format: int32
+          type: integer
+        customRulesMaxLength:
+          description: "Longest custom rules, in characters."
+          format: int32
+          type: integer
+        instructionsMaxLength:
+          description: "Longest instructions, in characters."
+          format: int32
+          type: integer
+        knowledgeMaxDocuments:
+          description: Most knowledge documents an agent can have.
+          format: int32
+          type: integer
+        knowledgeMaxTotalCharacters:
+          description: Most characters an agent's knowledge documents can hold together.
+          format: int32
+          type: integer
+        knowledgeTitleMaxLength:
+          description: "Longest knowledge document title, in characters."
+          format: int32
+          type: integer
+        nameMaxLength:
+          description: "Longest name, in characters."
+          format: int32
+          type: integer
+        styleNotesMaxLength:
+          description: "Longest style notes, in characters."
+          format: int32
+          type: integer
+    AgentQuestionHandling:
+      default: AGENT_QUESTION_HANDLING_UNSPECIFIED
+      description: |-
+        AgentQuestionHandling is what the agent does when a visitor asks it something.
+
+         - AGENT_QUESTION_HANDLING_UNSPECIFIED: Not set. Defaults to AGENT_QUESTION_HANDLING_ANSWER_AND_STEER on create, keeps the value on update.
+         - AGENT_QUESTION_HANDLING_ANSWER_AND_STEER: Answers, then brings the conversation back to its goal.
+         - AGENT_QUESTION_HANDLING_ANSWER_BRIEFLY: One-line answers, then back to the goal.
+         - AGENT_QUESTION_HANDLING_COLLECT_ONLY: Politely declines questions and only collects.
+         - AGENT_QUESTION_HANDLING_FREE_CONVERSATION: Talks freely and collects along the way.
+      enum:
+      - AGENT_QUESTION_HANDLING_UNSPECIFIED
+      - AGENT_QUESTION_HANDLING_ANSWER_AND_STEER
+      - AGENT_QUESTION_HANDLING_ANSWER_BRIEFLY
+      - AGENT_QUESTION_HANDLING_COLLECT_ONLY
+      - AGENT_QUESTION_HANDLING_FREE_CONVERSATION
+      type: string
+    AgentQuestionHandlingPreset:
+      description: AgentQuestionHandlingPreset is one way an agent can handle visitor
+        questions.
+      example:
+        description: description
+        label: label
+        value: ""
+      properties:
+        description:
+          description: What the agent does with questions.
+          type: string
+        label:
+          description: Short name shown in the picker.
+          type: string
+        value:
+          allOf:
+          - $ref: "#/components/schemas/AgentQuestionHandling"
+          description: The question handling.
+    AgentReplyLength:
+      default: AGENT_REPLY_LENGTH_UNSPECIFIED
+      description: |-
+        AgentReplyLength is how long the agent's messages are.
+
+         - AGENT_REPLY_LENGTH_UNSPECIFIED: Not set. Defaults to AGENT_REPLY_LENGTH_SHORT on create, keeps the value on update.
+         - AGENT_REPLY_LENGTH_SHORT: One or two sentences.
+         - AGENT_REPLY_LENGTH_MEDIUM: A short paragraph.
+         - AGENT_REPLY_LENGTH_DETAILED: As long as the answer needs.
+      enum:
+      - AGENT_REPLY_LENGTH_UNSPECIFIED
+      - AGENT_REPLY_LENGTH_SHORT
+      - AGENT_REPLY_LENGTH_MEDIUM
+      - AGENT_REPLY_LENGTH_DETAILED
+      type: string
+    AgentReplyLengthPreset:
+      description: AgentReplyLengthPreset is one reply length an agent can take.
+      example:
+        description: description
+        label: label
+        value: ""
+      properties:
+        description:
+          description: How long the replies are.
+          type: string
+        label:
+          description: Short name shown in the picker.
+          type: string
+        value:
+          allOf:
+          - $ref: "#/components/schemas/AgentReplyLength"
+          description: The reply length.
+    AgentRole:
+      default: AGENT_ROLE_UNSPECIFIED
+      description: |-
+        AgentRole is the job the agent does for the workspace.
+
+         - AGENT_ROLE_UNSPECIFIED: Not set. Defaults to AGENT_ROLE_CUSTOM on create, keeps the value on update.
+         - AGENT_ROLE_LEAD_QUALIFIER: Qualifies leads: learns who the visitor is and what they need.
+         - AGENT_ROLE_EVENT_CONCIERGE: Welcomes event attendees and answers practical questions.
+         - AGENT_ROLE_FEEDBACK_COLLECTOR: Collects feedback about an experience.
+         - AGENT_ROLE_PRODUCT_EXPERT: Presents a product and answers questions about it.
+         - AGENT_ROLE_SUPPORT_FAQ: Answers frequent support questions.
+         - AGENT_ROLE_CUSTOM: No preset role: the agent follows its instructions only.
+      enum:
+      - AGENT_ROLE_UNSPECIFIED
+      - AGENT_ROLE_LEAD_QUALIFIER
+      - AGENT_ROLE_EVENT_CONCIERGE
+      - AGENT_ROLE_FEEDBACK_COLLECTOR
+      - AGENT_ROLE_PRODUCT_EXPERT
+      - AGENT_ROLE_SUPPORT_FAQ
+      - AGENT_ROLE_CUSTOM
+      type: string
+    AgentRolePreset:
+      description: AgentRolePreset is one role an agent can take.
+      example:
+        description: description
+        label: label
+        value: ""
+      properties:
+        description:
+          description: What the role does.
+          type: string
+        label:
+          description: Short name shown in the picker.
+          type: string
+        value:
+          allOf:
+          - $ref: "#/components/schemas/AgentRole"
+          description: The role.
+    AgentTone:
+      default: AGENT_TONE_UNSPECIFIED
+      description: |-
+        AgentTone is how the agent sounds.
+
+         - AGENT_TONE_UNSPECIFIED: Not set. Defaults to AGENT_TONE_FRIENDLY on create, keeps the value on update.
+         - AGENT_TONE_FRIENDLY: Warm and approachable.
+         - AGENT_TONE_PROFESSIONAL: Polished and businesslike.
+         - AGENT_TONE_PLAYFUL: Light and fun.
+         - AGENT_TONE_CONCISE: Straight to the point.
+         - AGENT_TONE_ENTHUSIASTIC: Energetic and upbeat.
+      enum:
+      - AGENT_TONE_UNSPECIFIED
+      - AGENT_TONE_FRIENDLY
+      - AGENT_TONE_PROFESSIONAL
+      - AGENT_TONE_PLAYFUL
+      - AGENT_TONE_CONCISE
+      - AGENT_TONE_ENTHUSIASTIC
+      type: string
+    AgentTonePreset:
+      description: AgentTonePreset is one tone an agent can take.
+      example:
+        description: description
+        label: label
+        value: ""
+      properties:
+        description:
+          description: What the tone sounds like.
+          type: string
+        label:
+          description: Short name shown in the picker.
+          type: string
+        value:
+          allOf:
+          - $ref: "#/components/schemas/AgentTone"
+          description: The tone.
+    AgentUsage:
+      description: AgentUsage is a workflow step that talks through an agent.
+      example:
+        linkId: linkId
+        linkName: linkName
+        workflowStepId: workflowStepId
+      properties:
+        linkId:
+          description: The link the step belongs to (UUID).
+          type: string
+        linkName:
+          description: "The link's name, or its short link when it has none."
+          type: string
+        workflowStepId:
+          description: The chat bot step (UUID).
+          type: string
+    AgentsServiceCreateKnowledgeDocumentBody:
+      description: CreateAgentKnowledgeDocumentRequest adds a Markdown document to
+        an agent.
+      example:
+        title: title
+        content: content
+      properties:
+        content:
+          description: The document's Markdown content.
+          type: string
+        title:
+          description: The document's title.
+          type: string
+      required:
+      - content
+      - title
+    AgentsServiceUpdateBody:
+      description: UpdateAgentRequest changes an agent. Fields left unset keep their
+        value.
+      example:
+        customRules: customRules
+        instructions: instructions
+        role: ""
+        tone: ""
+        replyLength: ""
+        questionHandling: ""
+        guardrails: ""
+        name: name
+        styleNotes: styleNotes
+        language: language
+        emojiEnabled: true
+      properties:
+        customRules:
+          description: New custom rules.
+          type: string
+        emojiEnabled:
+          description: Whether the agent may use emoji.
+          type: boolean
+        guardrails:
+          allOf:
+          - $ref: "#/components/schemas/AgentGuardrailList"
+          description: "New guardrails, replacing the current ones."
+        instructions:
+          description: New instructions.
+          type: string
+        language:
+          description: New language code. An empty string matches the visitor's language.
+          type: string
+        name:
+          description: New name.
+          type: string
+        questionHandling:
+          allOf:
+          - $ref: "#/components/schemas/AgentQuestionHandling"
+          description: New question handling. UNSPECIFIED keeps it.
+        replyLength:
+          allOf:
+          - $ref: "#/components/schemas/AgentReplyLength"
+          description: New reply length. UNSPECIFIED keeps it.
+        role:
+          allOf:
+          - $ref: "#/components/schemas/AgentRole"
+          description: New role. UNSPECIFIED keeps it.
+        styleNotes:
+          description: New style notes.
+          type: string
+        tone:
+          allOf:
+          - $ref: "#/components/schemas/AgentTone"
+          description: New tone. UNSPECIFIED keeps it.
+    AgentsServiceUpdateKnowledgeDocumentBody:
+      description: UpdateAgentKnowledgeDocumentRequest changes a knowledge document.
+        Fields left unset keep their value.
+      example:
+        title: title
+        content: content
+      properties:
+        content:
+          description: New Markdown content.
+          type: string
+        title:
+          description: New title.
+          type: string
     AnalyticsDashboard:
       example:
         createdAt: 2000-01-23T04:56:07.000+00:00
@@ -13177,6 +14275,8 @@ components:
          - API_SCOPE_BILLING_WRITE: Open checkout, credit top-up and billing portal sessions.
          - API_SCOPE_ASSISTANT_READ: Read the Assistant conversation.
          - API_SCOPE_ASSISTANT_WRITE: Send files to the Assistant, clear the conversation and contact support.
+         - API_SCOPE_AGENTS_READ: Read agents and their knowledge documents.
+         - API_SCOPE_AGENTS_WRITE: Create, update and delete agents and their knowledge documents.
       enum:
       - API_SCOPE_UNSPECIFIED
       - API_SCOPE_LINKS_READ
@@ -13208,6 +14308,8 @@ components:
       - API_SCOPE_BILLING_WRITE
       - API_SCOPE_ASSISTANT_READ
       - API_SCOPE_ASSISTANT_WRITE
+      - API_SCOPE_AGENTS_READ
+      - API_SCOPE_AGENTS_WRITE
       type: string
     ApiScopeAccess:
       default: API_SCOPE_ACCESS_UNSPECIFIED
@@ -13284,6 +14386,8 @@ components:
              - API_SCOPE_BILLING_WRITE: Open checkout, credit top-up and billing portal sessions.
              - API_SCOPE_ASSISTANT_READ: Read the Assistant conversation.
              - API_SCOPE_ASSISTANT_WRITE: Send files to the Assistant, clear the conversation and contact support.
+             - API_SCOPE_AGENTS_READ: Read agents and their knowledge documents.
+             - API_SCOPE_AGENTS_WRITE: Create, update and delete agents and their knowledge documents.
           enum:
           - API_SCOPE_UNSPECIFIED
           - API_SCOPE_LINKS_READ
@@ -13315,6 +14419,8 @@ components:
           - API_SCOPE_BILLING_WRITE
           - API_SCOPE_ASSISTANT_READ
           - API_SCOPE_ASSISTANT_WRITE
+          - API_SCOPE_AGENTS_READ
+          - API_SCOPE_AGENTS_WRITE
           type: string
     ApplyPageThemeTemplateRequest:
       example:
@@ -13879,6 +14985,155 @@ components:
           title: Y coordinate on the canvas
           type: number
       title: Canvas position for React Flow node positioning
+    ChatBotCollectedValue:
+      properties:
+        key:
+          type: string
+        label:
+          type: string
+        value:
+          type: string
+      title: One answer the chat bot collected
+    ChatBotMessageAuthor:
+      default: CHAT_BOT_MESSAGE_AUTHOR_UNSPECIFIED
+      enum:
+      - CHAT_BOT_MESSAGE_AUTHOR_UNSPECIFIED
+      - CHAT_BOT_MESSAGE_AUTHOR_AGENT
+      - CHAT_BOT_MESSAGE_AUTHOR_VISITOR
+      title: Who wrote a chat message
+      type: string
+    ChatBotObjective:
+      description: ChatBotObjective is one visitor attribute the chat bot must learn.
+      properties:
+        explanation:
+          example: The company the visitor works for. A freelancer can answer their
+            own name.
+          title: What the agent needs to understand to ask for it and recognise a
+            good answer
+          type: string
+        key:
+          description: |-
+            Visitor attribute key the answer is saved under. $email, $phone,
+            $firstName and $lastName fill the visitor's identity.
+          example: company
+          type: string
+        label:
+          example: Company
+          title: "Short name of what is asked, shown in the dashboard"
+          type: string
+        options:
+          items:
+            $ref: "#/components/schemas/FormFieldOption"
+          title: "Allowed answers for RADIO, CHECKBOX and DROPDOWN"
+          type: array
+        required:
+          title: Whether the conversation must collect it to be completed
+          type: boolean
+        type:
+          description: "- FORM_FIELD_TYPE_UNSPECIFIED: Form field type not specified"
+          enum:
+          - FORM_FIELD_TYPE_UNSPECIFIED
+          - FORM_FIELD_TYPE_TEXT
+          - FORM_FIELD_TYPE_EMAIL
+          - FORM_FIELD_TYPE_PHONE
+          - FORM_FIELD_TYPE_TEXTAREA
+          - FORM_FIELD_TYPE_RADIO
+          - FORM_FIELD_TYPE_CHECKBOX
+          - FORM_FIELD_TYPE_DROPDOWN
+          - FORM_FIELD_TYPE_NUMBER
+          - FORM_FIELD_TYPE_DATE
+          - FORM_FIELD_TYPE_RATING
+          title: "Kind of value, which decides how the answer is checked and stored"
+          type: string
+    ChatBotOutcome:
+      default: CHAT_BOT_OUTCOME_UNSPECIFIED
+      description: |-
+        - CHAT_BOT_OUTCOME_COMPLETED: Every required objective was collected in the conversation
+         - CHAT_BOT_OUTCOME_ALREADY_KNOWN: Every required objective was already known, so the chat was passed over
+         - CHAT_BOT_OUTCOME_MAX_EXCHANGES: The visitor sent as many messages as the step allows
+         - CHAT_BOT_OUTCOME_SKIPPED: The visitor left with the skip button
+         - CHAT_BOT_OUTCOME_UNAVAILABLE: The agent could not answer: the workspace ran out of credits or the model failed
+      enum:
+      - CHAT_BOT_OUTCOME_UNSPECIFIED
+      - CHAT_BOT_OUTCOME_COMPLETED
+      - CHAT_BOT_OUTCOME_ALREADY_KNOWN
+      - CHAT_BOT_OUTCOME_MAX_EXCHANGES
+      - CHAT_BOT_OUTCOME_SKIPPED
+      - CHAT_BOT_OUTCOME_UNAVAILABLE
+      title: How a chat bot conversation ended
+      type: string
+    ChatBotPayload:
+      properties:
+        agentId:
+          example: 3f9a1c52-8d1e-4b7a-9c3e-2a6f5d8b1e40
+          title: The agent that talks to the visitor (UUID)
+          type: string
+        elseNextStepId:
+          description: |-
+            Step the visitor goes to when the chat ends without them ("else" branch).
+            Unset follows the "completed" branch.
+          example: 123e4567-e89b-12d3-a456-426614174000
+          type: string
+        maxExchanges:
+          description: Most messages the visitor can send before the step moves on.
+            Defaults to 15.
+          format: int32
+          type: integer
+        nextStepId:
+          example: 123e4567-e89b-12d3-a456-426614174000
+          title: Step the visitor goes to once every required objective is known ("completed"
+            branch)
+          type: string
+        objectives:
+          items:
+            $ref: "#/components/schemas/ChatBotObjective"
+          title: What the conversation must learn about the visitor
+          type: array
+        openingMessage:
+          description: First message the agent sends. Empty lets the agent greet the
+            visitor itself.
+          type: string
+        skipEnabled:
+          title: "Whether the visitor can leave the chat with a skip button, taking\
+            \ the \"else\" branch"
+          type: boolean
+        skipLabel:
+          title: Label of the skip button
+          type: string
+        skipWhenKnown:
+          title: Pass over the chat when every required objective is already known
+            about the visitor
+          type: boolean
+      title: Chat bot payload for EVENT_ACTION_CHAT_BOT
+    ChatBotTraceData:
+      description: ChatBotTraceData records a chat bot conversation on the visit.
+      properties:
+        agentId:
+          type: string
+        agentName:
+          type: string
+        collected:
+          items:
+            $ref: "#/components/schemas/ChatBotCollectedValue"
+          type: array
+        exchanges:
+          format: int32
+          title: How many messages the visitor sent
+          type: integer
+        outcome:
+          $ref: "#/components/schemas/ChatBotOutcome"
+        transcript:
+          items:
+            $ref: "#/components/schemas/ChatBotTraceMessage"
+          title: "The conversation, oldest first"
+          type: array
+    ChatBotTraceMessage:
+      properties:
+        author:
+          $ref: "#/components/schemas/ChatBotMessageAuthor"
+        content:
+          type: string
+      title: One line of a chat bot transcript
     ChatDisplayMessage:
       example:
         sender: sender
@@ -14308,6 +15563,84 @@ components:
           type: string
         hasRoute:
           type: boolean
+    CreateAgentKnowledgeDocumentResponse:
+      description: CreateAgentKnowledgeDocumentResponse returns the created document.
+      example:
+        document: ""
+      properties:
+        document:
+          allOf:
+          - $ref: "#/components/schemas/AgentKnowledgeDocument"
+          description: The created document.
+    CreateAgentRequest:
+      description: CreateAgentRequest creates an agent. Unset presets take their defaults.
+      example:
+        customRules: customRules
+        instructions: instructions
+        role: ""
+        tone: ""
+        replyLength: ""
+        questionHandling: ""
+        guardrails:
+        - AGENT_GUARDRAIL_UNSPECIFIED
+        - AGENT_GUARDRAIL_UNSPECIFIED
+        name: name
+        styleNotes: styleNotes
+        language: language
+        emojiEnabled: true
+      properties:
+        customRules:
+          description: Free-text rules the agent never breaks.
+          type: string
+        emojiEnabled:
+          description: Whether the agent may use emoji. Off when unset.
+          type: boolean
+        guardrails:
+          description: The preset rules the agent never breaks. Leave empty for the
+            defaults.
+          items:
+            $ref: "#/components/schemas/AgentGuardrail"
+          type: array
+        instructions:
+          description: Free-text instructions that refine the role.
+          type: string
+        language:
+          description: ISO 639-1 code of the language the agent always speaks. Empty
+            matches the visitor's language.
+          type: string
+        name:
+          description: The agent's name.
+          type: string
+        questionHandling:
+          allOf:
+          - $ref: "#/components/schemas/AgentQuestionHandling"
+          description: What the agent does when a visitor asks it something.
+        replyLength:
+          allOf:
+          - $ref: "#/components/schemas/AgentReplyLength"
+          description: How long the agent's messages are.
+        role:
+          allOf:
+          - $ref: "#/components/schemas/AgentRole"
+          description: The job the agent does.
+        styleNotes:
+          description: Free-text notes that refine the tone.
+          type: string
+        tone:
+          allOf:
+          - $ref: "#/components/schemas/AgentTone"
+          description: How the agent sounds.
+      required:
+      - name
+    CreateAgentResponse:
+      description: CreateAgentResponse returns the created agent.
+      example:
+        agent: ""
+      properties:
+        agent:
+          allOf:
+          - $ref: "#/components/schemas/Agent"
+          description: The created agent.
     CreateBulkLinksRequest:
       description: Request to create links in bulk.
       example:
@@ -15878,6 +17211,8 @@ components:
                - API_SCOPE_BILLING_WRITE: Open checkout, credit top-up and billing portal sessions.
                - API_SCOPE_ASSISTANT_READ: Read the Assistant conversation.
                - API_SCOPE_ASSISTANT_WRITE: Send files to the Assistant, clear the conversation and contact support.
+               - API_SCOPE_AGENTS_READ: Read agents and their knowledge documents.
+               - API_SCOPE_AGENTS_WRITE: Create, update and delete agents and their knowledge documents.
             enum:
             - API_SCOPE_UNSPECIFIED
             - API_SCOPE_LINKS_READ
@@ -15909,6 +17244,8 @@ components:
             - API_SCOPE_BILLING_WRITE
             - API_SCOPE_ASSISTANT_READ
             - API_SCOPE_ASSISTANT_WRITE
+            - API_SCOPE_AGENTS_READ
+            - API_SCOPE_AGENTS_WRITE
             type: string
           type: array
       required:
@@ -17852,6 +19189,9 @@ components:
          - EVENT_ACTION_LANGUAGE_CONDITION: Route visitors based on their phone or browser language (the first
         language it sends, matched on its two-letter ISO 639-1 base, so "fr"
         catches fr-FR and fr-CA)
+         - EVENT_ACTION_CHAT_BOT: A conversation with one of the workspace's agents that collects visitor
+        attributes (composite: two branches, "completed" when every required
+        objective is known, "else" otherwise)
       enum:
       - EVENT_ACTION_UNSPECIFIED
       - EVENT_ACTION_CLIENT_REDIRECT
@@ -17878,6 +19218,7 @@ components:
       - EVENT_ACTION_OPEN_MEDIA
       - EVENT_ACTION_LOCATION_REQUEST
       - EVENT_ACTION_LANGUAGE_CONDITION
+      - EVENT_ACTION_CHAT_BOT
       title: Event action types for workflow steps
       type: string
     EventTrace:
@@ -17953,6 +19294,8 @@ components:
     EventTraceData:
       description: EventTraceData captures the payload for a completed workflow step.
       properties:
+        chatBot:
+          $ref: "#/components/schemas/ChatBotTraceData"
         contactCard:
           $ref: "#/components/schemas/ContactCardTraceData"
         countryCondition:
@@ -18490,6 +19833,15 @@ components:
           title: The claim_attempt_token from the link the agent handed over
           type: string
       title: Request to read a claim link
+    GetAgentResponse:
+      description: GetAgentResponse returns the agent with its knowledge documents.
+      example:
+        agent: ""
+      properties:
+        agent:
+          allOf:
+          - $ref: "#/components/schemas/Agent"
+          description: "The agent, with its knowledge documents and their content."
     GetAttributeDistributionRequest:
       example:
         linkId: linkId
@@ -20673,6 +22025,185 @@ components:
             If true, all tags will be removed from the link.
           type: boolean
       title: Request to update a link
+    ListAgentPresetsResponse:
+      description: ListAgentPresetsResponse returns every preset with its label and
+        description.
+      example:
+        replyLengths:
+        - description: description
+          label: label
+          value: ""
+        - description: description
+          label: label
+          value: ""
+        roles:
+        - description: description
+          label: label
+          value: ""
+        - description: description
+          label: label
+          value: ""
+        tones:
+        - description: description
+          label: label
+          value: ""
+        - description: description
+          label: label
+          value: ""
+        guardrails:
+        - defaultEnabled: true
+          description: description
+          label: label
+          value: ""
+        - defaultEnabled: true
+          description: description
+          label: label
+          value: ""
+        questionHandlings:
+        - description: description
+          label: label
+          value: ""
+        - description: description
+          label: label
+          value: ""
+        limits: ""
+      properties:
+        guardrails:
+          description: The guardrails.
+          items:
+            $ref: "#/components/schemas/AgentGuardrailPreset"
+          type: array
+        limits:
+          allOf:
+          - $ref: "#/components/schemas/AgentLimits"
+          description: The limits agent settings and knowledge must stay within.
+        questionHandlings:
+          description: The ways to handle visitor questions.
+          items:
+            $ref: "#/components/schemas/AgentQuestionHandlingPreset"
+          type: array
+        replyLengths:
+          description: The reply lengths.
+          items:
+            $ref: "#/components/schemas/AgentReplyLengthPreset"
+          type: array
+        roles:
+          description: The roles.
+          items:
+            $ref: "#/components/schemas/AgentRolePreset"
+          type: array
+        tones:
+          description: The tones.
+          items:
+            $ref: "#/components/schemas/AgentTonePreset"
+          type: array
+    ListAgentsResponse:
+      description: ListAgentsResponse returns one page of agents.
+      example:
+        nextPageToken: nextPageToken
+        totalCount: 6
+        agents:
+        - instructions: "You work for Hotel Lumiere, a boutique hotel in Lyon."
+          role: ""
+          tone: ""
+          questionHandling: ""
+          language: fr
+          customRules: customRules
+          createdAt: 2000-01-23T04:56:07.000+00:00
+          knowledgeDocuments:
+          - createdAt: 2000-01-23T04:56:07.000+00:00
+            agentId: agentId
+            id: id
+            title: Opening hours and prices
+            content: |-
+              # Opening hours
+
+              Monday to Friday, 9am to 6pm.
+            updatedAt: 2000-01-23T04:56:07.000+00:00
+          - createdAt: 2000-01-23T04:56:07.000+00:00
+            agentId: agentId
+            id: id
+            title: Opening hours and prices
+            content: |-
+              # Opening hours
+
+              Monday to Friday, 9am to 6pm.
+            updatedAt: 2000-01-23T04:56:07.000+00:00
+          knowledgeDocumentCount: 0
+          replyLength: ""
+          guardrails:
+          - AGENT_GUARDRAIL_UNSPECIFIED
+          - AGENT_GUARDRAIL_UNSPECIFIED
+          name: Front desk
+          styleNotes: Address visitors informally.
+          id: 3f9a1c52-8d1e-4b7a-9c3e-2a6f5d8b1e40
+          usages:
+          - linkId: linkId
+            linkName: linkName
+            workflowStepId: workflowStepId
+          - linkId: linkId
+            linkName: linkName
+            workflowStepId: workflowStepId
+          emojiEnabled: true
+          updatedAt: 2000-01-23T04:56:07.000+00:00
+          workspaceId: workspaceId
+        - instructions: "You work for Hotel Lumiere, a boutique hotel in Lyon."
+          role: ""
+          tone: ""
+          questionHandling: ""
+          language: fr
+          customRules: customRules
+          createdAt: 2000-01-23T04:56:07.000+00:00
+          knowledgeDocuments:
+          - createdAt: 2000-01-23T04:56:07.000+00:00
+            agentId: agentId
+            id: id
+            title: Opening hours and prices
+            content: |-
+              # Opening hours
+
+              Monday to Friday, 9am to 6pm.
+            updatedAt: 2000-01-23T04:56:07.000+00:00
+          - createdAt: 2000-01-23T04:56:07.000+00:00
+            agentId: agentId
+            id: id
+            title: Opening hours and prices
+            content: |-
+              # Opening hours
+
+              Monday to Friday, 9am to 6pm.
+            updatedAt: 2000-01-23T04:56:07.000+00:00
+          knowledgeDocumentCount: 0
+          replyLength: ""
+          guardrails:
+          - AGENT_GUARDRAIL_UNSPECIFIED
+          - AGENT_GUARDRAIL_UNSPECIFIED
+          name: Front desk
+          styleNotes: Address visitors informally.
+          id: 3f9a1c52-8d1e-4b7a-9c3e-2a6f5d8b1e40
+          usages:
+          - linkId: linkId
+            linkName: linkName
+            workflowStepId: workflowStepId
+          - linkId: linkId
+            linkName: linkName
+            workflowStepId: workflowStepId
+          emojiEnabled: true
+          updatedAt: 2000-01-23T04:56:07.000+00:00
+          workspaceId: workspaceId
+      properties:
+        agents:
+          description: "The agents, without their knowledge documents."
+          items:
+            $ref: "#/components/schemas/Agent"
+          type: array
+        nextPageToken:
+          description: Token for the next page. Empty on the last page.
+          type: string
+        totalCount:
+          description: How many agents the workspace has. Set on the last page only.
+          format: int64
+          type: integer
     ListAllowancesResponse:
       example:
         allowances:
@@ -26808,6 +28339,24 @@ components:
       - TRIGGERED_BY_VISITOR
       title: The actor that triggered the event
       type: string
+    UpdateAgentKnowledgeDocumentResponse:
+      description: UpdateAgentKnowledgeDocumentResponse returns the updated document.
+      example:
+        document: ""
+      properties:
+        document:
+          allOf:
+          - $ref: "#/components/schemas/AgentKnowledgeDocument"
+          description: The updated document.
+    UpdateAgentResponse:
+      description: UpdateAgentResponse returns the updated agent.
+      example:
+        agent: ""
+      properties:
+        agent:
+          allOf:
+          - $ref: "#/components/schemas/Agent"
+          description: "The updated agent, with its knowledge documents."
     UpdateCustomDomainResponse:
       example:
         customDomain:
@@ -28778,6 +30327,9 @@ components:
              - EVENT_ACTION_LANGUAGE_CONDITION: Route visitors based on their phone or browser language (the first
             language it sends, matched on its two-letter ISO 639-1 base, so "fr"
             catches fr-FR and fr-CA)
+             - EVENT_ACTION_CHAT_BOT: A conversation with one of the workspace's agents that collects visitor
+            attributes (composite: two branches, "completed" when every required
+            objective is known, "else" otherwise)
           enum:
           - EVENT_ACTION_UNSPECIFIED
           - EVENT_ACTION_CLIENT_REDIRECT
@@ -28804,6 +30356,7 @@ components:
           - EVENT_ACTION_OPEN_MEDIA
           - EVENT_ACTION_LOCATION_REQUEST
           - EVENT_ACTION_LANGUAGE_CONDITION
+          - EVENT_ACTION_CHAT_BOT
           example: EVENT_ACTION_CLIENT_REDIRECT
           title: The event action type for this workflow step
           type: string
@@ -28961,6 +30514,8 @@ components:
       type: string
     WorkflowStepPayload:
       properties:
+        chatBot:
+          $ref: "#/components/schemas/ChatBotPayload"
         clientRedirect:
           $ref: "#/components/schemas/ClientRedirectPayload"
         countryCondition:
@@ -29104,6 +30659,9 @@ components:
              - EVENT_ACTION_LANGUAGE_CONDITION: Route visitors based on their phone or browser language (the first
             language it sends, matched on its two-letter ISO 639-1 base, so "fr"
             catches fr-FR and fr-CA)
+             - EVENT_ACTION_CHAT_BOT: A conversation with one of the workspace's agents that collects visitor
+            attributes (composite: two branches, "completed" when every required
+            objective is known, "else" otherwise)
           enum:
           - EVENT_ACTION_UNSPECIFIED
           - EVENT_ACTION_CLIENT_REDIRECT
@@ -29130,6 +30688,7 @@ components:
           - EVENT_ACTION_OPEN_MEDIA
           - EVENT_ACTION_LOCATION_REQUEST
           - EVENT_ACTION_LANGUAGE_CONDITION
+          - EVENT_ACTION_CHAT_BOT
           example: EVENT_ACTION_FORM_SUBMIT
           title: The event action type for this workflow step
           type: string
@@ -29602,6 +31161,8 @@ components:
                - API_SCOPE_BILLING_WRITE: Open checkout, credit top-up and billing portal sessions.
                - API_SCOPE_ASSISTANT_READ: Read the Assistant conversation.
                - API_SCOPE_ASSISTANT_WRITE: Send files to the Assistant, clear the conversation and contact support.
+               - API_SCOPE_AGENTS_READ: Read agents and their knowledge documents.
+               - API_SCOPE_AGENTS_WRITE: Create, update and delete agents and their knowledge documents.
             enum:
             - API_SCOPE_UNSPECIFIED
             - API_SCOPE_LINKS_READ
@@ -29633,6 +31194,8 @@ components:
             - API_SCOPE_BILLING_WRITE
             - API_SCOPE_ASSISTANT_READ
             - API_SCOPE_ASSISTANT_WRITE
+            - API_SCOPE_AGENTS_READ
+            - API_SCOPE_AGENTS_WRITE
             type: string
           readOnly: true
           type: array
@@ -29721,6 +31284,8 @@ components:
                - API_SCOPE_BILLING_WRITE: Open checkout, credit top-up and billing portal sessions.
                - API_SCOPE_ASSISTANT_READ: Read the Assistant conversation.
                - API_SCOPE_ASSISTANT_WRITE: Send files to the Assistant, clear the conversation and contact support.
+               - API_SCOPE_AGENTS_READ: Read agents and their knowledge documents.
+               - API_SCOPE_AGENTS_WRITE: Create, update and delete agents and their knowledge documents.
             enum:
             - API_SCOPE_UNSPECIFIED
             - API_SCOPE_LINKS_READ
@@ -29752,6 +31317,8 @@ components:
             - API_SCOPE_BILLING_WRITE
             - API_SCOPE_ASSISTANT_READ
             - API_SCOPE_ASSISTANT_WRITE
+            - API_SCOPE_AGENTS_READ
+            - API_SCOPE_AGENTS_WRITE
             type: string
           type: array
     apiTag:
@@ -29868,6 +31435,8 @@ components:
           authorizationUrl: https://mcp.linkbreakers.com/oauth/authorize
           refreshUrl: https://mcp.linkbreakers.com/oauth/token
           scopes:
+            agents:read: Read agents and their knowledge documents.
+            agents:write: "Create, update and delete agents and their knowledge documents."
             analytics:read: "Read events, metrics, time series, analytics data and\
               \ dashboards."
             analytics:write: "Create, update and delete analytics dashboards and generate\
