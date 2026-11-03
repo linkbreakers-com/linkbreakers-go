@@ -42,7 +42,7 @@ info:
 
     Send a `Linkbreakers-Client` request header saying which client made the call: `<client>/<version> (<details>)`, for example `my-integration/1.2.0 (python 3.12; linux)`. The official SDKs, the CLI and the MCP bridge set it for you, as `sdk-python/2.3.1 (python 3.12.4; linux)` or `cli/1.4.0 (darwin arm64)`. It is optional and changes nothing about how a request is handled; it tells us which clients and versions are in use, so we know what can be retired and what to fix first. Keep the details short and free of personal data. Browsers may send it too: it is allowed by CORS.
   title: Linkbreakers API
-  version: 1.188.4
+  version: 1.188.6
   x-api-versioning:
     compatibility: additive changes only within a version
     currentVersion: v1
@@ -1179,7 +1179,7 @@ paths:
   /v1/analytics/breakdown:
     post:
       description: |-
-        Returns a ranked breakdown of events by any dimension (browser, platform, device type, country, city, visit type).
+        Returns a ranked breakdown of events by any dimension (browser, platform, device type, country, city, visit type, in-app browser, in-app browser version).
 
         Requires the `analytics:read` scope.
       operationId: AnalyticsDataService_GetBreakdown
@@ -1915,6 +1915,123 @@ paths:
       - oauth2:
         - analytics:read
       summary: Get hour of day distribution
+      tags:
+      - Analytics Data
+      x-required-scope: analytics:read
+  /v1/analytics/shared-locations:
+    get:
+      description: |-
+        Returns the precise positions visitors shared through a Location request workflow step, newest first, capped at 2000, with the total count. Without start_date and end_date it covers all time.
+
+        Requires the `analytics:read` scope.
+      operationId: AnalyticsDataService_GetSharedLocations
+      parameters:
+      - description: |-
+          Inclusive start timestamp. Without start_date and end_date the request
+          covers all time.
+        explode: true
+        in: query
+        name: startDate
+        required: false
+        schema:
+          format: date-time
+          type: string
+        style: form
+      - description: Exclusive end timestamp
+        explode: true
+        in: query
+        name: endDate
+        required: false
+        schema:
+          format: date-time
+          type: string
+        style: form
+      - description: |-
+          Maximum number of positions returned, newest first. Defaults to and may
+          not exceed 2000. total still counts every match.
+        explode: true
+        in: query
+        name: limit
+        required: false
+        schema:
+          format: int32
+          type: integer
+        style: form
+      - description: Optional link filter (UUID); when omitted covers the whole workspace
+        explode: true
+        in: query
+        name: linkId
+        required: false
+        schema:
+          type: string
+        style: form
+      - description: |-
+          Optional directory filter (UUID): the links of this directory and of every
+          directory below it. Send at most one of link_id, directory_id and tag_id
+        explode: true
+        in: query
+        name: directoryId
+        required: false
+        schema:
+          type: string
+        style: form
+      - description: |-
+          Optional tag filter (UUID): every link carrying this tag. Send at most one
+          of link_id, directory_id and tag_id
+        explode: true
+        in: query
+        name: tagId
+        required: false
+        schema:
+          type: string
+        style: form
+      - description: |-
+          Optional country filter: visits from any of these countries (ISO 3166-1
+          alpha-2 codes, e.g. "FR"). Combines with the link, directory or tag filter
+        explode: true
+        in: query
+        name: countries
+        required: false
+        schema:
+          items:
+            type: string
+          type: array
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetSharedLocationsResponse"
+          description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - analytics:read
+      - oauth2:
+        - analytics:read
+      summary: List shared locations
       tags:
       - Analytics Data
       x-required-scope: analytics:read
@@ -17896,6 +18013,7 @@ components:
         deviceType: DEVICE_TYPE_MOBILE
         browserLanguage: "en-US,en;q=0.9"
         deviceActor: DEVICE_ACTOR_HUMAN
+        inAppBrowserDetails: ""
         screenHeight: 1117
         deviceActorOrigin: OpenAI
         ipAddress: 203.0.113.42
@@ -17906,9 +18024,11 @@ components:
         touchScreen: true
         lastUsedAt: 2000-01-23T04:56:07.000+00:00
         deviceConcurrency: 4
+        inAppBrowserVersion: 447.0.0.34.80
         region: CRF
         asn: 7922
         deviceBrand: Apple
+        inAppBrowser: IN_APP_BROWSER_INSTAGRAM
       properties:
         asn:
           example: 7922
@@ -18026,6 +18146,64 @@ components:
         id:
           example: 6f1b2e90-1234-4c8f-91e1-63cd927bf908
           title: Unique identifier for the device fingerprint (UUID)
+          type: string
+        inAppBrowser:
+          description: |-
+            InAppBrowser is the app whose in-app browser (webview) opened the link,
+            read from the user agent. Apps open links in their own browser, often
+            without a referrer, so the user agent is the only sign of where a click came
+            from.
+
+             - IN_APP_BROWSER_UNSPECIFIED: Not read: the device is a bot or an agent, or no device details were
+            collected (data collection level None)
+             - IN_APP_BROWSER_NONE: A regular browser (Safari, Chrome...), not an app's in-app browser
+             - IN_APP_BROWSER_INSTAGRAM: Instagram
+             - IN_APP_BROWSER_FACEBOOK: Facebook
+             - IN_APP_BROWSER_MESSENGER: Messenger
+             - IN_APP_BROWSER_THREADS: Threads
+             - IN_APP_BROWSER_TIKTOK: TikTok
+             - IN_APP_BROWSER_SNAPCHAT: Snapchat
+             - IN_APP_BROWSER_LINKEDIN: LinkedIn
+             - IN_APP_BROWSER_PINTEREST: Pinterest
+             - IN_APP_BROWSER_X: X (Twitter)
+             - IN_APP_BROWSER_WECHAT: WeChat
+             - IN_APP_BROWSER_LINE: LINE
+             - IN_APP_BROWSER_GOOGLE_APP: The Google app (Google Search app, GSA)
+             - IN_APP_BROWSER_OTHER: Another app's in-app browser that does not name the app (an Android
+            webview, marked "; wv)")
+          enum:
+          - IN_APP_BROWSER_UNSPECIFIED
+          - IN_APP_BROWSER_NONE
+          - IN_APP_BROWSER_INSTAGRAM
+          - IN_APP_BROWSER_FACEBOOK
+          - IN_APP_BROWSER_MESSENGER
+          - IN_APP_BROWSER_THREADS
+          - IN_APP_BROWSER_TIKTOK
+          - IN_APP_BROWSER_SNAPCHAT
+          - IN_APP_BROWSER_LINKEDIN
+          - IN_APP_BROWSER_PINTEREST
+          - IN_APP_BROWSER_X
+          - IN_APP_BROWSER_WECHAT
+          - IN_APP_BROWSER_LINE
+          - IN_APP_BROWSER_GOOGLE_APP
+          - IN_APP_BROWSER_OTHER
+          example: IN_APP_BROWSER_INSTAGRAM
+          title: |-
+            The app whose in-app browser opened the link (Instagram, TikTok...), NONE
+            in a regular browser, UNSPECIFIED when not read (bots, agents, or no data
+            collected)
+          type: string
+        inAppBrowserDetails:
+          allOf:
+          - $ref: "#/components/schemas/InAppBrowserDetails"
+          title: |-
+            What else the app writes about itself and the phone (locale, hardware
+            model, network, carrier, screen)
+        inAppBrowserVersion:
+          example: 447.0.0.34.80
+          title: |-
+            Version of the app whose in-app browser opened the link, when the app
+            writes it (every app but Pinterest)
           type: string
         ipAddress:
           example: 203.0.113.42
@@ -18273,6 +18451,14 @@ components:
         id:
           example: option-1
           type: string
+        minAppVersion:
+          description: |-
+            Lowest app version this option matches, as dotted numbers ("400" or
+            "447.0.1"). Only with a single app's value (Instagram, TikTok...), not
+            with a browser family, a group, or Pinterest, which writes no version.
+            A visit whose app version is unknown does not match.
+          example: "400"
+          type: string
         name:
           example: Chrome Visitors
           type: string
@@ -18280,7 +18466,33 @@ components:
           example: 123e4567-e89b-12d3-a456-426614174000
           type: string
         value:
-          description: Allowed values for device browser routing conditions.
+          description: |-
+            Allowed values for device browser routing conditions. Browser families
+            match visits in a regular browser only. In-app browser values match visits
+            inside an app's in-app browser only: an Instagram in-app browser on an
+            iPhone is Instagram, never Safari.
+
+             - DEVICE_BROWSER_CONDITION_VALUE_CHROME: Chrome, in a regular browser
+             - DEVICE_BROWSER_CONDITION_VALUE_SAFARI: Safari, in a regular browser
+             - DEVICE_BROWSER_CONDITION_VALUE_FIREFOX: Firefox, in a regular browser
+             - DEVICE_BROWSER_CONDITION_VALUE_EDGE: Edge, in a regular browser
+             - DEVICE_BROWSER_CONDITION_VALUE_OPERA: Opera, in a regular browser
+             - DEVICE_BROWSER_CONDITION_VALUE_SAMSUNG_BROWSER: Samsung Internet, in a regular browser
+             - DEVICE_BROWSER_CONDITION_VALUE_ANY_IN_APP_BROWSER: Any app's in-app browser
+             - DEVICE_BROWSER_CONDITION_VALUE_META_APPS: The in-app browser of a Meta app: Instagram, Facebook, Messenger or Threads
+             - DEVICE_BROWSER_CONDITION_VALUE_INSTAGRAM: Instagram's in-app browser
+             - DEVICE_BROWSER_CONDITION_VALUE_FACEBOOK: Facebook's in-app browser
+             - DEVICE_BROWSER_CONDITION_VALUE_MESSENGER: Messenger's in-app browser
+             - DEVICE_BROWSER_CONDITION_VALUE_THREADS: Threads' in-app browser
+             - DEVICE_BROWSER_CONDITION_VALUE_TIKTOK: TikTok's in-app browser
+             - DEVICE_BROWSER_CONDITION_VALUE_SNAPCHAT: Snapchat's in-app browser
+             - DEVICE_BROWSER_CONDITION_VALUE_LINKEDIN: LinkedIn's in-app browser
+             - DEVICE_BROWSER_CONDITION_VALUE_PINTEREST: Pinterest's in-app browser
+             - DEVICE_BROWSER_CONDITION_VALUE_X: X's (Twitter's) in-app browser
+             - DEVICE_BROWSER_CONDITION_VALUE_WECHAT: WeChat's in-app browser
+             - DEVICE_BROWSER_CONDITION_VALUE_LINE: LINE's in-app browser
+             - DEVICE_BROWSER_CONDITION_VALUE_GOOGLE_APP: The Google app's in-app browser
+             - DEVICE_BROWSER_CONDITION_VALUE_OTHER_IN_APP_BROWSER: Another app's in-app browser that does not name the app (Android webview)
           enum:
           - DEVICE_BROWSER_CONDITION_VALUE_UNSPECIFIED
           - DEVICE_BROWSER_CONDITION_VALUE_CHROME
@@ -18289,6 +18501,21 @@ components:
           - DEVICE_BROWSER_CONDITION_VALUE_EDGE
           - DEVICE_BROWSER_CONDITION_VALUE_OPERA
           - DEVICE_BROWSER_CONDITION_VALUE_SAMSUNG_BROWSER
+          - DEVICE_BROWSER_CONDITION_VALUE_ANY_IN_APP_BROWSER
+          - DEVICE_BROWSER_CONDITION_VALUE_META_APPS
+          - DEVICE_BROWSER_CONDITION_VALUE_INSTAGRAM
+          - DEVICE_BROWSER_CONDITION_VALUE_FACEBOOK
+          - DEVICE_BROWSER_CONDITION_VALUE_MESSENGER
+          - DEVICE_BROWSER_CONDITION_VALUE_THREADS
+          - DEVICE_BROWSER_CONDITION_VALUE_TIKTOK
+          - DEVICE_BROWSER_CONDITION_VALUE_SNAPCHAT
+          - DEVICE_BROWSER_CONDITION_VALUE_LINKEDIN
+          - DEVICE_BROWSER_CONDITION_VALUE_PINTEREST
+          - DEVICE_BROWSER_CONDITION_VALUE_X
+          - DEVICE_BROWSER_CONDITION_VALUE_WECHAT
+          - DEVICE_BROWSER_CONDITION_VALUE_LINE
+          - DEVICE_BROWSER_CONDITION_VALUE_GOOGLE_APP
+          - DEVICE_BROWSER_CONDITION_VALUE_OTHER_IN_APP_BROWSER
           example: DEVICE_BROWSER_CONDITION_VALUE_CHROME
           type: string
     DeviceBrowserConditionPayload:
@@ -18307,6 +18534,14 @@ components:
           type: string
         hasElse:
           type: boolean
+        inAppBrowser:
+          allOf:
+          - $ref: "#/components/schemas/InAppBrowser"
+          title: "The app whose in-app browser the visit was in, NONE in a regular\
+            \ browser"
+        inAppBrowserVersion:
+          title: "That app's version, when it writes one"
+          type: string
         options:
           items:
             $ref: "#/components/schemas/DeviceBrowserConditionTraceOption"
@@ -18314,16 +18549,50 @@ components:
     DeviceBrowserConditionTraceOption:
       properties:
         browserName:
+          title: "Browser family the option matches, empty for an in-app browser option"
           type: string
         hasRoute:
           type: boolean
         id:
           type: string
+        minAppVersion:
+          title: "Lowest app version the option matches, when it sets one"
+          type: string
         name:
           type: string
+        value:
+          allOf:
+          - $ref: "#/components/schemas/DeviceBrowserConditionValue"
+          title: "The option's value, browser family or in-app browser"
     DeviceBrowserConditionValue:
       default: DEVICE_BROWSER_CONDITION_VALUE_UNSPECIFIED
-      description: Allowed values for device browser routing conditions.
+      description: |-
+        Allowed values for device browser routing conditions. Browser families
+        match visits in a regular browser only. In-app browser values match visits
+        inside an app's in-app browser only: an Instagram in-app browser on an
+        iPhone is Instagram, never Safari.
+
+         - DEVICE_BROWSER_CONDITION_VALUE_CHROME: Chrome, in a regular browser
+         - DEVICE_BROWSER_CONDITION_VALUE_SAFARI: Safari, in a regular browser
+         - DEVICE_BROWSER_CONDITION_VALUE_FIREFOX: Firefox, in a regular browser
+         - DEVICE_BROWSER_CONDITION_VALUE_EDGE: Edge, in a regular browser
+         - DEVICE_BROWSER_CONDITION_VALUE_OPERA: Opera, in a regular browser
+         - DEVICE_BROWSER_CONDITION_VALUE_SAMSUNG_BROWSER: Samsung Internet, in a regular browser
+         - DEVICE_BROWSER_CONDITION_VALUE_ANY_IN_APP_BROWSER: Any app's in-app browser
+         - DEVICE_BROWSER_CONDITION_VALUE_META_APPS: The in-app browser of a Meta app: Instagram, Facebook, Messenger or Threads
+         - DEVICE_BROWSER_CONDITION_VALUE_INSTAGRAM: Instagram's in-app browser
+         - DEVICE_BROWSER_CONDITION_VALUE_FACEBOOK: Facebook's in-app browser
+         - DEVICE_BROWSER_CONDITION_VALUE_MESSENGER: Messenger's in-app browser
+         - DEVICE_BROWSER_CONDITION_VALUE_THREADS: Threads' in-app browser
+         - DEVICE_BROWSER_CONDITION_VALUE_TIKTOK: TikTok's in-app browser
+         - DEVICE_BROWSER_CONDITION_VALUE_SNAPCHAT: Snapchat's in-app browser
+         - DEVICE_BROWSER_CONDITION_VALUE_LINKEDIN: LinkedIn's in-app browser
+         - DEVICE_BROWSER_CONDITION_VALUE_PINTEREST: Pinterest's in-app browser
+         - DEVICE_BROWSER_CONDITION_VALUE_X: X's (Twitter's) in-app browser
+         - DEVICE_BROWSER_CONDITION_VALUE_WECHAT: WeChat's in-app browser
+         - DEVICE_BROWSER_CONDITION_VALUE_LINE: LINE's in-app browser
+         - DEVICE_BROWSER_CONDITION_VALUE_GOOGLE_APP: The Google app's in-app browser
+         - DEVICE_BROWSER_CONDITION_VALUE_OTHER_IN_APP_BROWSER: Another app's in-app browser that does not name the app (Android webview)
       enum:
       - DEVICE_BROWSER_CONDITION_VALUE_UNSPECIFIED
       - DEVICE_BROWSER_CONDITION_VALUE_CHROME
@@ -18332,6 +18601,21 @@ components:
       - DEVICE_BROWSER_CONDITION_VALUE_EDGE
       - DEVICE_BROWSER_CONDITION_VALUE_OPERA
       - DEVICE_BROWSER_CONDITION_VALUE_SAMSUNG_BROWSER
+      - DEVICE_BROWSER_CONDITION_VALUE_ANY_IN_APP_BROWSER
+      - DEVICE_BROWSER_CONDITION_VALUE_META_APPS
+      - DEVICE_BROWSER_CONDITION_VALUE_INSTAGRAM
+      - DEVICE_BROWSER_CONDITION_VALUE_FACEBOOK
+      - DEVICE_BROWSER_CONDITION_VALUE_MESSENGER
+      - DEVICE_BROWSER_CONDITION_VALUE_THREADS
+      - DEVICE_BROWSER_CONDITION_VALUE_TIKTOK
+      - DEVICE_BROWSER_CONDITION_VALUE_SNAPCHAT
+      - DEVICE_BROWSER_CONDITION_VALUE_LINKEDIN
+      - DEVICE_BROWSER_CONDITION_VALUE_PINTEREST
+      - DEVICE_BROWSER_CONDITION_VALUE_X
+      - DEVICE_BROWSER_CONDITION_VALUE_WECHAT
+      - DEVICE_BROWSER_CONDITION_VALUE_LINE
+      - DEVICE_BROWSER_CONDITION_VALUE_GOOGLE_APP
+      - DEVICE_BROWSER_CONDITION_VALUE_OTHER_IN_APP_BROWSER
       type: string
     DeviceDataPoint:
       example:
@@ -18930,6 +19214,7 @@ components:
             deviceType: DEVICE_TYPE_MOBILE
             browserLanguage: "en-US,en;q=0.9"
             deviceActor: DEVICE_ACTOR_HUMAN
+            inAppBrowserDetails: ""
             screenHeight: 1117
             deviceActorOrigin: OpenAI
             ipAddress: 203.0.113.42
@@ -18940,9 +19225,11 @@ components:
             touchScreen: true
             lastUsedAt: 2000-01-23T04:56:07.000+00:00
             deviceConcurrency: 4
+            inAppBrowserVersion: 447.0.0.34.80
             region: CRF
             asn: 7922
             deviceBrand: Apple
+            inAppBrowser: IN_APP_BROWSER_INSTAGRAM
           - country: US
             screenWidth: 1728
             city: New York
@@ -18965,6 +19252,7 @@ components:
             deviceType: DEVICE_TYPE_MOBILE
             browserLanguage: "en-US,en;q=0.9"
             deviceActor: DEVICE_ACTOR_HUMAN
+            inAppBrowserDetails: ""
             screenHeight: 1117
             deviceActorOrigin: OpenAI
             ipAddress: 203.0.113.42
@@ -18975,9 +19263,11 @@ components:
             touchScreen: true
             lastUsedAt: 2000-01-23T04:56:07.000+00:00
             deviceConcurrency: 4
+            inAppBrowserVersion: 447.0.0.34.80
             region: CRF
             asn: 7922
             deviceBrand: Apple
+            inAppBrowser: IN_APP_BROWSER_INSTAGRAM
           qrcodeCount: 3
           createdAt: 2000-01-23T04:56:07.000+00:00
           firstName: Sam
@@ -19162,7 +19452,9 @@ components:
         social. It is an exit step, so the visitor leaves from here.
          - EVENT_ACTION_DEVICE_TYPE_CONDITION: Route visitors based on device type (e.g. MOBILE, DESKTOP, TABLET)
          - EVENT_ACTION_DEVICE_PLATFORM_CONDITION: Route visitors based on device platform / operating system (e.g. iOS, Android, macOS)
-         - EVENT_ACTION_DEVICE_BROWSER_CONDITION: Route visitors based on browser family (e.g. Chrome, Safari, Firefox)
+         - EVENT_ACTION_DEVICE_BROWSER_CONDITION: Route visitors based on their browser: a browser family (Chrome, Safari,
+        Firefox...) or the in-app browser of the app a link was opened in
+        (Instagram, TikTok, Facebook, LinkedIn...)
          - EVENT_ACTION_DEVICE_BRAND_CONDITION: Route visitors based on hardware brand (e.g. Apple, Samsung, Google)
          - EVENT_ACTION_DEVICE_ACTOR_CONDITION: Route visitors based on actor classification: HUMAN, BOT, AGENT, AUTOMATED
         or UNKNOWN. AGENT is an AI agent that names itself (GPTBot, Claude-User,
@@ -20100,8 +20392,11 @@ components:
             alpha-2 codes, e.g. "FR"). Combines with the link, directory or tag filter
           type: array
         dimension:
-          title: "Dimension to break down by: \"browser\", \"platform\", \"device_type\"\
-            , \"country\", \"city\", \"visit_type\""
+          title: |-
+            Dimension to break down by: "browser", "platform", "device_type", "country", "city", "visit_type",
+            "in_app_browser" (the app whose in-app browser opened the link; code holds the
+            InAppBrowser value without its prefix, e.g. "INSTAGRAM", "NONE" for a regular
+            browser) or "in_app_browser_version" (app and major version, e.g. "Instagram 447")
           type: string
         directoryId:
           example: d87a9b30-5c8b-4d4e-9fd3-5f5f5f5f5f5f
@@ -20799,6 +21094,32 @@ components:
           description: How many months of Pro the reward gives.
           format: int32
           type: integer
+    GetSharedLocationsResponse:
+      example:
+        total: 5
+        data:
+        - accuracyMeters: 0.8008281904610115
+          occurredAt: 2000-01-23T04:56:07.000+00:00
+          linkId: linkId
+          latitude: 6.027456183070403
+          longitude: 1.4658129805029452
+        - accuracyMeters: 0.8008281904610115
+          occurredAt: 2000-01-23T04:56:07.000+00:00
+          linkId: linkId
+          latitude: 6.027456183070403
+          longitude: 1.4658129805029452
+      properties:
+        data:
+          items:
+            $ref: "#/components/schemas/SharedLocation"
+          type: array
+        total:
+          format: int32
+          title: |-
+            Every position matching the request, which exceeds the length of data
+            when the limit cut the list
+          type: integer
+      title: "GetSharedLocationsResponse holds the shared positions, newest first"
     GetSlackIntegrationResponse:
       example:
         slackIntegration: ""
@@ -21261,6 +21582,10 @@ components:
       description: |-
         GroupByDimension defines the available dimensions for grouping analytics data.
         Add new dimensions here as the platform grows.
+
+         - GROUP_BY_DIMENSION_IN_APP_BROWSER: The app whose in-app browser opened the link (Instagram, TikTok...), with
+        visits in a regular browser as their own group
+         - GROUP_BY_DIMENSION_IN_APP_BROWSER_VERSION: The in-app browser's app and major version ("Instagram 447")
       enum:
       - GROUP_BY_DIMENSION_UNSPECIFIED
       - GROUP_BY_DIMENSION_COUNTRY
@@ -21269,6 +21594,8 @@ components:
       - GROUP_BY_DIMENSION_VISIT_TYPE
       - GROUP_BY_DIMENSION_BROWSER
       - GROUP_BY_DIMENSION_PLATFORM
+      - GROUP_BY_DIMENSION_IN_APP_BROWSER
+      - GROUP_BY_DIMENSION_IN_APP_BROWSER_VERSION
       type: string
     HTTPMethod:
       default: HTTP_METHOD_UNSPECIFIED
@@ -21429,6 +21756,96 @@ components:
           title: The imported QR code template (now owned by the importing workspace)
       title: ImportQrcodeTemplateResponse represents the response after importing
         a template
+    InAppBrowser:
+      default: IN_APP_BROWSER_UNSPECIFIED
+      description: |-
+        InAppBrowser is the app whose in-app browser (webview) opened the link,
+        read from the user agent. Apps open links in their own browser, often
+        without a referrer, so the user agent is the only sign of where a click came
+        from.
+
+         - IN_APP_BROWSER_UNSPECIFIED: Not read: the device is a bot or an agent, or no device details were
+        collected (data collection level None)
+         - IN_APP_BROWSER_NONE: A regular browser (Safari, Chrome...), not an app's in-app browser
+         - IN_APP_BROWSER_INSTAGRAM: Instagram
+         - IN_APP_BROWSER_FACEBOOK: Facebook
+         - IN_APP_BROWSER_MESSENGER: Messenger
+         - IN_APP_BROWSER_THREADS: Threads
+         - IN_APP_BROWSER_TIKTOK: TikTok
+         - IN_APP_BROWSER_SNAPCHAT: Snapchat
+         - IN_APP_BROWSER_LINKEDIN: LinkedIn
+         - IN_APP_BROWSER_PINTEREST: Pinterest
+         - IN_APP_BROWSER_X: X (Twitter)
+         - IN_APP_BROWSER_WECHAT: WeChat
+         - IN_APP_BROWSER_LINE: LINE
+         - IN_APP_BROWSER_GOOGLE_APP: The Google app (Google Search app, GSA)
+         - IN_APP_BROWSER_OTHER: Another app's in-app browser that does not name the app (an Android
+        webview, marked "; wv)")
+      enum:
+      - IN_APP_BROWSER_UNSPECIFIED
+      - IN_APP_BROWSER_NONE
+      - IN_APP_BROWSER_INSTAGRAM
+      - IN_APP_BROWSER_FACEBOOK
+      - IN_APP_BROWSER_MESSENGER
+      - IN_APP_BROWSER_THREADS
+      - IN_APP_BROWSER_TIKTOK
+      - IN_APP_BROWSER_SNAPCHAT
+      - IN_APP_BROWSER_LINKEDIN
+      - IN_APP_BROWSER_PINTEREST
+      - IN_APP_BROWSER_X
+      - IN_APP_BROWSER_WECHAT
+      - IN_APP_BROWSER_LINE
+      - IN_APP_BROWSER_GOOGLE_APP
+      - IN_APP_BROWSER_OTHER
+      type: string
+    InAppBrowserDetails:
+      description: |-
+        InAppBrowserDetails is what an app writes about itself and the phone in its
+        in-app browser's user agent. Each app gives a different subset; a field the
+        app does not give is empty.
+      properties:
+        appBuild:
+          example: "1065993616"
+          title: "App build number (Instagram, Threads, Facebook, Messenger)"
+          type: string
+        carrier:
+          example: T-Mobile
+          title: "Mobile carrier (Facebook, Messenger, when the app sends it)"
+          type: string
+        hardwareModel:
+          example: "iPhone17,3"
+          title: "Exact hardware model (Instagram, Threads, Facebook, Messenger, Snapchat\
+            \ on Android)"
+          type: string
+        locale:
+          example: en_GB
+          title: |-
+            App language and region as the app writes it (Instagram, Threads, Facebook,
+            Messenger, TikTok, WeChat)
+          type: string
+        manufacturer:
+          example: samsung
+          title: "Hardware manufacturer (Instagram and Threads on Android, Facebook,\
+            \ Messenger)"
+          type: string
+        networkType:
+          example: WIFI
+          title: "Network the app reports, such as WIFI, 4G or 5G (WeChat, TikTok)"
+          type: string
+        region:
+          example: NG
+          title: Region the app reports (TikTok)
+          type: string
+        screenDensity:
+          example: "3.00"
+          title: "Screen scale or density (Instagram, Threads, Facebook and Messenger\
+            \ on Android)"
+          type: string
+        screenResolution:
+          example: 1170x2532
+          title: "Screen size in physical pixels (Instagram, Threads, Facebook and\
+            \ Messenger on Android)"
+          type: string
     InviteMemberRequest:
       description: InviteMemberRequest seeds a new teammate invite email and pending
         membership.
@@ -22599,6 +23016,7 @@ components:
               deviceType: DEVICE_TYPE_MOBILE
               browserLanguage: "en-US,en;q=0.9"
               deviceActor: DEVICE_ACTOR_HUMAN
+              inAppBrowserDetails: ""
               screenHeight: 1117
               deviceActorOrigin: OpenAI
               ipAddress: 203.0.113.42
@@ -22609,9 +23027,11 @@ components:
               touchScreen: true
               lastUsedAt: 2000-01-23T04:56:07.000+00:00
               deviceConcurrency: 4
+              inAppBrowserVersion: 447.0.0.34.80
               region: CRF
               asn: 7922
               deviceBrand: Apple
+              inAppBrowser: IN_APP_BROWSER_INSTAGRAM
             - country: US
               screenWidth: 1728
               city: New York
@@ -22634,6 +23054,7 @@ components:
               deviceType: DEVICE_TYPE_MOBILE
               browserLanguage: "en-US,en;q=0.9"
               deviceActor: DEVICE_ACTOR_HUMAN
+              inAppBrowserDetails: ""
               screenHeight: 1117
               deviceActorOrigin: OpenAI
               ipAddress: 203.0.113.42
@@ -22644,9 +23065,11 @@ components:
               touchScreen: true
               lastUsedAt: 2000-01-23T04:56:07.000+00:00
               deviceConcurrency: 4
+              inAppBrowserVersion: 447.0.0.34.80
               region: CRF
               asn: 7922
               deviceBrand: Apple
+              inAppBrowser: IN_APP_BROWSER_INSTAGRAM
             qrcodeCount: 3
             createdAt: 2000-01-23T04:56:07.000+00:00
             firstName: Sam
@@ -22769,6 +23192,7 @@ components:
               deviceType: DEVICE_TYPE_MOBILE
               browserLanguage: "en-US,en;q=0.9"
               deviceActor: DEVICE_ACTOR_HUMAN
+              inAppBrowserDetails: ""
               screenHeight: 1117
               deviceActorOrigin: OpenAI
               ipAddress: 203.0.113.42
@@ -22779,9 +23203,11 @@ components:
               touchScreen: true
               lastUsedAt: 2000-01-23T04:56:07.000+00:00
               deviceConcurrency: 4
+              inAppBrowserVersion: 447.0.0.34.80
               region: CRF
               asn: 7922
               deviceBrand: Apple
+              inAppBrowser: IN_APP_BROWSER_INSTAGRAM
             - country: US
               screenWidth: 1728
               city: New York
@@ -22804,6 +23230,7 @@ components:
               deviceType: DEVICE_TYPE_MOBILE
               browserLanguage: "en-US,en;q=0.9"
               deviceActor: DEVICE_ACTOR_HUMAN
+              inAppBrowserDetails: ""
               screenHeight: 1117
               deviceActorOrigin: OpenAI
               ipAddress: 203.0.113.42
@@ -22814,9 +23241,11 @@ components:
               touchScreen: true
               lastUsedAt: 2000-01-23T04:56:07.000+00:00
               deviceConcurrency: 4
+              inAppBrowserVersion: 447.0.0.34.80
               region: CRF
               asn: 7922
               deviceBrand: Apple
+              inAppBrowser: IN_APP_BROWSER_INSTAGRAM
             qrcodeCount: 3
             createdAt: 2000-01-23T04:56:07.000+00:00
             firstName: Sam
@@ -22972,6 +23401,7 @@ components:
                 deviceType: DEVICE_TYPE_MOBILE
                 browserLanguage: "en-US,en;q=0.9"
                 deviceActor: DEVICE_ACTOR_HUMAN
+                inAppBrowserDetails: ""
                 screenHeight: 1117
                 deviceActorOrigin: OpenAI
                 ipAddress: 203.0.113.42
@@ -22983,9 +23413,11 @@ components:
                 touchScreen: true
                 lastUsedAt: 2000-01-23T04:56:07.000+00:00
                 deviceConcurrency: 4
+                inAppBrowserVersion: 447.0.0.34.80
                 region: CRF
                 asn: 7922
                 deviceBrand: Apple
+                inAppBrowser: IN_APP_BROWSER_INSTAGRAM
               - country: US
                 screenWidth: 1728
                 city: New York
@@ -23008,6 +23440,7 @@ components:
                 deviceType: DEVICE_TYPE_MOBILE
                 browserLanguage: "en-US,en;q=0.9"
                 deviceActor: DEVICE_ACTOR_HUMAN
+                inAppBrowserDetails: ""
                 screenHeight: 1117
                 deviceActorOrigin: OpenAI
                 ipAddress: 203.0.113.42
@@ -23019,9 +23452,11 @@ components:
                 touchScreen: true
                 lastUsedAt: 2000-01-23T04:56:07.000+00:00
                 deviceConcurrency: 4
+                inAppBrowserVersion: 447.0.0.34.80
                 region: CRF
                 asn: 7922
                 deviceBrand: Apple
+                inAppBrowser: IN_APP_BROWSER_INSTAGRAM
               qrcodeCount: 3
               createdAt: 2000-01-23T04:56:07.000+00:00
               firstName: Sam
@@ -23144,6 +23579,7 @@ components:
                 deviceType: DEVICE_TYPE_MOBILE
                 browserLanguage: "en-US,en;q=0.9"
                 deviceActor: DEVICE_ACTOR_HUMAN
+                inAppBrowserDetails: ""
                 screenHeight: 1117
                 deviceActorOrigin: OpenAI
                 ipAddress: 203.0.113.42
@@ -23155,9 +23591,11 @@ components:
                 touchScreen: true
                 lastUsedAt: 2000-01-23T04:56:07.000+00:00
                 deviceConcurrency: 4
+                inAppBrowserVersion: 447.0.0.34.80
                 region: CRF
                 asn: 7922
                 deviceBrand: Apple
+                inAppBrowser: IN_APP_BROWSER_INSTAGRAM
               - country: US
                 screenWidth: 1728
                 city: New York
@@ -23180,6 +23618,7 @@ components:
                 deviceType: DEVICE_TYPE_MOBILE
                 browserLanguage: "en-US,en;q=0.9"
                 deviceActor: DEVICE_ACTOR_HUMAN
+                inAppBrowserDetails: ""
                 screenHeight: 1117
                 deviceActorOrigin: OpenAI
                 ipAddress: 203.0.113.42
@@ -23191,9 +23630,11 @@ components:
                 touchScreen: true
                 lastUsedAt: 2000-01-23T04:56:07.000+00:00
                 deviceConcurrency: 4
+                inAppBrowserVersion: 447.0.0.34.80
                 region: CRF
                 asn: 7922
                 deviceBrand: Apple
+                inAppBrowser: IN_APP_BROWSER_INSTAGRAM
               qrcodeCount: 3
               createdAt: 2000-01-23T04:56:07.000+00:00
               firstName: Sam
@@ -27521,6 +27962,37 @@ components:
       - SHAPE_CIRCLE
       title: Shape represents the shape of the QR code
       type: string
+    SharedLocation:
+      description: |-
+        A precise position a visitor shared through a Location request workflow
+        step. Only shared answers carry one: a refused, skipped or unavailable
+        request records no position.
+      example:
+        accuracyMeters: 0.8008281904610115
+        occurredAt: 2000-01-23T04:56:07.000+00:00
+        linkId: linkId
+        latitude: 6.027456183070403
+        longitude: 1.4658129805029452
+      properties:
+        accuracyMeters:
+          description: |-
+            How far off the browser says the position may be, in meters. Absent when
+            the browser did not report it.
+          format: double
+          type: number
+        latitude:
+          format: double
+          type: number
+        linkId:
+          title: The link whose workflow asked for it
+          type: string
+        longitude:
+          format: double
+          type: number
+        occurredAt:
+          format: date-time
+          title: When the visitor shared it
+          type: string
     ShortlinkAvailabilityResponse:
       example:
         available: true
@@ -29299,6 +29771,7 @@ components:
           deviceType: DEVICE_TYPE_MOBILE
           browserLanguage: "en-US,en;q=0.9"
           deviceActor: DEVICE_ACTOR_HUMAN
+          inAppBrowserDetails: ""
           screenHeight: 1117
           deviceActorOrigin: OpenAI
           ipAddress: 203.0.113.42
@@ -29309,9 +29782,11 @@ components:
           touchScreen: true
           lastUsedAt: 2000-01-23T04:56:07.000+00:00
           deviceConcurrency: 4
+          inAppBrowserVersion: 447.0.0.34.80
           region: CRF
           asn: 7922
           deviceBrand: Apple
+          inAppBrowser: IN_APP_BROWSER_INSTAGRAM
         - country: US
           screenWidth: 1728
           city: New York
@@ -29334,6 +29809,7 @@ components:
           deviceType: DEVICE_TYPE_MOBILE
           browserLanguage: "en-US,en;q=0.9"
           deviceActor: DEVICE_ACTOR_HUMAN
+          inAppBrowserDetails: ""
           screenHeight: 1117
           deviceActorOrigin: OpenAI
           ipAddress: 203.0.113.42
@@ -29344,9 +29820,11 @@ components:
           touchScreen: true
           lastUsedAt: 2000-01-23T04:56:07.000+00:00
           deviceConcurrency: 4
+          inAppBrowserVersion: 447.0.0.34.80
           region: CRF
           asn: 7922
           deviceBrand: Apple
+          inAppBrowser: IN_APP_BROWSER_INSTAGRAM
         qrcodeCount: 3
         createdAt: 2000-01-23T04:56:07.000+00:00
         firstName: Sam
@@ -29667,8 +30145,10 @@ components:
             )"
           type: string
         comparisonValue:
+          description: |-
+            Value to compare against. Not used by STRING_IS_EMPTY, STRING_IS_NOT_EMPTY,
+            BOOLEAN_IS_TRUE and BOOLEAN_IS_FALSE.
           example: "18"
-          title: Value to compare against (optional for operators like IS_EMPTY)
           type: string
         id:
           example: option-1
@@ -29677,9 +30157,16 @@ components:
           example: 123e4567-e89b-12d3-a456-426614174000
           type: string
         operator:
+          description: |-
+            Operator for comparison, exactly one of: STRING_EQUALS, STRING_NOT_EQUALS,
+            STRING_CONTAINS, STRING_NOT_CONTAINS, STRING_STARTS_WITH, STRING_ENDS_WITH,
+            STRING_IS_EMPTY, STRING_IS_NOT_EMPTY, NUMBER_EQUALS, NUMBER_NOT_EQUALS,
+            NUMBER_GREATER_THAN, NUMBER_LESS_THAN, NUMBER_GREATER_OR_EQUAL,
+            NUMBER_LESS_OR_EQUAL, DATE_EQUALS, DATE_BEFORE, DATE_AFTER,
+            DATE_BEFORE_OR_EQUAL, DATE_AFTER_OR_EQUAL, BOOLEAN_IS_TRUE, BOOLEAN_IS_FALSE.
+            These are the VisitorAttributeFilterOperator names without the
+            VISITOR_ATTRIBUTE_FILTER_OPERATOR_ prefix.
           example: NUMBER_GREATER_THAN
-          title: "Operator for comparison (e.g., \"STRING_EQUALS\", \"NUMBER_GREATER_THAN\"\
-            , \"DATE_BEFORE\")"
           type: string
     VisitorDataConditionPayload:
       properties:
@@ -30164,7 +30651,7 @@ components:
       properties:
         chartType:
           title: "Chart type: \"bar\", \"horizontal_bar\", \"line\", \"area\", \"\
-            stacked_area\", \"pie\", \"number\", \"list\", \"funnel\""
+            stacked_area\", \"pie\", \"number\", \"list\", \"funnel\", \"location_map\""
           type: string
         colors:
           items:
@@ -30313,7 +30800,9 @@ components:
             social. It is an exit step, so the visitor leaves from here.
              - EVENT_ACTION_DEVICE_TYPE_CONDITION: Route visitors based on device type (e.g. MOBILE, DESKTOP, TABLET)
              - EVENT_ACTION_DEVICE_PLATFORM_CONDITION: Route visitors based on device platform / operating system (e.g. iOS, Android, macOS)
-             - EVENT_ACTION_DEVICE_BROWSER_CONDITION: Route visitors based on browser family (e.g. Chrome, Safari, Firefox)
+             - EVENT_ACTION_DEVICE_BROWSER_CONDITION: Route visitors based on their browser: a browser family (Chrome, Safari,
+            Firefox...) or the in-app browser of the app a link was opened in
+            (Instagram, TikTok, Facebook, LinkedIn...)
              - EVENT_ACTION_DEVICE_BRAND_CONDITION: Route visitors based on hardware brand (e.g. Apple, Samsung, Google)
              - EVENT_ACTION_DEVICE_ACTOR_CONDITION: Route visitors based on actor classification: HUMAN, BOT, AGENT, AUTOMATED
             or UNKNOWN. AGENT is an AI agent that names itself (GPTBot, Claude-User,
@@ -30645,7 +31134,9 @@ components:
             social. It is an exit step, so the visitor leaves from here.
              - EVENT_ACTION_DEVICE_TYPE_CONDITION: Route visitors based on device type (e.g. MOBILE, DESKTOP, TABLET)
              - EVENT_ACTION_DEVICE_PLATFORM_CONDITION: Route visitors based on device platform / operating system (e.g. iOS, Android, macOS)
-             - EVENT_ACTION_DEVICE_BROWSER_CONDITION: Route visitors based on browser family (e.g. Chrome, Safari, Firefox)
+             - EVENT_ACTION_DEVICE_BROWSER_CONDITION: Route visitors based on their browser: a browser family (Chrome, Safari,
+            Firefox...) or the in-app browser of the app a link was opened in
+            (Instagram, TikTok, Facebook, LinkedIn...)
              - EVENT_ACTION_DEVICE_BRAND_CONDITION: Route visitors based on hardware brand (e.g. Apple, Samsung, Google)
              - EVENT_ACTION_DEVICE_ACTOR_CONDITION: Route visitors based on actor classification: HUMAN, BOT, AGENT, AUTOMATED
             or UNKNOWN. AGENT is an AI agent that names itself (GPTBot, Claude-User,

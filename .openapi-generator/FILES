@@ -285,6 +285,7 @@ model_get_page_theme_response.go
 model_get_qrcode_design_response.go
 model_get_retargeting_pixels_response.go
 model_get_review_reward_offer_response.go
+model_get_shared_locations_response.go
 model_get_slack_integration_response.go
 model_get_slack_o_auth_url_response.go
 model_get_step_funnel_request.go
@@ -315,6 +316,8 @@ model_import_page_theme_template_request.go
 model_import_page_theme_template_response.go
 model_import_qrcode_template_request.go
 model_import_qrcode_template_response.go
+model_in_app_browser.go
+model_in_app_browser_details.go
 model_invite_member_request.go
 model_job.go
 model_job_error.go
@@ -466,6 +469,7 @@ model_review_reward_status.go
 model_role.go
 model_settings_service_update_link_setting_body.go
 model_shape.go
+model_shared_location.go
 model_shortlink_availability_response.go
 model_shortlink_random_response.go
 model_slack_channel.go
