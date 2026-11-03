@@ -42,7 +42,7 @@ info:
 
     Send a `Linkbreakers-Client` request header saying which client made the call: `<client>/<version> (<details>)`, for example `my-integration/1.2.0 (python 3.12; linux)`. The official SDKs, the CLI and the MCP bridge set it for you, as `sdk-python/2.3.1 (python 3.12.4; linux)` or `cli/1.4.0 (darwin arm64)`. It is optional and changes nothing about how a request is handled; it tells us which clients and versions are in use, so we know what can be retired and what to fix first. Keep the details short and free of personal data. Browsers may send it too: it is allowed by CORS.
   title: Linkbreakers API
-  version: 1.188.6
+  version: 1.190.0
   x-api-versioning:
     compatibility: additive changes only within a version
     currentVersion: v1
@@ -12439,7 +12439,7 @@ paths:
       x-required-scope: webhooks:read
     post:
       description: |-
-        Create a new webhook endpoint to receive event notifications when workflow steps complete.
+        Create a new webhook endpoint that receives one delivery per workflow step a visitor completes: visit.entered, visit.interacted, visit.routed or visit.exited.
 
         Requires the `webhooks:write` scope.
       operationId: WebhooksService_Create
@@ -17208,7 +17208,9 @@ components:
         triggers:
           description: |-
             Filter webhook notifications by workflow step kinds.
-            Only workflow steps matching these kinds will trigger webhook notifications.
+            Only workflow steps matching these kinds will trigger webhook notifications:
+            KIND_ENTRY sends visit.entered, KIND_INTERACTION visit.interacted,
+            KIND_CONDITION visit.routed and KIND_EXIT visit.exited.
             If empty, all workflow step kinds will trigger notifications.
           items:
             description: |-
@@ -18455,7 +18457,8 @@ components:
           description: |-
             Lowest app version this option matches, as dotted numbers ("400" or
             "447.0.1"). Only with a single app's value (Instagram, TikTok...), not
-            with a browser family, a group, or Pinterest, which writes no version.
+            with a browser family, ANY_IN_APP_BROWSER, OTHER_IN_APP_BROWSER, or
+            Pinterest, which writes no version.
             A visit whose app version is unknown does not match.
           example: "400"
           type: string
@@ -18479,7 +18482,6 @@ components:
              - DEVICE_BROWSER_CONDITION_VALUE_OPERA: Opera, in a regular browser
              - DEVICE_BROWSER_CONDITION_VALUE_SAMSUNG_BROWSER: Samsung Internet, in a regular browser
              - DEVICE_BROWSER_CONDITION_VALUE_ANY_IN_APP_BROWSER: Any app's in-app browser
-             - DEVICE_BROWSER_CONDITION_VALUE_META_APPS: The in-app browser of a Meta app: Instagram, Facebook, Messenger or Threads
              - DEVICE_BROWSER_CONDITION_VALUE_INSTAGRAM: Instagram's in-app browser
              - DEVICE_BROWSER_CONDITION_VALUE_FACEBOOK: Facebook's in-app browser
              - DEVICE_BROWSER_CONDITION_VALUE_MESSENGER: Messenger's in-app browser
@@ -18502,7 +18504,6 @@ components:
           - DEVICE_BROWSER_CONDITION_VALUE_OPERA
           - DEVICE_BROWSER_CONDITION_VALUE_SAMSUNG_BROWSER
           - DEVICE_BROWSER_CONDITION_VALUE_ANY_IN_APP_BROWSER
-          - DEVICE_BROWSER_CONDITION_VALUE_META_APPS
           - DEVICE_BROWSER_CONDITION_VALUE_INSTAGRAM
           - DEVICE_BROWSER_CONDITION_VALUE_FACEBOOK
           - DEVICE_BROWSER_CONDITION_VALUE_MESSENGER
@@ -18579,7 +18580,6 @@ components:
          - DEVICE_BROWSER_CONDITION_VALUE_OPERA: Opera, in a regular browser
          - DEVICE_BROWSER_CONDITION_VALUE_SAMSUNG_BROWSER: Samsung Internet, in a regular browser
          - DEVICE_BROWSER_CONDITION_VALUE_ANY_IN_APP_BROWSER: Any app's in-app browser
-         - DEVICE_BROWSER_CONDITION_VALUE_META_APPS: The in-app browser of a Meta app: Instagram, Facebook, Messenger or Threads
          - DEVICE_BROWSER_CONDITION_VALUE_INSTAGRAM: Instagram's in-app browser
          - DEVICE_BROWSER_CONDITION_VALUE_FACEBOOK: Facebook's in-app browser
          - DEVICE_BROWSER_CONDITION_VALUE_MESSENGER: Messenger's in-app browser
@@ -18602,7 +18602,6 @@ components:
       - DEVICE_BROWSER_CONDITION_VALUE_OPERA
       - DEVICE_BROWSER_CONDITION_VALUE_SAMSUNG_BROWSER
       - DEVICE_BROWSER_CONDITION_VALUE_ANY_IN_APP_BROWSER
-      - DEVICE_BROWSER_CONDITION_VALUE_META_APPS
       - DEVICE_BROWSER_CONDITION_VALUE_INSTAGRAM
       - DEVICE_BROWSER_CONDITION_VALUE_FACEBOOK
       - DEVICE_BROWSER_CONDITION_VALUE_MESSENGER
@@ -30425,7 +30424,9 @@ components:
         triggers:
           description: |-
             Filter webhook notifications by workflow step kinds.
-            Only workflow steps matching these kinds will trigger webhook notifications.
+            Only workflow steps matching these kinds will trigger webhook notifications:
+            KIND_ENTRY sends visit.entered, KIND_INTERACTION visit.interacted,
+            KIND_CONDITION visit.routed and KIND_EXIT visit.exited.
             If empty, all workflow step kinds will trigger notifications.
           example:
           - KIND_ENTRY
@@ -30520,7 +30521,9 @@ components:
         triggers:
           description: |-
             Filter webhook notifications by workflow step kinds.
-            Only workflow steps matching these kinds will trigger webhook notifications.
+            Only workflow steps matching these kinds will trigger webhook notifications:
+            KIND_ENTRY sends visit.entered, KIND_INTERACTION visit.interacted,
+            KIND_CONDITION visit.routed and KIND_EXIT visit.exited.
             If empty, all workflow step kinds will trigger notifications.
           items:
             description: |-
