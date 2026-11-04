@@ -96,6 +96,17 @@ model_back_button.go
 model_background_options.go
 model_billing_interval.go
 model_breakdown_data_point.go
+model_bulk_edit_status.go
+model_bulk_insert_workflow_step_override.go
+model_bulk_insert_workflow_step_request.go
+model_bulk_insert_workflow_step_response.go
+model_bulk_insert_workflow_step_result.go
+model_bulk_page_theme_change.go
+model_bulk_page_theme_result.go
+model_bulk_page_theme_values.go
+model_bulk_step_branch.go
+model_bulk_update_page_themes_request.go
+model_bulk_update_page_themes_response.go
 model_canvas_position.go
 model_chat_bot_collected_value.go
 model_chat_bot_message_author.go

@@ -42,7 +42,7 @@ info:
 
     Send a `Linkbreakers-Client` request header saying which client made the call: `<client>/<version> (<details>)`, for example `my-integration/1.2.0 (python 3.12; linux)`. The official SDKs, the CLI and the MCP bridge set it for you, as `sdk-python/2.3.1 (python 3.12.4; linux)` or `cli/1.4.0 (darwin arm64)`. It is optional and changes nothing about how a request is handled; it tells us which clients and versions are in use, so we know what can be retired and what to fix first. Keep the details short and free of personal data. Browsers may send it too: it is allowed by CORS.
   title: Linkbreakers API
-  version: 1.190.0
+  version: 1.191.0
   x-api-versioning:
     compatibility: additive changes only within a version
     currentVersion: v1
@@ -2942,7 +2942,8 @@ paths:
   /v1/custom-domains/{id}:
     delete:
       description: |-
-        Removes a custom domain from the workspace. This operation cannot be undone.
+        Removes a custom domain from the workspace, and deletes every link on it with
+        their analytics (see link_count on the domain). This operation cannot be undone.
 
         Requires the `domains:write` scope.
       operationId: CustomDomainsService_Delete
@@ -9124,6 +9125,72 @@ paths:
       tags:
       - Page Themes
       x-required-scope: page_themes:write
+  /v1/page-themes/bulk-update:
+    post:
+      description: |-
+        Applies a template, values or both to the page theme of up to 50 links named
+        by id or short link. A later entry replaces an earlier one for the links it
+        names. Each link succeeds or fails on its own: read the result of each one.
+
+        Requires the `page_themes:write` scope.
+      operationId: PageThemesService_BulkUpdatePageThemes
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BulkUpdatePageThemesRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BulkUpdatePageThemesResponse"
+          description: Everything worked as expected.
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - page_themes:write
+      - oauth2:
+        - page_themes:write
+      summary: Restyle many links' page themes
+      tags:
+      - Page Themes
+      x-required-scope: page_themes:write
   /v1/page-themes/matching-template:
     get:
       description: |-
@@ -12679,6 +12746,74 @@ paths:
       tags:
       - Webhooks
       x-required-scope: webhooks:write
+  /v1/workflow-steps/bulk-insert:
+    post:
+      description: |-
+        Inserts the same step, usually a condition, into the workflow of up to 50
+        links, named by id or short link. Each link succeeds or fails on its own:
+        read the result of each one. Calling again for a link that succeeded inserts
+        a second step. A link with BULK_EDIT_NOT_STARTED was left untouched because the
+        call ran out of time: send those again in a new call.
+
+        Requires the `workflows:write` scope.
+      operationId: WorkflowStepsService_BulkInsertWorkflowStep
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BulkInsertWorkflowStepRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BulkInsertWorkflowStepResponse"
+          description: Everything worked as expected.
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - workflows:write
+      - oauth2:
+        - workflows:write
+      summary: Insert one step into many links' workflows
+      tags:
+      - Workflow Steps
+      x-required-scope: workflows:write
   /v1/workflow-steps/wallet-pass-support:
     get:
       description: |-
@@ -15091,6 +15226,476 @@ components:
           title: Percentage of total events
           type: number
       title: BreakdownDataPoint represents a single dimension breakdown data point
+    BulkEditStatus:
+      default: BULK_EDIT_STATUS_UNSPECIFIED
+      description: |-
+        How a bulk edit went on one link.
+
+         - BULK_EDIT_STATUS_SUCCEEDED: The change is saved.
+         - BULK_EDIT_STATUS_FAILED: It failed: error_code and error_message say why.
+      enum:
+      - BULK_EDIT_STATUS_UNSPECIFIED
+      - BULK_EDIT_STATUS_SUCCEEDED
+      - BULK_EDIT_STATUS_FAILED
+      type: string
+    BulkInsertWorkflowStepOverride:
+      description: What one link does differently from the shared change.
+      example:
+        link: link
+        branches:
+        - branchId: branchId
+          destination: destination
+        - branchId: branchId
+          destination: destination
+        insertBefore: insertBefore
+      properties:
+        branches:
+          description: "Replaces the shared entries with the same branch_id, for this\
+            \ link."
+          items:
+            $ref: "#/components/schemas/BulkStepBranch"
+          type: array
+        insertBefore:
+          description: |-
+            Inserts the step in front of this step of the link, instead of right after
+            its entry.
+          type: string
+        link:
+          description: "The link, by id or short link."
+          type: string
+      required:
+      - link
+    BulkInsertWorkflowStepRequest:
+      description: Inserts one step into the workflow of many links.
+      example:
+        payload: ""
+        links:
+        - links
+        - links
+        overrides:
+        - link: link
+          branches:
+          - branchId: branchId
+            destination: destination
+          - branchId: branchId
+            destination: destination
+          insertBefore: insertBefore
+        - link: link
+          branches:
+          - branchId: branchId
+            destination: destination
+          - branchId: branchId
+            destination: destination
+          insertBefore: insertBefore
+        branches:
+        - branchId: branchId
+          destination: destination
+        - branchId: branchId
+          destination: destination
+        eventAction: EVENT_ACTION_UNSPECIFIED
+      properties:
+        branches:
+          description: |-
+            Where branches of the step lead on every link. A branch not listed keeps
+            going to the step the new one was inserted in front of.
+          items:
+            $ref: "#/components/schemas/BulkStepBranch"
+          type: array
+        eventAction:
+          description: |-
+            - EVENT_ACTION_UNSPECIFIED: Event action not specified
+             - EVENT_ACTION_CLIENT_REDIRECT: Redirect visitors to a destination URL
+             - EVENT_ACTION_LINK_VISIT: Entry step triggered when the link is visited.
+             - EVENT_ACTION_PASSWORD_VERIFY: Require visitors to enter a password before proceeding
+             - EVENT_ACTION_FORM_SUBMIT: Present a data collection form to visitors
+             - EVENT_ACTION_CONTACT_CARD: Generate a vCard (VCF) response with contact information
+             - EVENT_ACTION_MULTI_LINK: A page of buttons where each one continues into more workflow: the button
+            leads to a next step, not straight out. Records which button the visitor
+            pressed, so use it over SOCIAL_LINKS_PAGE when that choice is worth
+            measuring or when a branch needs to do more than redirect. This is the
+            menu step: for several documents or PDFs, give each one a button
+            connected to an OPEN_MEDIA step for media uploaded to the media library, or to
+            a CLIENT_REDIRECT when the document is already hosted at a URL.
+             - EVENT_ACTION_VISIT_TYPE_CONDITION: Route visitors based on whether it's a first or returning visit
+             - EVENT_ACTION_COUNTRY_CONDITION: Route visitors based on their country location
+             - EVENT_ACTION_DAY_OF_WEEK_CONDITION: Route visitors based on day of week
+             - EVENT_ACTION_TIME_OF_DAY_CONDITION: Route visitors based on time of day
+             - EVENT_ACTION_DAY_OF_MONTH_CONDITION: Route visitors based on day of month
+             - EVENT_ACTION_SPECIFIC_DATE_CONDITION: Route visitors based on specific calendar dates
+             - EVENT_ACTION_SOCIAL_LINKS_PAGE: A page of buttons that each leave for an external URL. Social profiles are
+            the common case, not the only one: app stores, docs, booking pages and
+            storefronts all work, and the name is the only thing about it that is
+            social. It is an exit step, so the visitor leaves from here.
+             - EVENT_ACTION_DEVICE_TYPE_CONDITION: Route visitors based on device type (e.g. MOBILE, DESKTOP, TABLET)
+             - EVENT_ACTION_DEVICE_PLATFORM_CONDITION: Route visitors based on device platform / operating system (e.g. iOS, Android, macOS)
+             - EVENT_ACTION_DEVICE_BROWSER_CONDITION: Route visitors based on their browser: a browser family (Chrome, Safari,
+            Firefox...) or the in-app browser of the app a link was opened in
+            (Instagram, TikTok, Facebook, LinkedIn...)
+             - EVENT_ACTION_DEVICE_BRAND_CONDITION: Route visitors based on hardware brand (e.g. Apple, Samsung, Google)
+             - EVENT_ACTION_DEVICE_ACTOR_CONDITION: Route visitors based on actor classification: HUMAN, BOT, AGENT, AUTOMATED
+            or UNKNOWN. AGENT is an AI agent that names itself (GPTBot, Claude-User,
+            Perplexity-User...). AUTOMATED is a browser driven by software, whoever is
+            behind it: headless Chrome from its request, and a visible browser under
+            automation once a link with the Advanced data collection level has read
+            navigator.webdriver, from that device's next visit on.
+             - EVENT_ACTION_VISITOR_DATA_CONDITION: Route visitors based on their profile data or custom attributes
+             - EVENT_ACTION_THANK_YOU_PAGE: Display a final thank you / completion message (exit step)
+             - EVENT_ACTION_MESSAGE_PAGE: Text with ONE way onward: a single button, or a timer that moves the
+            visitor automatically. It carries no list of destinations, so a page that
+            should offer a choice between two or more places is not this step. Use
+            SOCIAL_LINKS_PAGE when the choices leave for external URLs, or MULTI_LINK
+            when each choice continues into more workflow. Never put links, documents
+            or PDFs on it: it is a message, nothing else.
+             - EVENT_ACTION_OPEN_MEDIA: Hand the visitor one piece of uploaded media, opened in their browser (exit step): a PDF,
+            an image (PNG, JPEG, WebP, SVG) or an MP4 video. The visitor is sent straight to the media,
+            with no page of its own. Any media of the library can be opened: it is uploaded once and
+            referenced by its media_id; swapping it means pointing the step at another media item,
+            and the QR code never changes.
+             - EVENT_ACTION_LOCATION_REQUEST: Ask the visitor for their precise location (GPS) through the browser, with
+            their permission (composite: two branches, "location" when it was shared,
+            "else" when it was refused, skipped or is unavailable).
+             - EVENT_ACTION_LANGUAGE_CONDITION: Route visitors based on their phone or browser language (the first
+            language it sends, matched on its two-letter ISO 639-1 base, so "fr"
+            catches fr-FR and fr-CA)
+             - EVENT_ACTION_CHAT_BOT: A conversation with one of the workspace's agents that collects visitor
+            attributes (composite: two branches, "completed" when every required
+            objective is known, "else" otherwise)
+          enum:
+          - EVENT_ACTION_UNSPECIFIED
+          - EVENT_ACTION_CLIENT_REDIRECT
+          - EVENT_ACTION_LINK_VISIT
+          - EVENT_ACTION_PASSWORD_VERIFY
+          - EVENT_ACTION_FORM_SUBMIT
+          - EVENT_ACTION_CONTACT_CARD
+          - EVENT_ACTION_MULTI_LINK
+          - EVENT_ACTION_VISIT_TYPE_CONDITION
+          - EVENT_ACTION_COUNTRY_CONDITION
+          - EVENT_ACTION_DAY_OF_WEEK_CONDITION
+          - EVENT_ACTION_TIME_OF_DAY_CONDITION
+          - EVENT_ACTION_DAY_OF_MONTH_CONDITION
+          - EVENT_ACTION_SPECIFIC_DATE_CONDITION
+          - EVENT_ACTION_SOCIAL_LINKS_PAGE
+          - EVENT_ACTION_DEVICE_TYPE_CONDITION
+          - EVENT_ACTION_DEVICE_PLATFORM_CONDITION
+          - EVENT_ACTION_DEVICE_BROWSER_CONDITION
+          - EVENT_ACTION_DEVICE_BRAND_CONDITION
+          - EVENT_ACTION_DEVICE_ACTOR_CONDITION
+          - EVENT_ACTION_VISITOR_DATA_CONDITION
+          - EVENT_ACTION_THANK_YOU_PAGE
+          - EVENT_ACTION_MESSAGE_PAGE
+          - EVENT_ACTION_OPEN_MEDIA
+          - EVENT_ACTION_LOCATION_REQUEST
+          - EVENT_ACTION_LANGUAGE_CONDITION
+          - EVENT_ACTION_CHAT_BOT
+          type: string
+        links:
+          description: |-
+            The links that take the step, each named by id or short link. Up to 50,
+            counting the links named only in overrides.
+          items:
+            type: string
+          type: array
+        overrides:
+          description: Links that differ from the shared change.
+          items:
+            $ref: "#/components/schemas/BulkInsertWorkflowStepOverride"
+          type: array
+        payload:
+          allOf:
+          - $ref: "#/components/schemas/WorkflowStepPayload"
+          description: "The step's payload, the same for every link."
+      required:
+      - eventAction
+    BulkInsertWorkflowStepResponse:
+      description: "One result per distinct link, in the order the request named them."
+      example:
+        failedCount: 0
+        succeededCount: 6
+        results:
+        - linkId: linkId
+          errorMessage: errorMessage
+          link: link
+          stepId: stepId
+          errorCode: errorCode
+          issues:
+          - severity: severity
+            stepType: stepType
+            stepId: stepId
+            message: message
+          - severity: severity
+            stepType: stepType
+            stepId: stepId
+            message: message
+          status: BULK_EDIT_STATUS_UNSPECIFIED
+        - linkId: linkId
+          errorMessage: errorMessage
+          link: link
+          stepId: stepId
+          errorCode: errorCode
+          issues:
+          - severity: severity
+            stepType: stepType
+            stepId: stepId
+            message: message
+          - severity: severity
+            stepType: stepType
+            stepId: stepId
+            message: message
+          status: BULK_EDIT_STATUS_UNSPECIFIED
+      properties:
+        failedCount:
+          format: int32
+          type: integer
+        results:
+          items:
+            $ref: "#/components/schemas/BulkInsertWorkflowStepResult"
+          type: array
+        succeededCount:
+          format: int32
+          type: integer
+    BulkInsertWorkflowStepResult:
+      description: How the insert went on one link.
+      example:
+        linkId: linkId
+        errorMessage: errorMessage
+        link: link
+        stepId: stepId
+        errorCode: errorCode
+        issues:
+        - severity: severity
+          stepType: stepType
+          stepId: stepId
+          message: message
+        - severity: severity
+          stepType: stepType
+          stepId: stepId
+          message: message
+        status: BULK_EDIT_STATUS_UNSPECIFIED
+      properties:
+        errorCode:
+          description: "Why it failed, for a failed link."
+          type: string
+        errorMessage:
+          type: string
+        issues:
+          description: "What workflow validation finds on the link now, for a link\
+            \ that succeeded."
+          items:
+            $ref: "#/components/schemas/WorkflowIssue"
+          type: array
+        link:
+          description: The link as the request named it.
+          type: string
+        linkId:
+          description: The link's id. Empty when the name matched no link of this
+            workspace.
+          type: string
+        status:
+          description: |-
+            How a bulk edit went on one link.
+
+             - BULK_EDIT_STATUS_SUCCEEDED: The change is saved.
+             - BULK_EDIT_STATUS_FAILED: It failed: error_code and error_message say why.
+          enum:
+          - BULK_EDIT_STATUS_UNSPECIFIED
+          - BULK_EDIT_STATUS_SUCCEEDED
+          - BULK_EDIT_STATUS_FAILED
+          type: string
+        stepId:
+          description: "The step inserted, for a link that succeeded."
+          type: string
+    BulkPageThemeChange:
+      description: |-
+        One look, and the links that take it. A template and values sent together
+        apply in that order, so values win.
+      example:
+        pageThemeTemplateId: pageThemeTemplateId
+        links:
+        - links
+        - links
+        theme: ""
+        slug: slug
+      properties:
+        links:
+          description: "The links, each named by id or short link."
+          items:
+            type: string
+          type: array
+        pageThemeTemplateId:
+          description: |-
+            ID of the page theme template to apply, for a template without a slug.
+            Ignored when slug is set.
+          type: string
+        slug:
+          description: Slug of the page theme template to apply.
+          type: string
+        theme:
+          allOf:
+          - $ref: "#/components/schemas/BulkPageThemeValues"
+          description: Values to set.
+      required:
+      - links
+    BulkPageThemeResult:
+      description: How the change went on one link.
+      example:
+        pageThemeId: pageThemeId
+        linkId: linkId
+        errorMessage: errorMessage
+        link: link
+        errorCode: errorCode
+        status: BULK_EDIT_STATUS_UNSPECIFIED
+      properties:
+        errorCode:
+          description: "Why it failed, for a failed link."
+          type: string
+        errorMessage:
+          type: string
+        link:
+          description: The link as the request named it.
+          type: string
+        linkId:
+          description: The link's id. Empty when the name matched no link of this
+            workspace.
+          type: string
+        pageThemeId:
+          description: "The link's page theme, for a link that succeeded."
+          type: string
+        status:
+          $ref: "#/components/schemas/BulkEditStatus"
+    BulkPageThemeValues:
+      description: |-
+        The values of UpdatePageThemeRequest, without the id of one theme. Its fields
+        keep the same numbers and types.
+      properties:
+        badge:
+          allOf:
+          - $ref: "#/components/schemas/MediaSelection"
+          title: Any image of at most 3 MB from the media library
+        badgeEnabled:
+          type: boolean
+        badgeIconColor:
+          $ref: "#/components/schemas/ThemeColor"
+        badgeShape:
+          enum:
+          - PAGE_THEME_BADGE_SHAPE_UNSPECIFIED
+          - PAGE_THEME_BADGE_SHAPE_CIRCLE
+          - PAGE_THEME_BADGE_SHAPE_SQUARE
+          - PAGE_THEME_BADGE_SHAPE_ROUNDED
+          type: string
+        bodyFont:
+          $ref: "#/components/schemas/FontConfig"
+        canvasColor:
+          $ref: "#/components/schemas/ThemeColor"
+        canvasCover:
+          allOf:
+          - $ref: "#/components/schemas/MediaSelection"
+          title: Any image of at most 3 MB from the media library
+        canvasCoverMode:
+          enum:
+          - PAGE_THEME_BACKGROUND_COVER_MODE_UNSPECIFIED
+          - PAGE_THEME_BACKGROUND_COVER_MODE_FULL
+          - PAGE_THEME_BACKGROUND_COVER_MODE_PROGRESSIVE_TOP
+          - PAGE_THEME_BACKGROUND_COVER_MODE_PROGRESSIVE_BOTTOM
+          type: string
+        containerConfig:
+          $ref: "#/components/schemas/ContainerConfig"
+        containerEnabled:
+          title: False clears container_config
+          type: boolean
+        elementColor:
+          $ref: "#/components/schemas/ThemeColor"
+        elementFont:
+          $ref: "#/components/schemas/FontConfig"
+        footerLogo:
+          allOf:
+          - $ref: "#/components/schemas/MediaSelection"
+          title: Any image of at most 3 MB from the media library
+        footerLogoEnabled:
+          title: A small logo at the bottom of every page using this theme
+          type: boolean
+        titleFont:
+          $ref: "#/components/schemas/FontConfig"
+        visitorExperience:
+          enum:
+          - PAGE_THEME_VISITOR_EXPERIENCE_UNSPECIFIED
+          - PAGE_THEME_VISITOR_EXPERIENCE_CLASSIC
+          - PAGE_THEME_VISITOR_EXPERIENCE_FOCUSED
+          title: "CLASSIC shows a whole form at once, FOCUSED one question per screen"
+          type: string
+    BulkStepBranch:
+      description: "Sends one branch of the inserted step to a URL, through a redirect\
+        \ step."
+      example:
+        branchId: branchId
+        destination: destination
+      properties:
+        branchId:
+          description: |-
+            The branch: the option's id, the country code on a country condition, the
+            language code on a language condition, or "else" for everyone else.
+          type: string
+        destination:
+          description: The URL visitors on this branch go to.
+          type: string
+      required:
+      - branchId
+      - destination
+    BulkUpdatePageThemesRequest:
+      description: Applies changes to the page themes of many links.
+      example:
+        changes:
+        - pageThemeTemplateId: pageThemeTemplateId
+          links:
+          - links
+          - links
+          theme: ""
+          slug: slug
+        - pageThemeTemplateId: pageThemeTemplateId
+          links:
+          - links
+          - links
+          theme: ""
+          slug: slug
+      properties:
+        changes:
+          description: |-
+            The changes. One entry for the same look on every link; a link named in a
+            later entry gets that entry instead of the earlier one. Up to 50 distinct
+            links in all.
+          items:
+            $ref: "#/components/schemas/BulkPageThemeChange"
+          type: array
+      required:
+      - changes
+    BulkUpdatePageThemesResponse:
+      description: "One result per distinct link, in the order the request named them."
+      example:
+        failedCount: 0
+        succeededCount: 6
+        results:
+        - pageThemeId: pageThemeId
+          linkId: linkId
+          errorMessage: errorMessage
+          link: link
+          errorCode: errorCode
+          status: BULK_EDIT_STATUS_UNSPECIFIED
+        - pageThemeId: pageThemeId
+          linkId: linkId
+          errorMessage: errorMessage
+          link: link
+          errorCode: errorCode
+          status: BULK_EDIT_STATUS_UNSPECIFIED
+      properties:
+        failedCount:
+          format: int32
+          type: integer
+        results:
+          items:
+            $ref: "#/components/schemas/BulkPageThemeResult"
+          type: array
+        succeededCount:
+          format: int32
+          type: integer
     CanvasPosition:
       properties:
         x:
@@ -15310,13 +15915,16 @@ components:
       example:
         customDomain:
           cloudflareSslStatus: pending_validation
+          scheduledDeletionAt: 2000-01-23T04:56:07.000+00:00
           lastError: lastError
           activatedAt: 2000-01-23T04:56:07.000+00:00
           cloudflareHostnameStatus: active
           createdAt: 2000-01-23T04:56:07.000+00:00
           lastCheckedAt: 2000-01-23T04:56:07.000+00:00
           rootDestination: https://example.com
+          statusChangedAt: 2000-01-23T04:56:07.000+00:00
           certificateExpiresAt: 2000-01-23T04:56:07.000+00:00
+          linkCount: 5
           name: example.com
           id: d290f1ee-6c54-4b01-90e6-d701748f0851
           status: STATUS_ACTIVE
@@ -16018,8 +16626,11 @@ components:
           description: Contact information for the vCard link. This field is required.
           title: vCard contact information (required)
         waitForQrcode:
-          description: "Wait for QR code generation to complete. Note: This makes\
-            \ the request slower compared to asynchronous generation."
+          description: "Wait for QR code generation, within the request's time limit,\
+            \ which makes the request slower. A QR code the wait does not reach, usually\
+            \ past the first few links of a bulk request, is generated in the background:\
+            \ its qrcode_signed_url is empty in the response, and qrcode-images:resolve\
+            \ returns it once ready."
           example: true
           type: boolean
       required:
@@ -16080,13 +16691,16 @@ components:
       example:
         customDomain:
           cloudflareSslStatus: pending_validation
+          scheduledDeletionAt: 2000-01-23T04:56:07.000+00:00
           lastError: lastError
           activatedAt: 2000-01-23T04:56:07.000+00:00
           cloudflareHostnameStatus: active
           createdAt: 2000-01-23T04:56:07.000+00:00
           lastCheckedAt: 2000-01-23T04:56:07.000+00:00
           rootDestination: https://example.com
+          statusChangedAt: 2000-01-23T04:56:07.000+00:00
           certificateExpiresAt: 2000-01-23T04:56:07.000+00:00
+          linkCount: 5
           name: example.com
           id: d290f1ee-6c54-4b01-90e6-d701748f0851
           status: STATUS_ACTIVE
@@ -16795,8 +17409,11 @@ components:
             type: string
           type: array
         waitForQrcode:
-          description: "Wait for QR code generation to complete. Note: This makes\
-            \ the request slower compared to asynchronous generation."
+          description: "Wait for QR code generation, within the request's time limit,\
+            \ which makes the request slower. A QR code the wait does not reach, usually\
+            \ past the first few links of a bulk request, is generated in the background:\
+            \ its qrcode_signed_url is empty in the response, and qrcode-images:resolve\
+            \ returns it once ready."
           example: true
           type: boolean
       required:
@@ -17130,8 +17747,11 @@ components:
           title: The title for the thank you page (required)
           type: string
         waitForQrcode:
-          description: "Wait for QR code generation to complete. Note: This makes\
-            \ the request slower compared to asynchronous generation."
+          description: "Wait for QR code generation, within the request's time limit,\
+            \ which makes the request slower. A QR code the wait does not reach, usually\
+            \ past the first few links of a bulk request, is generated in the background:\
+            \ its qrcode_signed_url is empty in the response, and qrcode-images:resolve\
+            \ returns it once ready."
           example: true
           type: boolean
       required:
@@ -17405,13 +18025,16 @@ components:
         under the customer's domain, including verification and certificate lifecycle state.
       example:
         cloudflareSslStatus: pending_validation
+        scheduledDeletionAt: 2000-01-23T04:56:07.000+00:00
         lastError: lastError
         activatedAt: 2000-01-23T04:56:07.000+00:00
         cloudflareHostnameStatus: active
         createdAt: 2000-01-23T04:56:07.000+00:00
         lastCheckedAt: 2000-01-23T04:56:07.000+00:00
         rootDestination: https://example.com
+        statusChangedAt: 2000-01-23T04:56:07.000+00:00
         certificateExpiresAt: 2000-01-23T04:56:07.000+00:00
+        linkCount: 5
         name: example.com
         id: d290f1ee-6c54-4b01-90e6-d701748f0851
         status: STATUS_ACTIVE
@@ -17470,6 +18093,14 @@ components:
           readOnly: true
           title: Why the domain is not fully active
           type: string
+        linkCount:
+          description: "How many links use this domain. Deleting the domain deletes\
+            \ all of them, with their analytics."
+          example: 5
+          format: int64
+          readOnly: true
+          title: Number of links using this domain
+          type: integer
         name:
           example: example.com
           title: The domain name
@@ -17482,6 +18113,15 @@ components:
             \ linkbreakers.com by default."
           example: https://example.com
           title: Root destination URL
+          type: string
+        scheduledDeletionAt:
+          description: "Set only while the domain no longer points to Linkbreakers\
+            \ and its owner has been emailed: the date the domain and its links (with\
+            \ their analytics) are deleted unless the domain points to Linkbreakers\
+            \ again. Cleared as soon as it does."
+          format: date-time
+          readOnly: true
+          title: When the domain will be deleted if it is not fixed
           type: string
         status:
           description: |-
@@ -17506,6 +18146,13 @@ components:
           - STATUS_RENEWAL_PENDING
           - STATUS_EXPIRED
           example: STATUS_ACTIVE
+          type: string
+        statusChangedAt:
+          description: "When the domain entered its current status. For STATUS_DOMAIN_PENDING,\
+            \ the date since which the domain no longer points to Linkbreakers."
+          format: date-time
+          readOnly: true
+          title: When the domain entered its current status
           type: string
         updatedAt:
           format: date-time
@@ -20453,13 +21100,16 @@ components:
       example:
         customDomain:
           cloudflareSslStatus: pending_validation
+          scheduledDeletionAt: 2000-01-23T04:56:07.000+00:00
           lastError: lastError
           activatedAt: 2000-01-23T04:56:07.000+00:00
           cloudflareHostnameStatus: active
           createdAt: 2000-01-23T04:56:07.000+00:00
           lastCheckedAt: 2000-01-23T04:56:07.000+00:00
           rootDestination: https://example.com
+          statusChangedAt: 2000-01-23T04:56:07.000+00:00
           certificateExpiresAt: 2000-01-23T04:56:07.000+00:00
+          linkCount: 5
           name: example.com
           id: d290f1ee-6c54-4b01-90e6-d701748f0851
           status: STATUS_ACTIVE
@@ -22707,26 +23357,32 @@ components:
       example:
         customDomains:
         - cloudflareSslStatus: pending_validation
+          scheduledDeletionAt: 2000-01-23T04:56:07.000+00:00
           lastError: lastError
           activatedAt: 2000-01-23T04:56:07.000+00:00
           cloudflareHostnameStatus: active
           createdAt: 2000-01-23T04:56:07.000+00:00
           lastCheckedAt: 2000-01-23T04:56:07.000+00:00
           rootDestination: https://example.com
+          statusChangedAt: 2000-01-23T04:56:07.000+00:00
           certificateExpiresAt: 2000-01-23T04:56:07.000+00:00
+          linkCount: 5
           name: example.com
           id: d290f1ee-6c54-4b01-90e6-d701748f0851
           status: STATUS_ACTIVE
           updatedAt: 2000-01-23T04:56:07.000+00:00
           workspaceId: d290f1ee-6c54-4b01-90e6-d701748f0851
         - cloudflareSslStatus: pending_validation
+          scheduledDeletionAt: 2000-01-23T04:56:07.000+00:00
           lastError: lastError
           activatedAt: 2000-01-23T04:56:07.000+00:00
           cloudflareHostnameStatus: active
           createdAt: 2000-01-23T04:56:07.000+00:00
           lastCheckedAt: 2000-01-23T04:56:07.000+00:00
           rootDestination: https://example.com
+          statusChangedAt: 2000-01-23T04:56:07.000+00:00
           certificateExpiresAt: 2000-01-23T04:56:07.000+00:00
+          linkCount: 5
           name: example.com
           id: d290f1ee-6c54-4b01-90e6-d701748f0851
           status: STATUS_ACTIVE
@@ -28845,13 +29501,16 @@ components:
       example:
         customDomain:
           cloudflareSslStatus: pending_validation
+          scheduledDeletionAt: 2000-01-23T04:56:07.000+00:00
           lastError: lastError
           activatedAt: 2000-01-23T04:56:07.000+00:00
           cloudflareHostnameStatus: active
           createdAt: 2000-01-23T04:56:07.000+00:00
           lastCheckedAt: 2000-01-23T04:56:07.000+00:00
           rootDestination: https://example.com
+          statusChangedAt: 2000-01-23T04:56:07.000+00:00
           certificateExpiresAt: 2000-01-23T04:56:07.000+00:00
+          linkCount: 5
           name: example.com
           id: d290f1ee-6c54-4b01-90e6-d701748f0851
           status: STATUS_ACTIVE
