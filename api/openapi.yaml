@@ -42,7 +42,7 @@ info:
 
     Send a `Linkbreakers-Client` request header saying which client made the call: `<client>/<version> (<details>)`, for example `my-integration/1.2.0 (python 3.12; linux)`. The official SDKs, the CLI and the MCP bridge set it for you, as `sdk-python/2.3.1 (python 3.12.4; linux)` or `cli/1.4.0 (darwin arm64)`. It is optional and changes nothing about how a request is handled; it tells us which clients and versions are in use, so we know what can be retired and what to fix first. Keep the details short and free of personal data. Browsers may send it too: it is allowed by CORS.
   title: Linkbreakers API
-  version: 1.191.0
+  version: 1.192.0
   x-api-versioning:
     compatibility: additive changes only within a version
     currentVersion: v1
@@ -14854,7 +14854,9 @@ components:
     AssistantDisplayMessage:
       example:
         uiActions:
-        - options:
+        - size: 0
+          format: format
+          options:
           - description: description
             label: label
             value: value
@@ -14864,7 +14866,9 @@ components:
           label: label
           type: type
           value: value
-        - options:
+        - size: 0
+          format: format
+          options:
           - description: description
             label: label
             value: value
@@ -14925,7 +14929,9 @@ components:
       example:
         messages:
         - uiActions:
-          - options:
+          - size: 0
+            format: format
+            options:
             - description: description
               label: label
               value: value
@@ -14935,7 +14941,9 @@ components:
             label: label
             type: type
             value: value
-          - options:
+          - size: 0
+            format: format
+            options:
             - description: description
               label: label
               value: value
@@ -14956,7 +14964,9 @@ components:
           readAt: 2000-01-23T04:56:07.000+00:00
           timestamp: 2000-01-23T04:56:07.000+00:00
         - uiActions:
-          - options:
+          - size: 0
+            format: format
+            options:
             - description: description
               label: label
               value: value
@@ -14966,7 +14976,9 @@ components:
             label: label
             type: type
             value: value
-          - options:
+          - size: 0
+            format: format
+            options:
             - description: description
               label: label
               value: value
@@ -14986,7 +14998,7 @@ components:
           text: text
           readAt: 2000-01-23T04:56:07.000+00:00
           timestamp: 2000-01-23T04:56:07.000+00:00
-        unreadCount: 0
+        unreadCount: 6
       properties:
         messages:
           items:
@@ -15877,6 +15889,8 @@ components:
         UI
     ChatUIAction:
       example:
+        size: 0
+        format: format
         options:
         - description: description
           label: label
@@ -15888,12 +15902,22 @@ components:
         type: type
         value: value
       properties:
+        format:
+          description: |-
+            For "download_qrcode": the file format to draw ("png", "jpeg", "webp" or
+            "svg"). Empty gives the link's stored file.
+          type: string
         label:
           type: string
         options:
           items:
             $ref: "#/components/schemas/ChatUIOption"
           type: array
+        size:
+          description: "For \"download_qrcode\": width and height in pixels. 0 is\
+            \ the default size."
+          format: int32
+          type: integer
         type:
           type: string
         value:
@@ -22970,7 +22994,7 @@ components:
         format:
           allOf:
           - $ref: "#/components/schemas/QrcodeRenderFormat"
-          description: PNG (default) or SVG.
+          description: "PNG (default), JPEG, WebP or SVG."
         items:
           description: |-
             The codes to render, 1 to 100. A dynamic link needs a value for every
@@ -27895,10 +27919,14 @@ components:
          - QRCODE_RENDER_FORMAT_UNSPECIFIED: Not specified: PNG
          - QRCODE_RENDER_FORMAT_PNG: PNG raster image
          - QRCODE_RENDER_FORMAT_SVG: SVG vector image, for print at any size
+         - QRCODE_RENDER_FORMAT_JPEG: JPEG raster image on a white background, for tools that accept nothing else
+         - QRCODE_RENDER_FORMAT_WEBP: WebP raster image, smaller than PNG for the web
       enum:
       - QRCODE_RENDER_FORMAT_UNSPECIFIED
       - QRCODE_RENDER_FORMAT_PNG
       - QRCODE_RENDER_FORMAT_SVG
+      - QRCODE_RENDER_FORMAT_JPEG
+      - QRCODE_RENDER_FORMAT_WEBP
       type: string
     QrcodeRenderItem:
       description: QrcodeRenderItem is one QR code to render.
@@ -28144,7 +28172,8 @@ components:
           description: "The address a scan opens, values filled in."
           type: string
         contentType:
-          description: '"image/png" or "image/svg+xml".'
+          description: "\"image/png\", \"image/jpeg\", \"image/webp\" or \"image/svg+xml\"\
+            ."
           type: string
         imageUrl:
           description: "Signed URL of the image. It expires: download it or ask again."
