@@ -303,6 +303,8 @@ model_get_step_funnel_request.go
 model_get_step_funnel_response.go
 model_get_top_links_request.go
 model_get_top_links_response.go
+model_get_traffic_split_results_request.go
+model_get_traffic_split_results_response.go
 model_get_visitor_trends_request.go
 model_get_visitor_trends_response.go
 model_get_wallet_pass_support_response.go
@@ -458,6 +460,7 @@ model_rendered_qrcode.go
 model_replace_media_import_response.go
 model_report_integration_search_miss_request.go
 model_report_step_search_miss_request.go
+model_report_step_search_request.go
 model_request_email_verification_request.go
 model_request_workspace_enrollment_request.go
 model_resolve_page_theme_template_images_request.go
@@ -528,6 +531,10 @@ model_time_of_day_range.go
 model_time_series_point.go
 model_time_series_series.go
 model_top_link_data_point.go
+model_traffic_split_payload.go
+model_traffic_split_trace_data.go
+model_traffic_split_variant.go
+model_traffic_split_variant_result.go
 model_triggered_by.go
 model_type_date.go
 model_update_agent_knowledge_document_response.go

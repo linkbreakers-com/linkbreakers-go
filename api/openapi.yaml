@@ -42,7 +42,7 @@ info:
 
     Send a `Linkbreakers-Client` request header saying which client made the call: `<client>/<version> (<details>)`, for example `my-integration/1.2.0 (python 3.12; linux)`. The official SDKs, the CLI and the MCP bridge set it for you, as `sdk-python/2.3.1 (python 3.12.4; linux)` or `cli/1.4.0 (darwin arm64)`. It is optional and changes nothing about how a request is handled; it tells us which clients and versions are in use, so we know what can be retired and what to fix first. Keep the details short and free of personal data. Browsers may send it too: it is allowed by CORS.
   title: Linkbreakers API
-  version: 1.193.1
+  version: 1.193.3
   x-api-versioning:
     compatibility: additive changes only within a version
     currentVersion: v1
@@ -1857,7 +1857,7 @@ paths:
   /v1/analytics/hours:
     post:
       description: |-
-        Retrieve event counts aggregated by hour of day for identifying peak activity times.
+        Retrieve event counts aggregated by hour of day, in the workspace's time zone, for identifying peak activity times.
 
         Requires the `analytics:read` scope.
       operationId: AnalyticsDataService_GetHourOfDayDistribution
@@ -2160,6 +2160,70 @@ paths:
       - oauth2:
         - analytics:read
       summary: Get top performing links
+      tags:
+      - Analytics Data
+      x-required-scope: analytics:read
+  /v1/analytics/traffic-split:
+    post:
+      description: |-
+        Returns visits and visitors per variant of a traffic split step, leaving out bots, link previews and automated browsers, with whether there is enough data (100 per variant) and a sample ratio mismatch warning. A sticky split, the default, compares visitors against the weights. With sticky off every visit is assigned afresh, so it compares visits and one person may appear under several variants. It does not test significance or name a winner.
+
+        Requires the `analytics:read` scope.
+      operationId: AnalyticsDataService_GetTrafficSplitResults
+      parameters:
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GetTrafficSplitResultsRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetTrafficSplitResultsResponse"
+          description: Everything worked as expected.
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - analytics:read
+      - oauth2:
+        - analytics:read
+      summary: Get traffic split results
       tags:
       - Analytics Data
       x-required-scope: analytics:read
@@ -15372,6 +15436,9 @@ components:
              - EVENT_ACTION_CHAT_BOT: A conversation with one of the workspace's agents that collects visitor
             attributes (composite: two branches, "completed" when every required
             objective is known, "else" otherwise)
+             - EVENT_ACTION_TRAFFIC_SPLIT: Split visitors between 2 to 20 variants by percentage, for an A/B test
+            (composite: one branch per variant, no "else"). Assignment is deterministic
+            and sticky per device by default. See TrafficSplitPayload.
           enum:
           - EVENT_ACTION_UNSPECIFIED
           - EVENT_ACTION_CLIENT_REDIRECT
@@ -15399,6 +15466,7 @@ components:
           - EVENT_ACTION_LOCATION_REQUEST
           - EVENT_ACTION_LANGUAGE_CONDITION
           - EVENT_ACTION_CHAT_BOT
+          - EVENT_ACTION_TRAFFIC_SPLIT
           type: string
         links:
           description: |-
@@ -15644,7 +15712,8 @@ components:
         branchId:
           description: |-
             The branch: the option's id, the country code on a country condition, the
-            language code on a language condition, or "else" for everyone else.
+            language code on a language condition, the variant id on a traffic split,
+            or "else" for everyone else.
           type: string
         destination:
           description: The URL visitors on this branch go to.
@@ -20154,6 +20223,9 @@ components:
          - EVENT_ACTION_CHAT_BOT: A conversation with one of the workspace's agents that collects visitor
         attributes (composite: two branches, "completed" when every required
         objective is known, "else" otherwise)
+         - EVENT_ACTION_TRAFFIC_SPLIT: Split visitors between 2 to 20 variants by percentage, for an A/B test
+        (composite: one branch per variant, no "else"). Assignment is deterministic
+        and sticky per device by default. See TrafficSplitPayload.
       enum:
       - EVENT_ACTION_UNSPECIFIED
       - EVENT_ACTION_CLIENT_REDIRECT
@@ -20181,6 +20253,7 @@ components:
       - EVENT_ACTION_LOCATION_REQUEST
       - EVENT_ACTION_LANGUAGE_CONDITION
       - EVENT_ACTION_CHAT_BOT
+      - EVENT_ACTION_TRAFFIC_SPLIT
       title: Event action types for workflow steps
       type: string
     EventTrace:
@@ -20300,6 +20373,8 @@ components:
           $ref: "#/components/schemas/SpecificDateConditionTraceData"
         timeOfDayCondition:
           $ref: "#/components/schemas/TimeOfDayConditionTraceData"
+        trafficSplit:
+          $ref: "#/components/schemas/TrafficSplitTraceData"
         visitTypeCondition:
           $ref: "#/components/schemas/VisitTypeConditionTraceData"
         visitorDataCondition:
@@ -21576,11 +21651,15 @@ components:
         - hour: 6
           eventCount: 0
         totalEvents: 1
+        timeZone: timeZone
       properties:
         data:
           items:
             $ref: "#/components/schemas/HourOfDayDataPoint"
           type: array
+        timeZone:
+          title: The workspace's time zone (IANA name) the hours are counted in
+          type: string
         totalEvents:
           format: int32
           type: integer
@@ -21977,6 +22056,98 @@ components:
           format: int32
           type: integer
       title: GetTopLinksResponse contains the ranked links
+    GetTrafficSplitResultsRequest:
+      description: GetTrafficSplitResultsRequest asks how a traffic split (A/B test)
+        is doing.
+      example:
+        linkId: linkId
+        endDate: 2000-01-23T04:56:07.000+00:00
+        stepId: stepId
+        startDate: 2000-01-23T04:56:07.000+00:00
+      properties:
+        endDate:
+          format: date-time
+          title: "Optional end; when omitted, counts up to now"
+          type: string
+        linkId:
+          title: The link the split is on (UUID)
+          type: string
+        startDate:
+          format: date-time
+          title: "Optional start; when omitted, counts from the first visit"
+          type: string
+        stepId:
+          title: The traffic split step (UUID)
+          type: string
+    GetTrafficSplitResultsResponse:
+      description: |-
+        GetTrafficSplitResultsResponse is what can honestly be said about a split.
+        It never names a winner: it counts arrivals per variant, not outcomes.
+      example:
+        totalVisits: 5
+        minimumVisitorsPerVariant: 6
+        sampleRatioMismatch: true
+        totalVisitors: 1
+        enoughData: true
+        automatedVisitsExcluded: 0
+        sticky: true
+        variants:
+        - visitors: 2
+          visits: 7
+          removed: true
+          visitorShare: 5.637376656633329
+          weight: 9
+          label: label
+          variantId: variantId
+        - visitors: 2
+          visits: 7
+          removed: true
+          visitorShare: 5.637376656633329
+          weight: 9
+          label: label
+          variantId: variantId
+      properties:
+        automatedVisitsExcluded:
+          format: int64
+          title: "Visits left out as bots, link previews or automated browsers"
+          type: integer
+        enoughData:
+          description: |-
+            True once every variant with a weight above 0 has at least
+            minimum_visitors_per_variant visitors (visits when sticky is false). Below
+            that, show "Not enough data yet".
+          type: boolean
+        minimumVisitorsPerVariant:
+          format: int32
+          title: The threshold behind enough_data
+          type: integer
+        sampleRatioMismatch:
+          description: |-
+            True when the real split is further from the configured weights than chance
+            explains (chi-square test on visitors, or on visits when sticky is false, at
+            p < 0.001, once each variant expects at least 100). Usually means the weights changed during the
+            test or one path is broken; compare variants only after looking into it.
+          type: boolean
+        sticky:
+          description: |-
+            The split's current sticky setting. When false, read the numbers as visits:
+            one person may appear under more than one variant.
+          type: boolean
+        totalVisitors:
+          description: |-
+            Sum of the variants' visitors, bots and link previews left out. A device that
+            changed variant counts under each.
+          format: int64
+          type: integer
+        totalVisits:
+          format: int64
+          title: "Visits assigned, bots and link previews left out"
+          type: integer
+        variants:
+          items:
+            $ref: "#/components/schemas/TrafficSplitVariantResult"
+          title: "The variants, in the step's order, then any since removed"
+          type: array
     GetVisitorTrendsRequest:
       example:
         linkId: linkId
@@ -22295,7 +22466,7 @@ components:
           type: integer
         hour:
           format: int32
-          title: Hour of day (0-23)
+          title: "Hour of day (0-23), on the clock of the time zone the response names"
           type: integer
       title: HourOfDayDataPoint represents event count for a specific hour (0-23)
     IdentifyRequest:
@@ -22786,7 +22957,7 @@ components:
         eventCount:
           description: |-
             The number of time the link has been scanned.
-            This number isn't refreshed instantly but will update itself within a few seconds.
+            This number is counted in the background: a new scan can take up to about two minutes to show here.
           example: 128
           format: int64
           readOnly: true
@@ -28169,7 +28340,9 @@ components:
         contentType: contentType
       properties:
         address:
-          description: "The address a scan opens, values filled in."
+          description: |-
+            The address the code encodes and a scan opens, values filled in. It carries
+            lbsrc=qrcode, which records the visit as a QR scan rather than a click.
           type: string
         contentType:
           description: "\"image/png\", \"image/jpeg\", \"image/webp\" or \"image/svg+xml\"\
@@ -28249,6 +28422,25 @@ components:
         query:
           description: What the person typed.
           type: string
+    ReportStepSearchRequest:
+      description: |-
+        ReportStepSearchRequest is a search in the step picker that found steps, sent
+        once a step is chosen or the picker closes.
+      properties:
+        chosenStep:
+          description: "The step type they chose, empty when they closed the picker\
+            \ without one."
+          type: string
+        linkId:
+          description: The link whose workflow they were editing.
+          type: string
+        query:
+          description: What the person typed.
+          type: string
+        resultCount:
+          description: How many steps the search offered.
+          format: int32
+          type: integer
     RequestEmailVerificationRequest:
       description: |-
         RequestEmailVerificationRequest sends a verification email to one member of
@@ -29498,6 +29690,145 @@ components:
           title: Link shortlink identifier
           type: string
       title: TopLinkDataPoint represents a link ranked by event count
+    TrafficSplitPayload:
+      description: |-
+        Traffic split payload for EVENT_ACTION_TRAFFIC_SPLIT, Linkbreakers' A/B test.
+        Invisible to the visitor: no page, the visit goes straight to the variant's
+        next step. 2 to 20 variants, weights sum to exactly 100, there is no else
+        branch because the weights cover every visitor.
+
+        Sticky is the default: assignment is deterministic and per device. The variant
+        is computed from the step id and the device id, nothing is stored, so the same
+        device gets the same variant on every visit. A different split on the same
+        device is an independent assignment. The device is the workspace's device
+        cookie, so a new device, private browsing or some in-app browsers count as a
+        new visitor.
+
+        With sticky set to false, the variant is computed from the step id and the
+        visit's event id instead: every visit is assigned afresh, so one person can see
+        several variants, while one visit stays on its variant across a form or a
+        retry. That suits sharing traffic. For an A/B test, leave sticky on.
+
+        Percentages are approximate at low traffic: on a 50/50, expect about plus or
+        minus 10 points at 100 visitors, 3 at 1,000 and 1 at 10,000.
+
+        Changing weights only moves visitors near the boundaries you changed: going
+        from 90/10 to 80/20 only moves visitors from the first variant to the second.
+        With three or more variants, a shift can move a few more than the difference.
+        Keep variants in the same order, since the order decides who lands where.
+
+        To end a test, set the weights to 100 and 0: everyone goes to the winner,
+        including those who had the other variant. To target a test, place a
+        condition before the split, not inside it: a split has no rules of its own.
+      properties:
+        sticky:
+          description: |-
+            Keep returning visitors on the same variant. Left out means true, the
+            default, and for an A/B test it should stay on. Set false only to share
+            traffic: each visit is then assigned on its own by weight, so one person can
+            see several variants. It is a draw per visit, not a strict round-robin.
+            On an update, leaving this out keeps the current setting.
+          type: boolean
+        variants:
+          description: |-
+            The variants, from 2 to 20. Their order decides who lands where, so keep it
+            stable across updates.
+          items:
+            $ref: "#/components/schemas/TrafficSplitVariant"
+          type: array
+    TrafficSplitTraceData:
+      description: TrafficSplitTraceData records which variant of a traffic split
+        a visit went to.
+      properties:
+        automated:
+          description: |-
+            True when the visit came from a bot, a link preview or an automated browser.
+            It was routed like any other, and is left out of results.
+          type: boolean
+        bucket:
+          format: int32
+          title: |-
+            The visit's bucket, from 0 to 99, computed from the step id and the device
+            id, or the event id when the split is not sticky
+          type: integer
+        label:
+          title: The variant's label at the time of the visit
+          type: string
+        sticky:
+          title: Whether the split kept returning visitors on the same variant at
+            this visit
+          type: boolean
+        variantId:
+          title: Id of the variant the visit was assigned to
+          type: string
+    TrafficSplitVariant:
+      description: One exit of a traffic split (EVENT_ACTION_TRAFFIC_SPLIT).
+      properties:
+        id:
+          description: |-
+            Stable id of this variant, and its branch id. Leave it empty on a new
+            variant: the server generates it once and never reuses it. Send it back
+            unchanged on every update so results and connections stay with the variant.
+          type: string
+        label:
+          example: Short form
+          title: "Name people read, required (e.g. \"A\", \"Short form\")"
+          type: string
+        nextStepId:
+          description: |-
+            Workflow step this variant leads to (UUID). A variant with none sends its
+            visitors to the link's fallback destination.
+          example: 123e4567-e89b-12d3-a456-426614174000
+          type: string
+        weight:
+          description: |-
+            Share of visitors, in whole percent from 0 to 100. The weights of all
+            variants must sum to exactly 100. A variant at 0 receives no new visitors.
+          example: 50
+          format: int32
+          type: integer
+    TrafficSplitVariantResult:
+      description: TrafficSplitVariantResult is one variant of a traffic split.
+      example:
+        visitors: 2
+        visits: 7
+        removed: true
+        visitorShare: 5.637376656633329
+        weight: 9
+        label: label
+        variantId: variantId
+      properties:
+        label:
+          title: The variant's label
+          type: string
+        removed:
+          title: True when the variant has since been removed from the step
+          type: boolean
+        variantId:
+          title: The variant's id
+          type: string
+        visitorShare:
+          format: double
+          title: |-
+            Share of the total in percent, to compare against weight: of visitors, or
+            of visits when the split is not sticky
+          type: number
+        visitors:
+          format: int64
+          title: "Distinct devices assigned to this variant, bots and link previews\
+            \ left out"
+          type: integer
+        visits:
+          description: |-
+            Visits assigned to this variant, bots and link previews left out. A
+            returning visitor counts once per visit.
+          format: int64
+          type: integer
+        weight:
+          format: int32
+          title: "Its configured weight, in percent; 0 for a variant no longer on\
+            \ the step"
+          type: integer
     TriggeredBy:
       default: TRIGGERED_BY_UNSPECIFIED
       description: |-
@@ -31523,6 +31854,9 @@ components:
              - EVENT_ACTION_CHAT_BOT: A conversation with one of the workspace's agents that collects visitor
             attributes (composite: two branches, "completed" when every required
             objective is known, "else" otherwise)
+             - EVENT_ACTION_TRAFFIC_SPLIT: Split visitors between 2 to 20 variants by percentage, for an A/B test
+            (composite: one branch per variant, no "else"). Assignment is deterministic
+            and sticky per device by default. See TrafficSplitPayload.
           enum:
           - EVENT_ACTION_UNSPECIFIED
           - EVENT_ACTION_CLIENT_REDIRECT
@@ -31550,6 +31884,7 @@ components:
           - EVENT_ACTION_LOCATION_REQUEST
           - EVENT_ACTION_LANGUAGE_CONDITION
           - EVENT_ACTION_CHAT_BOT
+          - EVENT_ACTION_TRAFFIC_SPLIT
           example: EVENT_ACTION_CLIENT_REDIRECT
           title: The event action type for this workflow step
           type: string
@@ -31754,6 +32089,8 @@ components:
           $ref: "#/components/schemas/ThankYouPagePayload"
         timeOfDayCondition:
           $ref: "#/components/schemas/TimeOfDayConditionPayload"
+        trafficSplit:
+          $ref: "#/components/schemas/TrafficSplitPayload"
         vcard:
           $ref: "#/components/schemas/VCardPayload"
         visitTypeCondition:
@@ -31857,6 +32194,9 @@ components:
              - EVENT_ACTION_CHAT_BOT: A conversation with one of the workspace's agents that collects visitor
             attributes (composite: two branches, "completed" when every required
             objective is known, "else" otherwise)
+             - EVENT_ACTION_TRAFFIC_SPLIT: Split visitors between 2 to 20 variants by percentage, for an A/B test
+            (composite: one branch per variant, no "else"). Assignment is deterministic
+            and sticky per device by default. See TrafficSplitPayload.
           enum:
           - EVENT_ACTION_UNSPECIFIED
           - EVENT_ACTION_CLIENT_REDIRECT
@@ -31884,6 +32224,7 @@ components:
           - EVENT_ACTION_LOCATION_REQUEST
           - EVENT_ACTION_LANGUAGE_CONDITION
           - EVENT_ACTION_CHAT_BOT
+          - EVENT_ACTION_TRAFFIC_SPLIT
           example: EVENT_ACTION_FORM_SUBMIT
           title: The event action type for this workflow step
           type: string
