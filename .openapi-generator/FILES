@@ -13,6 +13,7 @@ api_auth.go
 api_custom_domains.go
 api_directories.go
 api_events.go
+api_form_integrations.go
 api_google_analytics_integrations.go
 api_google_forms_integrations.go
 api_integrations.go
@@ -122,12 +123,14 @@ model_chat_ui_option.go
 model_check_custom_domain_response.go
 model_claim_agent_workspace_request.go
 model_client_redirect_payload.go
+model_complete_form_tool_o_auth_response.go
 model_complete_google_forms_o_auth_request.go
 model_complete_google_forms_o_auth_response.go
 model_complete_media_replace_response.go
 model_complete_media_upload_response.go
 model_complete_slack_o_auth_request.go
 model_complete_slack_o_auth_response.go
+model_connect_form_tool_response.go
 model_connect_workflow_step_response.go
 model_contact_card_trace_card.go
 model_contact_card_trace_data.go
@@ -199,6 +202,7 @@ model_day_of_week_option.go
 model_delete_attribute_response.go
 model_delete_visitor_response.go
 model_detected_google_form.go
+model_detected_tool_form.go
 model_device.go
 model_device_actor.go
 model_device_actor_condition_option.go
@@ -253,10 +257,17 @@ model_events_time_series_data.go
 model_find_matching_page_theme_template_response.go
 model_firing_retargeting_pixel.go
 model_font_config.go
+model_form_connection.go
+model_form_connection_status.go
 model_form_field.go
 model_form_field_option.go
 model_form_field_type.go
+model_form_integrations_service_complete_o_auth_body.go
+model_form_integrations_service_connect_body.go
+model_form_integrations_service_update_body.go
 model_form_payload.go
+model_form_readiness.go
+model_form_tool.go
 model_form_trace_data.go
 model_form_trace_data_field.go
 model_funnel_branch.go
@@ -281,6 +292,8 @@ model_get_device_distribution_response.go
 model_get_directory_response.go
 model_get_events_time_series_request.go
 model_get_events_time_series_response.go
+model_get_form_connection_response.go
+model_get_form_tool_o_auth_url_response.go
 model_get_geo_breakdown_request.go
 model_get_geo_breakdown_response.go
 model_get_google_analytics_integration_response.go
@@ -317,6 +330,7 @@ model_google_analytics_attribute_keys.go
 model_google_analytics_integration.go
 model_google_forms_integration.go
 model_google_forms_integration_status.go
+model_google_forms_integrations_service_choose_form_link_body.go
 model_googlerpc_status.go
 model_group_by_dimension.go
 model_hour_of_day_data_point.go
@@ -365,6 +379,8 @@ model_list_event_traces_response.go
 model_list_events_csv_response.go
 model_list_events_json_response.go
 model_list_events_response.go
+model_list_form_connections_response.go
+model_list_form_tool_forms_response.go
 model_list_link_integrations_response.go
 model_list_links_response.go
 model_list_media_response.go
@@ -551,6 +567,7 @@ model_update_data_collection_request.go
 model_update_data_collection_response.go
 model_update_device_response.go
 model_update_directory_response.go
+model_update_form_connection_response.go
 model_update_google_analytics_integration_request.go
 model_update_google_analytics_integration_response.go
 model_update_google_forms_integration_request.go

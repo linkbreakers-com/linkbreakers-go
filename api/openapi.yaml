@@ -42,7 +42,7 @@ info:
 
     Send a `Linkbreakers-Client` request header saying which client made the call: `<client>/<version> (<details>)`, for example `my-integration/1.2.0 (python 3.12; linux)`. The official SDKs, the CLI and the MCP bridge set it for you, as `sdk-python/2.3.1 (python 3.12.4; linux)` or `cli/1.4.0 (darwin arm64)`. It is optional and changes nothing about how a request is handled; it tells us which clients and versions are in use, so we know what can be retired and what to fix first. Keep the details short and free of personal data. Browsers may send it too: it is allowed by CORS.
   title: Linkbreakers API
-  version: 1.194.1
+  version: 1.195.0
   x-api-versioning:
     compatibility: additive changes only within a version
     currentVersion: v1
@@ -94,6 +94,10 @@ tags:
 - description: Endpoints for managing events in Linkbreakers. These endpoints allow
     you to collect data and list events.
   name: Events
+- description: "Connect Tally, Typeform, Jotform or Paperform: each response lands\
+    \ on the visitor whose visit opened the form, through a hidden lbid field and\
+    \ a webhook."
+  name: Form Integrations
 - description: "Send every QR code scan and link visit, form submission and piece\
     \ of visitor data captured to Google Analytics 4, server side through the Measurement\
     \ Protocol, with no delay for the visitor."
@@ -3993,6 +3997,546 @@ paths:
       tags:
       - Events
       x-required-scope: analytics:read
+  /v1/form-integrations:
+    get:
+      description: |-
+        Return the workspace's connected form tools: Tally, Typeform, Jotform and Paperform.
+
+        Requires the `integrations:read` scope.
+      operationId: FormIntegrationsService_List
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListFormConnectionsResponse"
+          description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - integrations:read
+      - oauth2:
+        - integrations:read
+      summary: List form tool connections
+      tags:
+      - Form Integrations
+      x-required-scope: integrations:read
+  /v1/form-integrations/{tool}:
+    delete:
+      description: |-
+        Remove our webhooks from its forms and forget the credential.
+
+        Requires the `integrations:write` scope.
+      operationId: FormIntegrationsService_Disconnect
+      parameters:
+      - explode: false
+        in: path
+        name: tool
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                properties: {}
+                type: object
+          description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - integrations:write
+      - oauth2:
+        - integrations:write
+      summary: Disconnect a form tool
+      tags:
+      - Form Integrations
+      x-required-scope: integrations:write
+    get:
+      description: |-
+        Return one form tool's connection, empty when it is not connected.
+
+        Requires the `integrations:read` scope.
+      operationId: FormIntegrationsService_Get
+      parameters:
+      - explode: false
+        in: path
+        name: tool
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetFormConnectionResponse"
+          description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - integrations:read
+      - oauth2:
+        - integrations:read
+      summary: Get a form tool connection
+      tags:
+      - Form Integrations
+      x-required-scope: integrations:read
+    patch:
+      description: |-
+        Pause or resume it, or change which links' forms bring answers in and which answers are kept.
+
+        Requires the `integrations:write` scope.
+      operationId: FormIntegrationsService_Update
+      parameters:
+      - explode: false
+        in: path
+        name: tool
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FormIntegrationsServiceUpdateBody"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpdateFormConnectionResponse"
+          description: Everything worked as expected.
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - integrations:write
+      - oauth2:
+        - integrations:write
+      summary: Update a form tool connection
+      tags:
+      - Form Integrations
+      x-required-scope: integrations:write
+  /v1/form-integrations/{tool}/connect:
+    post:
+      description: |-
+        Connect Tally, Jotform or Paperform with the account's API key. The forms behind the workspace's links are prepared at once: a hidden lbid field and a webhook.
+
+        Requires the `integrations:write` scope.
+      operationId: FormIntegrationsService_Connect
+      parameters:
+      - explode: false
+        in: path
+        name: tool
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FormIntegrationsServiceConnectBody"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConnectFormToolResponse"
+          description: Everything worked as expected.
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - integrations:write
+      - oauth2:
+        - integrations:write
+      summary: Connect a form tool with an API key
+      tags:
+      - Form Integrations
+      x-required-scope: integrations:write
+  /v1/form-integrations/{tool}/forms:
+    get:
+      description: |-
+        Return the forms of a connected tool behind the workspace's links, each with whether it is ready.
+
+        Requires the `integrations:read` scope.
+      operationId: FormIntegrationsService_ListForms
+      parameters:
+      - explode: false
+        in: path
+        name: tool
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListFormToolFormsResponse"
+          description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - integrations:read
+      - oauth2:
+        - integrations:read
+      summary: List the forms found behind links
+      tags:
+      - Form Integrations
+      x-required-scope: integrations:read
+  /v1/form-integrations/{tool}/forms/prepare:
+    post:
+      description: |-
+        Add the hidden field and webhook to every form behind a link now, rather than at the next daily check.
+
+        Requires the `integrations:write` scope.
+      operationId: FormIntegrationsService_PrepareForms
+      parameters:
+      - explode: false
+        in: path
+        name: tool
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FormIntegrationsServicePrepareFormsBody"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListFormToolFormsResponse"
+          description: Everything worked as expected.
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - integrations:write
+      - oauth2:
+        - integrations:write
+      summary: Check the forms again
+      tags:
+      - Form Integrations
+      x-required-scope: integrations:write
+  /v1/form-integrations/{tool}/oauth-callback:
+    post:
+      description: |-
+        Exchange the code Typeform returned after sign-in and connect the account.
+
+        Requires the `integrations:write` scope.
+      operationId: FormIntegrationsService_CompleteOAuth
+      parameters:
+      - explode: false
+        in: path
+        name: tool
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FormIntegrationsServiceCompleteOAuthBody"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompleteFormToolOAuthResponse"
+          description: Everything worked as expected.
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - integrations:write
+      - oauth2:
+        - integrations:write
+      summary: Finish signing in to a form tool
+      tags:
+      - Form Integrations
+      x-required-scope: integrations:write
+  /v1/form-integrations/{tool}/oauth-url:
+    get:
+      description: |-
+        Return the URL where the user signs in to Typeform to connect it.
+
+        Requires the `integrations:write` scope.
+      operationId: FormIntegrationsService_GetOAuthURL
+      parameters:
+      - explode: false
+        in: path
+        name: tool
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetFormToolOAuthURLResponse"
+          description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - integrations:write
+      - oauth2:
+        - integrations:write
+      summary: Start signing in to a form tool
+      tags:
+      - Form Integrations
+      x-required-scope: integrations:write
   /v1/google-forms-integrations:
     delete:
       description: |-
@@ -4191,6 +4735,79 @@ paths:
       tags:
       - Google Forms Integrations
       x-required-scope: integrations:read
+  /v1/google-forms-integrations/forms/{formId}/link:
+    post:
+      description: |-
+        When the same Google Form is behind several links, timing cannot tell which link a response came from. This records the link its responses belong to.
+
+        Requires the `integrations:write` scope.
+      operationId: GoogleFormsIntegrationsService_ChooseFormLink
+      parameters:
+      - description: The Google Form.
+        explode: false
+        in: path
+        name: formId
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GoogleFormsIntegrationsServiceChooseFormLinkBody"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                properties: {}
+                type: object
+          description: Everything worked as expected.
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - integrations:write
+      - oauth2:
+        - integrations:write
+      summary: Choose a Google Form's link
+      tags:
+      - Google Forms Integrations
+      x-required-scope: integrations:write
   /v1/google-forms-integrations/oauth-url:
     get:
       description: |-
@@ -16113,6 +16730,23 @@ components:
           title: Fully qualified URL used for the redirect
           type: string
       title: Client redirect payload for EVENT_ACTION_CLIENT_REDIRECT
+    CompleteFormToolOAuthResponse:
+      example:
+        connection:
+          createdAt: 2000-01-23T04:56:07.000+00:00
+          delivery: ""
+          lastResponseAt: 2000-01-23T04:56:07.000+00:00
+          responsesReceived: 0
+          visitorsEnriched: 1
+          region: region
+          responsesSkipped: 6
+          accountLabel: accountLabel
+          tool: FORM_TOOL_UNSPECIFIED
+          webhookUrl: webhookUrl
+          status: FORM_CONNECTION_STATUS_UNSPECIFIED
+      properties:
+        connection:
+          $ref: "#/components/schemas/FormConnection"
     CompleteGoogleFormsOAuthRequest:
       example:
         code: code
@@ -16214,6 +16848,23 @@ components:
           - $ref: "#/components/schemas/SlackIntegration"
           title: The newly created Slack integration
       title: CompleteSlackOAuthResponse returns the created Slack integration
+    ConnectFormToolResponse:
+      example:
+        connection:
+          createdAt: 2000-01-23T04:56:07.000+00:00
+          delivery: ""
+          lastResponseAt: 2000-01-23T04:56:07.000+00:00
+          responsesReceived: 0
+          visitorsEnriched: 1
+          region: region
+          responsesSkipped: 6
+          accountLabel: accountLabel
+          tool: FORM_TOOL_UNSPECIFIED
+          webhookUrl: webhookUrl
+          status: FORM_CONNECTION_STATUS_UNSPECIFIED
+      properties:
+        connection:
+          $ref: "#/components/schemas/FormConnection"
     ConnectWorkflowStepResponse:
       example:
         disconnectedSteps:
@@ -18773,9 +19424,19 @@ components:
         linkId: linkId
         formUrl: formUrl
         linkName: linkName
+        chosen: true
+        conflict: true
       properties:
         accessible:
           title: Whether the form is accessible with the connected Google account
+          type: boolean
+        chosen:
+          description: This is the link chosen for the form.
+          type: boolean
+        conflict:
+          description: |-
+            The same form is behind several links: its responses are not matched until
+            the customer chooses which link they belong to (ChooseFormLink).
           type: boolean
         formId:
           title: The extracted Google Form ID (if resolvable)
@@ -18790,6 +19451,35 @@ components:
           title: The link name
           type: string
       title: A Google Form auto-detected from a workspace link's redirect destination
+    DetectedToolForm:
+      description: DetectedToolForm is a form of a connected tool found behind a link.
+      example:
+        formId: formId
+        checkedAt: 2000-01-23T04:56:07.000+00:00
+        customerStep: customerStep
+        lastError: lastError
+        linkId: linkId
+        formUrl: formUrl
+        readiness: FORM_READINESS_UNSPECIFIED
+        linkName: linkName
+      properties:
+        checkedAt:
+          format: date-time
+          type: string
+        customerStep:
+          type: string
+        formId:
+          type: string
+        formUrl:
+          type: string
+        lastError:
+          type: string
+        linkId:
+          type: string
+        linkName:
+          type: string
+        readiness:
+          $ref: "#/components/schemas/FormReadiness"
     Device:
       description: |-
         Tracks the fingerprint of a visitor's hardware/software so Linkbreakers can de-duplicate scans, enrich analytics,
@@ -20634,6 +21324,71 @@ components:
           title: Italic styling
           type: boolean
       title: "Font configuration with family, styling, and color"
+    FormConnection:
+      description: FormConnection is the workspace's account at one form tool.
+      example:
+        createdAt: 2000-01-23T04:56:07.000+00:00
+        delivery: ""
+        lastResponseAt: 2000-01-23T04:56:07.000+00:00
+        responsesReceived: 0
+        visitorsEnriched: 1
+        region: region
+        responsesSkipped: 6
+        accountLabel: accountLabel
+        tool: FORM_TOOL_UNSPECIFIED
+        webhookUrl: webhookUrl
+        status: FORM_CONNECTION_STATUS_UNSPECIFIED
+      properties:
+        accountLabel:
+          description: "The account it is connected to, such as an email address."
+          type: string
+        createdAt:
+          format: date-time
+          readOnly: true
+          type: string
+        delivery:
+          allOf:
+          - $ref: "#/components/schemas/IntegrationDelivery"
+          description: "Where: the links whose forms bring answers in. What: ALL answers,\
+            \ or SELECTED keys."
+        lastResponseAt:
+          format: date-time
+          readOnly: true
+          type: string
+        region:
+          description: "Jotform only: EU or HIPAA when the account lives there."
+          type: string
+        responsesReceived:
+          format: int64
+          readOnly: true
+          type: integer
+        responsesSkipped:
+          description: "Responses that came in without a visit ID, from another workspace,\
+            \ or from a link outside delivery."
+          format: int64
+          readOnly: true
+          type: integer
+        status:
+          $ref: "#/components/schemas/FormConnectionStatus"
+        tool:
+          $ref: "#/components/schemas/FormTool"
+        visitorsEnriched:
+          format: int64
+          readOnly: true
+          type: integer
+        webhookUrl:
+          description: The address to paste in the tool when it cannot be registered
+            for the customer (Paperform without the Business API plan).
+          readOnly: true
+          type: string
+    FormConnectionStatus:
+      default: FORM_CONNECTION_STATUS_UNSPECIFIED
+      description: FormConnectionStatus is whether a connection brings answers in.
+      enum:
+      - FORM_CONNECTION_STATUS_UNSPECIFIED
+      - FORM_CONNECTION_STATUS_ACTIVE
+      - FORM_CONNECTION_STATUS_PAUSED
+      type: string
     FormField:
       properties:
         defaultValue:
@@ -20717,6 +21472,42 @@ components:
       - FORM_FIELD_TYPE_RATING
       title: Form field types for FORM_SUBMIT event action
       type: string
+    FormIntegrationsServiceCompleteOAuthBody:
+      example:
+        code: code
+        state: state
+      properties:
+        code:
+          type: string
+        state:
+          type: string
+    FormIntegrationsServiceConnectBody:
+      example:
+        apiKey: apiKey
+        region: region
+      properties:
+        apiKey:
+          description: "The account's API key: Tally Settings > API keys, Jotform\
+            \ Settings > API, Paperform Account > Developer."
+          type: string
+        region:
+          description: "Jotform only: EU or HIPAA when the account lives there."
+          type: string
+    FormIntegrationsServicePrepareFormsBody:
+      type: object
+    FormIntegrationsServiceUpdateBody:
+      example:
+        delivery: ""
+        status: ""
+      properties:
+        delivery:
+          allOf:
+          - $ref: "#/components/schemas/IntegrationDelivery"
+          description: Leave it out to keep the current setting.
+        status:
+          allOf:
+          - $ref: "#/components/schemas/FormConnectionStatus"
+          description: Leave UNSPECIFIED to keep the status.
     FormPayload:
       properties:
         autoSkipIfKnown:
@@ -20745,6 +21536,34 @@ components:
           title: Custom text for the submit button (defaults to "Submit")
           type: string
       title: Form data collection payload for EVENT_ACTION_FORM_SUBMIT
+    FormReadiness:
+      default: FORM_READINESS_UNSPECIFIED
+      description: |-
+        FormReadiness is whether a form will match its responses to visits.
+
+         - FORM_READINESS_READY: The hidden field and the webhook are in place.
+         - FORM_READINESS_NEEDS_HIDDEN_FIELD: The customer must add the hidden lbid field in the tool (see customer_step).
+         - FORM_READINESS_NEEDS_WEBHOOK: The customer must paste webhook_url in the tool.
+         - FORM_READINESS_FAILED: The tool refused a call; last_error says why.
+         - FORM_READINESS_NOT_CHECKED: Not checked yet.
+      enum:
+      - FORM_READINESS_UNSPECIFIED
+      - FORM_READINESS_READY
+      - FORM_READINESS_NEEDS_HIDDEN_FIELD
+      - FORM_READINESS_NEEDS_WEBHOOK
+      - FORM_READINESS_FAILED
+      - FORM_READINESS_NOT_CHECKED
+      type: string
+    FormTool:
+      default: FORM_TOOL_UNSPECIFIED
+      description: FormTool is a form builder Linkbreakers connects to.
+      enum:
+      - FORM_TOOL_UNSPECIFIED
+      - FORM_TOOL_TALLY
+      - FORM_TOOL_TYPEFORM
+      - FORM_TOOL_JOTFORM
+      - FORM_TOOL_PAPERFORM
+      type: string
     FormTraceData:
       description: FormTraceData stores summary data about a form interaction.
       properties:
@@ -21469,6 +22288,20 @@ components:
           - $ref: "#/components/schemas/EventsTimeSeries"
           title: Aggregated time series results
       title: Response message for getting events time series
+    GetFormConnectionResponse:
+      example:
+        connection: ""
+      properties:
+        connection:
+          allOf:
+          - $ref: "#/components/schemas/FormConnection"
+          description: Empty when the tool is not connected.
+    GetFormToolOAuthURLResponse:
+      example:
+        oauthUrl: oauthUrl
+      properties:
+        oauthUrl:
+          type: string
     GetGeoBreakdownRequest:
       example:
         linkId: linkId
@@ -22496,6 +23329,13 @@ components:
       - GOOGLE_FORMS_INTEGRATION_STATUS_PAUSED
       - GOOGLE_FORMS_INTEGRATION_STATUS_DISCONNECTED
       type: string
+    GoogleFormsIntegrationsServiceChooseFormLinkBody:
+      example:
+        linkId: linkId
+      properties:
+        linkId:
+          description: The link its responses belong to; it must open that form.
+          type: string
     GroupByDimension:
       default: GROUP_BY_DIMENSION_UNSPECIFIED
       description: |-
@@ -23282,6 +24122,12 @@ components:
       - LINK_INTEGRATION_KIND_TIKTOK_PIXEL
       - LINK_INTEGRATION_KIND_LINKEDIN_INSIGHT
       - LINK_INTEGRATION_KIND_GOOGLE_TAG_MANAGER
+      - LINK_INTEGRATION_KIND_TALLY
+      - LINK_INTEGRATION_KIND_TYPEFORM
+      - LINK_INTEGRATION_KIND_JOTFORM
+      - LINK_INTEGRATION_KIND_PAPERFORM
+      - LINK_INTEGRATION_KIND_N8N
+      - LINK_INTEGRATION_KIND_INTEGRATELY
       type: string
     LinkSetting:
       description: Stores per-link compliance preferences that drive how Linkbreakers
@@ -23895,11 +24741,15 @@ components:
           linkId: linkId
           formUrl: formUrl
           linkName: linkName
+          chosen: true
+          conflict: true
         - formId: formId
           accessible: true
           linkId: linkId
           formUrl: formUrl
           linkName: linkName
+          chosen: true
+          conflict: true
       properties:
         forms:
           items:
@@ -24748,6 +25598,60 @@ components:
           $ref: "#/components/schemas/ListEventsCsvResponse"
         json:
           $ref: "#/components/schemas/ListEventsJsonResponse"
+    ListFormConnectionsResponse:
+      example:
+        connections:
+        - createdAt: 2000-01-23T04:56:07.000+00:00
+          delivery: ""
+          lastResponseAt: 2000-01-23T04:56:07.000+00:00
+          responsesReceived: 0
+          visitorsEnriched: 1
+          region: region
+          responsesSkipped: 6
+          accountLabel: accountLabel
+          tool: FORM_TOOL_UNSPECIFIED
+          webhookUrl: webhookUrl
+          status: FORM_CONNECTION_STATUS_UNSPECIFIED
+        - createdAt: 2000-01-23T04:56:07.000+00:00
+          delivery: ""
+          lastResponseAt: 2000-01-23T04:56:07.000+00:00
+          responsesReceived: 0
+          visitorsEnriched: 1
+          region: region
+          responsesSkipped: 6
+          accountLabel: accountLabel
+          tool: FORM_TOOL_UNSPECIFIED
+          webhookUrl: webhookUrl
+          status: FORM_CONNECTION_STATUS_UNSPECIFIED
+      properties:
+        connections:
+          items:
+            $ref: "#/components/schemas/FormConnection"
+          type: array
+    ListFormToolFormsResponse:
+      example:
+        forms:
+        - formId: formId
+          checkedAt: 2000-01-23T04:56:07.000+00:00
+          customerStep: customerStep
+          lastError: lastError
+          linkId: linkId
+          formUrl: formUrl
+          readiness: FORM_READINESS_UNSPECIFIED
+          linkName: linkName
+        - formId: formId
+          checkedAt: 2000-01-23T04:56:07.000+00:00
+          customerStep: customerStep
+          lastError: lastError
+          linkId: linkId
+          formUrl: formUrl
+          readiness: FORM_READINESS_UNSPECIFIED
+          linkName: linkName
+      properties:
+        forms:
+          items:
+            $ref: "#/components/schemas/DetectedToolForm"
+          type: array
     ListLinkIntegrationsResponse:
       example:
         integrations:
@@ -30182,6 +31086,23 @@ components:
         directory:
           $ref: "#/components/schemas/Directory"
       title: Response containing the updated directory
+    UpdateFormConnectionResponse:
+      example:
+        connection:
+          createdAt: 2000-01-23T04:56:07.000+00:00
+          delivery: ""
+          lastResponseAt: 2000-01-23T04:56:07.000+00:00
+          responsesReceived: 0
+          visitorsEnriched: 1
+          region: region
+          responsesSkipped: 6
+          accountLabel: accountLabel
+          tool: FORM_TOOL_UNSPECIFIED
+          webhookUrl: webhookUrl
+          status: FORM_CONNECTION_STATUS_UNSPECIFIED
+      properties:
+        connection:
+          $ref: "#/components/schemas/FormConnection"
     UpdateGoogleAnalyticsIntegrationRequest:
       description: "Connects Google Analytics, or changes the property it sends to."
       example:
@@ -31737,11 +32658,15 @@ components:
          - WEBHOOK_SOURCE_LINKBREAKERS: Webhook created manually through the Linkbreakers dashboard/platform
          - WEBHOOK_SOURCE_MAKE: Webhook created automatically via Make.com integration
          - WEBHOOK_SOURCE_ZAPIER: Webhook created automatically via Zapier integration
+         - WEBHOOK_SOURCE_N8N: Webhook created automatically by the Linkbreakers node in n8n
+         - WEBHOOK_SOURCE_INTEGRATELY: Webhook created automatically via Integrately
       enum:
       - WEBHOOK_SOURCE_UNSPECIFIED
       - WEBHOOK_SOURCE_LINKBREAKERS
       - WEBHOOK_SOURCE_MAKE
       - WEBHOOK_SOURCE_ZAPIER
+      - WEBHOOK_SOURCE_N8N
+      - WEBHOOK_SOURCE_INTEGRATELY
       title: "The source of a webhook - indicates whether the webhook was created\
         \ manually \nthrough the Linkbreakers dashboard or automatically via an integration\
         \ platform such as Make.com or Zapier"
