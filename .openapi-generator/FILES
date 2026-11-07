@@ -15,6 +15,7 @@ api_directories.go
 api_events.go
 api_google_analytics_integrations.go
 api_google_forms_integrations.go
+api_integrations.go
 api_integrations_service.go
 api_jobs.go
 api_link_settings.go
@@ -331,6 +332,8 @@ model_import_qrcode_template_request.go
 model_import_qrcode_template_response.go
 model_in_app_browser.go
 model_in_app_browser_details.go
+model_integration_delivery.go
+model_integration_visitor_data.go
 model_invite_member_request.go
 model_job.go
 model_job_error.go
@@ -342,6 +345,8 @@ model_language_condition_payload.go
 model_language_condition_trace_data.go
 model_language_condition_trace_option.go
 model_link.go
+model_link_integration.go
+model_link_integration_kind.go
 model_link_setting.go
 model_link_sort_field.go
 model_link_view.go
@@ -360,6 +365,7 @@ model_list_event_traces_response.go
 model_list_events_csv_response.go
 model_list_events_json_response.go
 model_list_events_response.go
+model_list_link_integrations_response.go
 model_list_links_response.go
 model_list_media_response.go
 model_list_my_workspaces_response.go

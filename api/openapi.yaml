@@ -42,7 +42,7 @@ info:
 
     Send a `Linkbreakers-Client` request header saying which client made the call: `<client>/<version> (<details>)`, for example `my-integration/1.2.0 (python 3.12; linux)`. The official SDKs, the CLI and the MCP bridge set it for you, as `sdk-python/2.3.1 (python 3.12.4; linux)` or `cli/1.4.0 (darwin arm64)`. It is optional and changes nothing about how a request is handled; it tells us which clients and versions are in use, so we know what can be retired and what to fix first. Keep the details short and free of personal data. Browsers may send it too: it is allowed by CORS.
   title: Linkbreakers API
-  version: 1.193.4
+  version: 1.194.1
   x-api-versioning:
     compatibility: additive changes only within a version
     currentVersion: v1
@@ -5782,6 +5782,60 @@ paths:
       tags:
       - Links
       x-required-scope: qrcodes:read
+  /v1/links/{linkId}/integrations:
+    get:
+      description: |-
+        Return every integration that is running and whose settings cover this link.
+
+        Requires the `integrations:read` scope.
+      operationId: IntegrationsService_ListForLink
+      parameters:
+      - description: The link to list the integrations of.
+        explode: false
+        in: path
+        name: linkId
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListLinkIntegrationsResponse"
+          description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - integrations:read
+      - oauth2:
+        - integrations:read
+      summary: List the integrations active on a link
+      tags:
+      - Integrations
+      x-required-scope: integrations:read
   /v1/links/{linkId}/workflow-steps:
     get:
       description: |-
@@ -16075,6 +16129,7 @@ components:
       example:
         integration:
           createdAt: 2000-01-23T04:56:07.000+00:00
+          delivery: ""
           createdBy: createdBy
           lastSyncedAt: 2000-01-23T04:56:07.000+00:00
           googleEmail: googleEmail
@@ -17893,6 +17948,7 @@ components:
       title: Response containing the created thank you link
     CreateWebhookRequest:
       example:
+        delivery: ""
         linkId: linkId
         endpointUrl: endpointUrl
         name: name
@@ -17901,6 +17957,12 @@ components:
         - KIND_UNSPECIFIED
         - KIND_UNSPECIFIED
       properties:
+        delivery:
+          allOf:
+          - $ref: "#/components/schemas/IntegrationDelivery"
+          description: |-
+            Where, when and what it sends. When set, it takes over from triggers and
+            link_id. Leave it out to use those, or send at every moment on every link.
         endpointUrl:
           title: The URL endpoint that will receive webhook POST requests
           type: string
@@ -21495,6 +21557,7 @@ components:
       example:
         integration:
           createdAt: 2000-01-23T04:56:07.000+00:00
+          delivery: ""
           createdBy: createdBy
           lastSyncedAt: 2000-01-23T04:56:07.000+00:00
           googleEmail: googleEmail
@@ -22313,6 +22376,7 @@ components:
       description: The Google Analytics 4 property a workspace sends its visits to.
       example:
         createdAt: 2000-01-23T04:56:07.000+00:00
+        delivery: ""
         apiSecretSet: true
         lastError: lastError
         lastErrorAt: 2000-01-23T04:56:07.000+00:00
@@ -22333,6 +22397,10 @@ components:
           description: When the integration was connected.
           format: date-time
           type: string
+        delivery:
+          allOf:
+          - $ref: "#/components/schemas/IntegrationDelivery"
+          description: "Where, when and what it sends."
         lastError:
           description: "The last error met sending events, cleared by the next success."
           type: string
@@ -22372,6 +22440,7 @@ components:
         Forms are auto-detected from workflow steps — no manual configuration needed.
       example:
         createdAt: 2000-01-23T04:56:07.000+00:00
+        delivery: ""
         createdBy: createdBy
         lastSyncedAt: 2000-01-23T04:56:07.000+00:00
         googleEmail: googleEmail
@@ -22388,6 +22457,12 @@ components:
           type: string
         createdBy:
           type: string
+        delivery:
+          allOf:
+          - $ref: "#/components/schemas/IntegrationDelivery"
+          description: |-
+            Where: the links whose forms are synced. What: which answers come in, ALL
+            or SELECTED. Moments do not apply, since responses arrive on a schedule.
         googleEmail:
           type: string
         id:
@@ -22690,6 +22765,95 @@ components:
           title: "Screen size in physical pixels (Instagram, Threads, Facebook and\
             \ Messenger on Android)"
           type: string
+    IntegrationDelivery:
+      description: |-
+        IntegrationDelivery is the same three settings on every integration that
+        sends data out: where (which links), when (which moments or steps) and what
+        (how much visitor data). Everything has a default, so an integration works
+        the moment it is connected and this is only for refining it.
+      properties:
+        directoryIds:
+          description: "Where: directories it applies to, with every directory below\
+            \ them."
+          items:
+            type: string
+          type: array
+        linkIds:
+          description: "Where: links it applies to. All three lists empty means every\
+            \ link."
+          items:
+            type: string
+          type: array
+        moments:
+          description: "When: the moments of a visit it sends at. Ignored when step_ids\
+            \ is set."
+          items:
+            description: |-
+              - KIND_UNSPECIFIED: Workflow step kind not specified
+               - KIND_ENTRY: Entry steps are automatically triggered when a visitor reaches the workflow
+               - KIND_EXIT: Exit steps finalize the workflow (commonly a redirect)
+               - KIND_INTERACTION: Interaction steps require visitor input (forms, passwords, etc.)
+               - KIND_CONDITION: Condition steps evaluate logic and route to different next steps
+            enum:
+            - KIND_UNSPECIFIED
+            - KIND_ENTRY
+            - KIND_EXIT
+            - KIND_INTERACTION
+            - KIND_CONDITION
+            type: string
+          type: array
+        stepIds:
+          description: "When: send only when a visit reaches one of these workflow\
+            \ steps."
+          items:
+            type: string
+          type: array
+        tagIds:
+          description: "Where: tags it applies to."
+          items:
+            type: string
+          type: array
+        targetsGone:
+          description: |-
+            Every link, directory and tag chosen has since been deleted, so this covers
+            nothing. The lists above are then empty without meaning every link.
+          readOnly: true
+          type: boolean
+        visitorAttributeKeys:
+          description: "What: with SELECTED, the attribute keys sent, such as \"$email\"\
+            \ or \"rating\"."
+          items:
+            type: string
+          type: array
+        visitorData:
+          description: |-
+            IntegrationVisitorData is how much of what is known about the visitor an
+            integration sends.
+
+             - INTEGRATION_VISITOR_DATA_NONE: Only the visit: the link, the step, the device and the place.
+             - INTEGRATION_VISITOR_DATA_ALL: The visit, and every attribute known about the visitor.
+             - INTEGRATION_VISITOR_DATA_SELECTED: The visit, and only the attributes named in visitor_attribute_keys.
+          enum:
+          - INTEGRATION_VISITOR_DATA_UNSPECIFIED
+          - INTEGRATION_VISITOR_DATA_NONE
+          - INTEGRATION_VISITOR_DATA_ALL
+          - INTEGRATION_VISITOR_DATA_SELECTED
+          type: string
+    IntegrationVisitorData:
+      default: INTEGRATION_VISITOR_DATA_UNSPECIFIED
+      description: |-
+        IntegrationVisitorData is how much of what is known about the visitor an
+        integration sends.
+
+         - INTEGRATION_VISITOR_DATA_NONE: Only the visit: the link, the step, the device and the place.
+         - INTEGRATION_VISITOR_DATA_ALL: The visit, and every attribute known about the visitor.
+         - INTEGRATION_VISITOR_DATA_SELECTED: The visit, and only the attributes named in visitor_attribute_keys.
+      enum:
+      - INTEGRATION_VISITOR_DATA_UNSPECIFIED
+      - INTEGRATION_VISITOR_DATA_NONE
+      - INTEGRATION_VISITOR_DATA_ALL
+      - INTEGRATION_VISITOR_DATA_SELECTED
+      type: string
     InviteMemberRequest:
       description: InviteMemberRequest seeds a new teammate invite email and pending
         membership.
@@ -23080,6 +23244,45 @@ components:
           title: The workspace ID the link belongs to (UUID)
           type: string
       title: Link
+    LinkIntegration:
+      description: LinkIntegration is one integration active on a link.
+      example:
+        webhookId: webhookId
+        kind: ""
+        name: name
+        detail: detail
+      properties:
+        detail:
+          description: "What it points at, such as a Slack channel or a pixel ID.\
+            \ May be empty."
+          type: string
+        kind:
+          allOf:
+          - $ref: "#/components/schemas/LinkIntegrationKind"
+          description: Which integration it is.
+        name:
+          description: "What it is called: a webhook's own name, otherwise the integration's."
+          type: string
+        webhookId:
+          description: "With WEBHOOK: the webhook's ID."
+          type: string
+    LinkIntegrationKind:
+      default: LINK_INTEGRATION_KIND_UNSPECIFIED
+      description: LinkIntegrationKind is which integration a LinkIntegration is.
+      enum:
+      - LINK_INTEGRATION_KIND_UNSPECIFIED
+      - LINK_INTEGRATION_KIND_SLACK
+      - LINK_INTEGRATION_KIND_GOOGLE_ANALYTICS
+      - LINK_INTEGRATION_KIND_GOOGLE_FORMS
+      - LINK_INTEGRATION_KIND_MAKE
+      - LINK_INTEGRATION_KIND_ZAPIER
+      - LINK_INTEGRATION_KIND_WEBHOOK
+      - LINK_INTEGRATION_KIND_META_PIXEL
+      - LINK_INTEGRATION_KIND_GOOGLE_TAG
+      - LINK_INTEGRATION_KIND_TIKTOK_PIXEL
+      - LINK_INTEGRATION_KIND_LINKEDIN_INSIGHT
+      - LINK_INTEGRATION_KIND_GOOGLE_TAG_MANAGER
+      type: string
     LinkSetting:
       description: Stores per-link compliance preferences that drive how Linkbreakers
         collects visitor data before executing the workflow.
@@ -24545,6 +24748,23 @@ components:
           $ref: "#/components/schemas/ListEventsCsvResponse"
         json:
           $ref: "#/components/schemas/ListEventsJsonResponse"
+    ListLinkIntegrationsResponse:
+      example:
+        integrations:
+        - webhookId: webhookId
+          kind: ""
+          name: name
+          detail: detail
+        - webhookId: webhookId
+          kind: ""
+          name: name
+          detail: detail
+      properties:
+        integrations:
+          description: The integrations active on the link.
+          items:
+            $ref: "#/components/schemas/LinkIntegration"
+          type: array
     ListLinksResponse:
       example:
         nextPageToken: eyJsaW5rSWQiOiI0YmEifQ==
@@ -25433,7 +25653,8 @@ components:
     ListWebhooksResponse:
       example:
         webhooks:
-        - lastSentAt: 2000-01-23T04:56:07.000+00:00
+        - delivery: ""
+          lastSentAt: 2000-01-23T04:56:07.000+00:00
           source: WEBHOOK_SOURCE_LINKBREAKERS
           triggers:
           - KIND_ENTRY
@@ -25450,7 +25671,8 @@ components:
           status: WEBHOOK_STATUS_ACTIVE
           updatedAt: 2000-01-23T04:56:07.000+00:00
           workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
-        - lastSentAt: 2000-01-23T04:56:07.000+00:00
+        - delivery: ""
+          lastSentAt: 2000-01-23T04:56:07.000+00:00
           source: WEBHOOK_SOURCE_LINKBREAKERS
           triggers:
           - KIND_ENTRY
@@ -28918,6 +29140,10 @@ components:
         createdBy:
           title: The member who connected the integration (UUID)
           type: string
+        delivery:
+          allOf:
+          - $ref: "#/components/schemas/IntegrationDelivery"
+          description: "Where, when and what it sends."
         failureCount:
           format: int64
           readOnly: true
@@ -29959,6 +30185,7 @@ components:
     UpdateGoogleAnalyticsIntegrationRequest:
       description: "Connects Google Analytics, or changes the property it sends to."
       example:
+        delivery: ""
         visitorAttributeKeys: ""
         apiSecret: apiSecret
         visitorAttributesEnabled: true
@@ -29969,6 +30196,13 @@ components:
             Measurement Protocol API secret. Required to connect; omit it to keep the
             stored one when only changing the Measurement ID.
           type: string
+        delivery:
+          allOf:
+          - $ref: "#/components/schemas/IntegrationDelivery"
+          description: |-
+            Where, when and what it sends. When set, it replaces the whole setting and
+            takes over from visitor_attributes_enabled and visitor_attribute_keys.
+            Leave it out to keep the current one.
         measurementId:
           description: "GA4 Measurement ID, e.g. \"G-ABC123DEF4\"."
           type: string
@@ -29988,6 +30222,7 @@ components:
       example:
         integration:
           createdAt: 2000-01-23T04:56:07.000+00:00
+          delivery: ""
           apiSecretSet: true
           lastError: lastError
           lastErrorAt: 2000-01-23T04:56:07.000+00:00
@@ -30003,8 +30238,15 @@ components:
           $ref: "#/components/schemas/GoogleAnalyticsIntegration"
     UpdateGoogleFormsIntegrationRequest:
       example:
+        delivery: ""
         status: ""
       properties:
+        delivery:
+          allOf:
+          - $ref: "#/components/schemas/IntegrationDelivery"
+          description: |-
+            Which links are synced and which answers come in. Leave it out to keep the
+            current setting.
         status:
           allOf:
           - $ref: "#/components/schemas/GoogleFormsIntegrationStatus"
@@ -30013,6 +30255,7 @@ components:
       example:
         integration:
           createdAt: 2000-01-23T04:56:07.000+00:00
+          delivery: ""
           createdBy: createdBy
           lastSyncedAt: 2000-01-23T04:56:07.000+00:00
           googleEmail: googleEmail
@@ -30284,6 +30527,7 @@ components:
           $ref: "#/components/schemas/RetargetingPixels"
     UpdateSlackIntegrationRequest:
       example:
+        delivery: ""
         linkId: linkId
         slackChannelId: slackChannelId
         slackChannelName: slackChannelName
@@ -30292,6 +30536,12 @@ components:
         - KIND_UNSPECIFIED
         status: ""
       properties:
+        delivery:
+          allOf:
+          - $ref: "#/components/schemas/IntegrationDelivery"
+          description: |-
+            Where, when and what it sends. When set, it replaces the whole setting and
+            takes over from triggers and link_id. Leave it out to keep the current one.
         linkId:
           title: Filter notifications by a specific link ID
           type: string
@@ -31354,6 +31604,7 @@ components:
         Describes a webhook endpoint that receives event notifications when specified conditions are met,
         providing real-time integration capabilities for external systems.
       example:
+        delivery: ""
         lastSentAt: 2000-01-23T04:56:07.000+00:00
         source: WEBHOOK_SOURCE_LINKBREAKERS
         triggers:
@@ -31384,6 +31635,10 @@ components:
           example: 123e4567-e89b-12d3-a456-426614174000
           title: The member who created the webhook (UUID)
           type: string
+        delivery:
+          allOf:
+          - $ref: "#/components/schemas/IntegrationDelivery"
+          description: "Where, when and what it sends."
         endpointUrl:
           example: https://api.example.com/webhooks/linkbreakers
           title: The URL endpoint that will receive webhook POST requests
@@ -31507,6 +31762,7 @@ components:
       type: string
     WebhooksServiceUpdateBody:
       example:
+        delivery: ""
         linkId: linkId
         endpointUrl: endpointUrl
         name: name
@@ -31516,6 +31772,12 @@ components:
         - KIND_UNSPECIFIED
         status: ""
       properties:
+        delivery:
+          allOf:
+          - $ref: "#/components/schemas/IntegrationDelivery"
+          description: |-
+            Where, when and what it sends. When set, it replaces the whole setting and
+            takes over from triggers and link_id. Leave it out to keep the current one.
         endpointUrl:
           title: The URL endpoint that will receive webhook POST requests
           type: string
