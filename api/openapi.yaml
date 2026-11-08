@@ -42,7 +42,7 @@ info:
 
     Send a `Linkbreakers-Client` request header saying which client made the call: `<client>/<version> (<details>)`, for example `my-integration/1.2.0 (python 3.12; linux)`. The official SDKs, the CLI and the MCP bridge set it for you, as `sdk-python/2.3.1 (python 3.12.4; linux)` or `cli/1.4.0 (darwin arm64)`. It is optional and changes nothing about how a request is handled; it tells us which clients and versions are in use, so we know what can be retired and what to fix first. Keep the details short and free of personal data. Browsers may send it too: it is allowed by CORS.
   title: Linkbreakers API
-  version: 1.195.0
+  version: 1.195.5
   x-api-versioning:
     compatibility: additive changes only within a version
     currentVersion: v1
@@ -24087,10 +24087,16 @@ components:
     LinkIntegration:
       description: LinkIntegration is one integration active on a link.
       example:
+        moments:
+        - KIND_UNSPECIFIED
+        - KIND_UNSPECIFIED
         webhookId: webhookId
         kind: ""
         name: name
         detail: detail
+        stepIds:
+        - stepIds
+        - stepIds
       properties:
         detail:
           description: "What it points at, such as a Slack channel or a pixel ID.\
@@ -24100,9 +24106,37 @@ components:
           allOf:
           - $ref: "#/components/schemas/LinkIntegrationKind"
           description: Which integration it is.
+        moments:
+          description: |-
+            When it runs, to show it on the steps of the link's workflow it runs at:
+            every step of these kinds. All four kinds when it runs at every step, as
+            an integration nobody narrowed does. A pixel runs at ENTRY, the visit.
+            Empty for a form tool, which runs where the link opens its form.
+          items:
+            description: |-
+              - KIND_UNSPECIFIED: Workflow step kind not specified
+               - KIND_ENTRY: Entry steps are automatically triggered when a visitor reaches the workflow
+               - KIND_EXIT: Exit steps finalize the workflow (commonly a redirect)
+               - KIND_INTERACTION: Interaction steps require visitor input (forms, passwords, etc.)
+               - KIND_CONDITION: Condition steps evaluate logic and route to different next steps
+            enum:
+            - KIND_UNSPECIFIED
+            - KIND_ENTRY
+            - KIND_EXIT
+            - KIND_INTERACTION
+            - KIND_CONDITION
+            type: string
+          type: array
         name:
           description: "What it is called: a webhook's own name, otherwise the integration's."
           type: string
+        stepIds:
+          description: |-
+            When it runs: these steps, besides the kinds in moments. Set when it was
+            narrowed to specific steps; may name steps of other links.
+          items:
+            type: string
+          type: array
         webhookId:
           description: "With WEBHOOK: the webhook's ID."
           type: string
@@ -25655,14 +25689,26 @@ components:
     ListLinkIntegrationsResponse:
       example:
         integrations:
-        - webhookId: webhookId
+        - moments:
+          - KIND_UNSPECIFIED
+          - KIND_UNSPECIFIED
+          webhookId: webhookId
           kind: ""
           name: name
           detail: detail
-        - webhookId: webhookId
+          stepIds:
+          - stepIds
+          - stepIds
+        - moments:
+          - KIND_UNSPECIFIED
+          - KIND_UNSPECIFIED
+          webhookId: webhookId
           kind: ""
           name: name
           detail: detail
+          stepIds:
+          - stepIds
+          - stepIds
       properties:
         integrations:
           description: The integrations active on the link.
