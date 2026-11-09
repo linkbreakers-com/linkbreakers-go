@@ -42,7 +42,7 @@ info:
 
     Send a `Linkbreakers-Client` request header saying which client made the call: `<client>/<version> (<details>)`, for example `my-integration/1.2.0 (python 3.12; linux)`. The official SDKs, the CLI and the MCP bridge set it for you, as `sdk-python/2.3.1 (python 3.12.4; linux)` or `cli/1.4.0 (darwin arm64)`. It is optional and changes nothing about how a request is handled; it tells us which clients and versions are in use, so we know what can be retired and what to fix first. Keep the details short and free of personal data. Browsers may send it too: it is allowed by CORS.
   title: Linkbreakers API
-  version: 1.195.5
+  version: 1.195.6
   x-api-versioning:
     compatibility: additive changes only within a version
     currentVersion: v1
@@ -85,6 +85,10 @@ tags:
 - description: "Endpoints for handling authentication in Linkbreakers. These endpoints\
     \ allow you to sign in, request password reset, and reset passwords."
   name: Auth
+- description: "Add the people who scan your QR codes and fill your forms to the tools\
+    \ you reach your customers with (Bird and more), as contacts and to a list or\
+    \ audience."
+  name: Contact Integrations
 - description: "Endpoints for managing custom domains in Linkbreakers. These endpoints\
     \ allow you to register, verify, and manage custom domains for your workspace."
   name: Custom Domains
@@ -4980,6 +4984,536 @@ paths:
       summary: Sync now
       tags:
       - Google Forms Integrations
+      x-required-scope: integrations:write
+  /v1/integrations/contacts:
+    get:
+      description: |-
+        Return every contact tool the workspace syncs identified visitors to, without credentials.
+
+        Requires the `integrations:read` scope.
+      operationId: ContactIntegrationsService_List
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListContactConnectionsResponse"
+          description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - integrations:read
+      - oauth2:
+        - integrations:read
+      summary: List contact integrations
+      tags:
+      - Contact Integrations
+      x-required-scope: integrations:read
+  /v1/integrations/contacts/{tool}:
+    delete:
+      description: |-
+        Stop syncing visitors to the tool and delete the stored credential. Contacts already synced are left as they are.
+
+        Requires the `integrations:write` scope.
+      operationId: ContactIntegrationsService_Disconnect
+      parameters:
+      - description: The tool to disconnect.
+        explode: false
+        in: path
+        name: tool
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                properties: {}
+                type: object
+          description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - integrations:write
+      - oauth2:
+        - integrations:write
+      summary: Disconnect a contact tool
+      tags:
+      - Contact Integrations
+      x-required-scope: integrations:write
+    get:
+      description: |-
+        Return the workspace's connection to one contact tool, without its credential.
+
+        Requires the `integrations:read` scope.
+      operationId: ContactIntegrationsService_Get
+      parameters:
+      - description: The tool.
+        explode: false
+        in: path
+        name: tool
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetContactConnectionResponse"
+          description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - integrations:read
+      - oauth2:
+        - integrations:read
+      summary: Get a contact integration
+      tags:
+      - Contact Integrations
+      x-required-scope: integrations:read
+    patch:
+      description: |-
+        Change the list or audience contacts are added to, and where, when and what is synced.
+
+        Requires the `integrations:write` scope.
+      operationId: ContactIntegrationsService_Update
+      parameters:
+      - description: The connected tool.
+        explode: false
+        in: path
+        name: tool
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContactIntegrationsServiceUpdateBody"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpdateContactConnectionResponse"
+          description: Everything worked as expected.
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - integrations:write
+      - oauth2:
+        - integrations:write
+      summary: Update a contact integration
+      tags:
+      - Contact Integrations
+      x-required-scope: integrations:write
+  /v1/integrations/contacts/{tool}/connect:
+    post:
+      description: |-
+        Connect a contact tool with its credential, or replace the stored one. The credential is checked against the tool first. Identified visitors are then created or updated as contacts there, at every step of every link until the delivery setting narrows it.
+
+        Requires the `integrations:write` scope.
+      operationId: ContactIntegrationsService_ConnectTool
+      parameters:
+      - description: The tool to connect.
+        explode: false
+        in: path
+        name: tool
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContactIntegrationsServiceConnectToolBody"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConnectContactToolResponse"
+          description: Everything worked as expected.
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - integrations:write
+      - oauth2:
+        - integrations:write
+      summary: Connect a contact tool
+      tags:
+      - Contact Integrations
+      x-required-scope: integrations:write
+  /v1/integrations/contacts/{tool}/fields:
+    get:
+      description: |-
+        Return the custom fields of the connected tool, with their types.
+
+        Requires the `integrations:read` scope.
+      operationId: ContactIntegrationsService_ListFields
+      parameters:
+      - description: The connected tool.
+        explode: false
+        in: path
+        name: tool
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListContactToolFieldsResponse"
+          description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - integrations:read
+      - oauth2:
+        - integrations:read
+      summary: List a contact tool's fields
+      tags:
+      - Contact Integrations
+      x-required-scope: integrations:read
+  /v1/integrations/contacts/{tool}/lists:
+    get:
+      description: |-
+        Return the lists, audiences or groups of the connected tool.
+
+        Requires the `integrations:read` scope.
+      operationId: ContactIntegrationsService_ListLists
+      parameters:
+      - description: The connected tool.
+        explode: false
+        in: path
+        name: tool
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListContactToolListsResponse"
+          description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - integrations:read
+      - oauth2:
+        - integrations:read
+      summary: List a contact tool's lists
+      tags:
+      - Contact Integrations
+      x-required-scope: integrations:read
+  /v1/integrations/contacts/{tool}/pipelines:
+    get:
+      description: |-
+        Return the pipelines of the connected CRM and their stages.
+
+        Requires the `integrations:read` scope.
+      operationId: ContactIntegrationsService_ListPipelines
+      parameters:
+      - description: The connected CRM.
+        explode: false
+        in: path
+        name: tool
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListContactToolPipelinesResponse"
+          description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - integrations:read
+      - oauth2:
+        - integrations:read
+      summary: List a CRM's pipelines
+      tags:
+      - Contact Integrations
+      x-required-scope: integrations:read
+  /v1/integrations/contacts/{tool}/test:
+    post:
+      description: |-
+        Check the stored credential against the tool and list its custom field keys. Nothing is written to the tool.
+
+        Requires the `integrations:write` scope.
+      operationId: ContactIntegrationsService_Test
+      parameters:
+      - description: The connected tool.
+        explode: false
+        in: path
+        name: tool
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContactIntegrationsServiceTestBody"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TestContactConnectionResponse"
+          description: Everything worked as expected.
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - integrations:write
+      - oauth2:
+        - integrations:write
+      summary: Test a contact integration
+      tags:
+      - Contact Integrations
       x-required-scope: integrations:write
   /v1/integrations/google-analytics:
     delete:
@@ -13142,6 +13676,60 @@ paths:
       tags:
       - Visitors
       x-required-scope: visitors:write
+  /v1/visitors/{id}/consents:
+    get:
+      description: |-
+        Returns the visitor's marketing consents, newest first, each with the wording shown, how it was given, the link, step and visit, and when. They are only ever added, so this is the proof of consent.
+
+        Requires the `visitors:read` scope.
+      operationId: VisitorsService_ListConsents
+      parameters:
+      - description: The visitor's ID.
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListVisitorConsentsResponse"
+          description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - visitors:read
+      - oauth2:
+        - visitors:read
+      summary: List a visitor's consents
+      tags:
+      - Visitors
+      x-required-scope: visitors:read
   /v1/webhooks:
     get:
       description: |-
@@ -16480,15 +17068,18 @@ components:
       description: ChatBotObjective is one visitor attribute the chat bot must learn.
       properties:
         explanation:
+          description: |-
+            What the agent needs to understand to ask for it and recognise a good answer.
+            For a consent objective, the wording the visitor agrees to (the label when
+            empty): the agent asks it in substance as a yes or no question.
           example: The company the visitor works for. A freelancer can answer their
             own name.
-          title: What the agent needs to understand to ask for it and recognise a
-            good answer
           type: string
         key:
           description: |-
             Visitor attribute key the answer is saved under. $email, $phone,
-            $firstName and $lastName fill the visitor's identity.
+            $firstName and $lastName fill the visitor's identity. $marketingConsent is
+            the key of a FORM_FIELD_TYPE_CONSENT objective, and only of it.
           example: company
           type: string
         label:
@@ -16504,7 +17095,14 @@ components:
           title: Whether the conversation must collect it to be completed
           type: boolean
         type:
-          description: "- FORM_FIELD_TYPE_UNSPECIFIED: Form field type not specified"
+          description: |-
+            - FORM_FIELD_TYPE_UNSPECIFIED: Form field type not specified
+             - FORM_FIELD_TYPE_CONSENT: A checkbox where the visitor agrees to the workspace's marketing, in the
+            workspace's own words (the label), never pre-ticked. Its key is always
+            $marketingConsent: granted when ticked, denied when not, and each answer is
+            kept as proof (who, the wording, where, when). Integrations subscribe only
+            visitors who granted it; a visitor data condition can route on it. As a
+            chat bot objective, the agent asks it as a yes or no question instead.
           enum:
           - FORM_FIELD_TYPE_UNSPECIFIED
           - FORM_FIELD_TYPE_TEXT
@@ -16517,7 +17115,7 @@ components:
           - FORM_FIELD_TYPE_NUMBER
           - FORM_FIELD_TYPE_DATE
           - FORM_FIELD_TYPE_RATING
-          title: "Kind of value, which decides how the answer is checked and stored"
+          - FORM_FIELD_TYPE_CONSENT
           type: string
     ChatBotOutcome:
       default: CHAT_BOT_OUTCOME_UNSPECIFIED
@@ -16848,6 +17446,25 @@ components:
           - $ref: "#/components/schemas/SlackIntegration"
           title: The newly created Slack integration
       title: CompleteSlackOAuthResponse returns the created Slack integration
+    ConnectContactToolResponse:
+      example:
+        connection:
+          delivery: ""
+          capabilities: ""
+          lastError: lastError
+          lastErrorAt: 2000-01-23T04:56:07.000+00:00
+          contactListName: contactListName
+          contactsSynced: 0
+          lastSyncedAt: 2000-01-23T04:56:07.000+00:00
+          tool: ""
+          createdAt: 2000-01-23T04:56:07.000+00:00
+          contactListId: contactListId
+          options: ""
+          accountLabel: accountLabel
+          updatedAt: 2000-01-23T04:56:07.000+00:00
+      properties:
+        connection:
+          $ref: "#/components/schemas/ContactConnection"
     ConnectFormToolResponse:
       example:
         connection:
@@ -16941,6 +17558,297 @@ components:
       properties:
         card:
           $ref: "#/components/schemas/ContactCardTraceCard"
+    ContactConnection:
+      description: One tool a workspace syncs its identified visitors to.
+      example:
+        delivery: ""
+        capabilities: ""
+        lastError: lastError
+        lastErrorAt: 2000-01-23T04:56:07.000+00:00
+        contactListName: contactListName
+        contactsSynced: 0
+        lastSyncedAt: 2000-01-23T04:56:07.000+00:00
+        tool: ""
+        createdAt: 2000-01-23T04:56:07.000+00:00
+        contactListId: contactListId
+        options: ""
+        accountLabel: accountLabel
+        updatedAt: 2000-01-23T04:56:07.000+00:00
+      properties:
+        accountLabel:
+          description: |-
+            What the credential belongs to, to tell connections apart: for Bird, its
+            region and the start of the API key. Never the credential itself.
+          type: string
+        capabilities:
+          allOf:
+          - $ref: "#/components/schemas/ContactToolCapabilities"
+          description: "What the tool supports, so only the options that apply are\
+            \ offered."
+        contactListId:
+          description: The list or audience contacts are added to. Empty adds them
+            to none.
+          type: string
+        contactListName:
+          description: "That list's name, as the tool had it when it was chosen."
+          type: string
+        contactsSynced:
+          description: How many contacts the tool accepted.
+          format: int64
+          type: integer
+        createdAt:
+          description: When the tool was connected.
+          format: date-time
+          type: string
+        delivery:
+          allOf:
+          - $ref: "#/components/schemas/IntegrationDelivery"
+          description: "Where, when and what it syncs."
+        lastError:
+          description: "The last error met syncing a contact, cleared by the next\
+            \ success."
+          type: string
+        lastErrorAt:
+          description: When that error happened.
+          format: date-time
+          type: string
+        lastSyncedAt:
+          description: When a contact was last accepted.
+          format: date-time
+          type: string
+        options:
+          allOf:
+          - $ref: "#/components/schemas/ContactSyncOptions"
+          description: |-
+            How contacts are made in the tool: field mappings, tags, consent and,
+            for CRMs, the record created with each contact.
+        tool:
+          allOf:
+          - $ref: "#/components/schemas/ContactTool"
+          description: Which tool it is.
+        updatedAt:
+          description: When it was last changed.
+          format: date-time
+          type: string
+      title: ContactConnection
+    ContactField:
+      description: ContactField is one custom field of a tool.
+      example:
+        type: type
+        key: key
+      properties:
+        key:
+          description: The key mappings use.
+          type: string
+        type:
+          description: "The field's type in the tool: string, number, boolean or datetime."
+          type: string
+    ContactFieldMapping:
+      description: |-
+        ContactFieldMapping sends one Linkbreakers visitor answer to one field of
+        the tool.
+      properties:
+        attributeKey:
+          description: "The visitor attribute key whose value goes there, e.g. \"\
+            cafe_name\"."
+          type: string
+        toolField:
+          description: "The tool's field, from contact_integration_fields."
+          type: string
+    ContactIntegrationsServiceConnectToolBody:
+      example:
+        apiKey: apiKey
+        account: account
+      properties:
+        account:
+          description: |-
+            What the credential belongs to, for the tools that need it next to the
+            key: an account URL, a domain, a site id. Empty for the others (Bird).
+          type: string
+        apiKey:
+          description: |-
+            Its credential: the tool's API key or token. Bird: a workspace API key
+            (bk_us1_... or bk_eu1_...) with the email_marketing write scope; the
+            others: see contact_integration_connect.
+          type: string
+    ContactIntegrationsServiceTestBody:
+      type: object
+    ContactIntegrationsServiceUpdateBody:
+      example:
+        delivery: ""
+        contactListId: contactListId
+        options: ""
+      properties:
+        contactListId:
+          description: |-
+            The list or audience to add contacts to, from contact_integration_lists.
+            An empty string adds them to none; omit it to keep the current one.
+          type: string
+        delivery:
+          allOf:
+          - $ref: "#/components/schemas/IntegrationDelivery"
+          description: |-
+            Where, when and what it syncs. When set, it replaces the whole setting;
+            leave it out to keep the current one.
+        options:
+          allOf:
+          - $ref: "#/components/schemas/ContactSyncOptions"
+          description: |-
+            How contacts are made. When set, it replaces all the options; leave it
+            out to keep the current ones.
+    ContactList:
+      description: "ContactList is one list, audience or group of a connected tool."
+      example:
+        name: name
+        id: id
+      properties:
+        id:
+          description: The tool's id for it.
+          type: string
+        name:
+          description: Its name in the tool.
+          type: string
+    ContactPipeline:
+      description: ContactPipeline is a CRM pipeline and its stages.
+      example:
+        name: name
+        stages:
+        - name: name
+          id: id
+        - name: name
+          id: id
+        id: id
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        stages:
+          items:
+            $ref: "#/components/schemas/ContactPipelineStage"
+          type: array
+    ContactPipelineStage:
+      example:
+        name: name
+        id: id
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+    ContactRecordKind:
+      default: CONTACT_RECORD_KIND_UNSPECIFIED
+      description: |-
+        ContactRecordKind is what a CRM creates with each contact.
+
+         - CONTACT_RECORD_KIND_CONTACT_ONLY: The person or contact only.
+         - CONTACT_RECORD_KIND_LEAD: The contact and a lead.
+         - CONTACT_RECORD_KIND_DEAL: The contact and a deal, in the chosen pipeline and stage.
+      enum:
+      - CONTACT_RECORD_KIND_UNSPECIFIED
+      - CONTACT_RECORD_KIND_CONTACT_ONLY
+      - CONTACT_RECORD_KIND_LEAD
+      - CONTACT_RECORD_KIND_DEAL
+      type: string
+    ContactSyncOptions:
+      description: ContactSyncOptions is how contacts are made in a tool.
+      properties:
+        consentAttributeKey:
+          description: |-
+            The visitor attribute key whose answer is the visitor's marketing
+            consent, e.g. a form checkbox. Empty: nobody is subscribed to marketing
+            by Linkbreakers. Answers read as yes: true, yes, 1, on, accepted, agree,
+            oui, si, ja.
+          type: string
+        doubleOptIn:
+          description: |-
+            Where the tool can, subscribe a consenting visitor through its double
+            opt-in (a confirmation email) rather than directly.
+          type: boolean
+        fieldMappings:
+          description: |-
+            Answers sent to fields named differently in the tool. Answers whose key
+            is a field of the tool still go there without a mapping.
+          items:
+            $ref: "#/components/schemas/ContactFieldMapping"
+          type: array
+        listRequiresConsent:
+          description: Add contacts to the list only when they consented.
+          type: boolean
+        pipelineId:
+          description: "For a deal: the pipeline, from contact_integration_pipelines."
+          type: string
+        recordKind:
+          allOf:
+          - $ref: "#/components/schemas/ContactRecordKind"
+          description: "For a CRM: what is created with each contact."
+        recordTitle:
+          description: |-
+            For a lead or deal: its title. "{link}" stands for the link's name and
+            "{name}" for the visitor's name or email.
+          type: string
+        stageId:
+          description: "For a deal: the stage in that pipeline."
+          type: string
+        tags:
+          description: |-
+            Tags added to each contact, where the tool has tags. "{link}" stands for
+            the name of the link the visitor came through.
+          items:
+            type: string
+          type: array
+    ContactTool:
+      default: CONTACT_TOOL_UNSPECIFIED
+      description: |-
+        ContactTool is a tool identified visitors can be synced to as contacts.
+
+         - CONTACT_TOOL_BIRD: Bird (bird.com, formerly MessageBird): contacts and audiences for
+        WhatsApp, email and SMS campaigns.
+         - CONTACT_TOOL_BREVO: Brevo.
+         - CONTACT_TOOL_MAILERLITE: MailerLite.
+         - CONTACT_TOOL_KIT: Kit.
+         - CONTACT_TOOL_LOOPS: Loops.
+         - CONTACT_TOOL_MAILCHIMP: Mailchimp.
+         - CONTACT_TOOL_PIPEDRIVE: Pipedrive.
+         - CONTACT_TOOL_FRESHSALES: Freshsales.
+         - CONTACT_TOOL_KLAVIYO: Klaviyo.
+         - CONTACT_TOOL_CUSTOMER_IO: Customer.io.
+         - CONTACT_TOOL_HUBSPOT: HubSpot.
+      enum:
+      - CONTACT_TOOL_UNSPECIFIED
+      - CONTACT_TOOL_BIRD
+      - CONTACT_TOOL_BREVO
+      - CONTACT_TOOL_MAILERLITE
+      - CONTACT_TOOL_KIT
+      - CONTACT_TOOL_LOOPS
+      - CONTACT_TOOL_MAILCHIMP
+      - CONTACT_TOOL_PIPEDRIVE
+      - CONTACT_TOOL_FRESHSALES
+      - CONTACT_TOOL_KLAVIYO
+      - CONTACT_TOOL_CUSTOMER_IO
+      - CONTACT_TOOL_HUBSPOT
+      type: string
+    ContactToolCapabilities:
+      description: ContactToolCapabilities is what a contact tool supports.
+      properties:
+        acceptsAnyField:
+          description: The tool takes any key as a custom field.
+          type: boolean
+        consent:
+          type: boolean
+        doubleOptIn:
+          type: boolean
+        listNoun:
+          description: "What a list is called in the tool: list, audience, group,\
+            \ tag, segment."
+          type: string
+        recordKinds:
+          description: The records a CRM can create with a contact.
+          items:
+            $ref: "#/components/schemas/ContactRecordKind"
+          type: array
+        tags:
+          type: boolean
     ContainerConfig:
       example:
         backgroundColor: ""
@@ -21424,7 +22332,14 @@ components:
           title: Whether this field is required
           type: boolean
         type:
-          description: "- FORM_FIELD_TYPE_UNSPECIFIED: Form field type not specified"
+          description: |-
+            - FORM_FIELD_TYPE_UNSPECIFIED: Form field type not specified
+             - FORM_FIELD_TYPE_CONSENT: A checkbox where the visitor agrees to the workspace's marketing, in the
+            workspace's own words (the label), never pre-ticked. Its key is always
+            $marketingConsent: granted when ticked, denied when not, and each answer is
+            kept as proof (who, the wording, where, when). Integrations subscribe only
+            visitors who granted it; a visitor data condition can route on it. As a
+            chat bot objective, the agent asks it as a yes or no question instead.
           enum:
           - FORM_FIELD_TYPE_UNSPECIFIED
           - FORM_FIELD_TYPE_TEXT
@@ -21437,6 +22352,7 @@ components:
           - FORM_FIELD_TYPE_NUMBER
           - FORM_FIELD_TYPE_DATE
           - FORM_FIELD_TYPE_RATING
+          - FORM_FIELD_TYPE_CONSENT
           example: FORM_FIELD_TYPE_EMAIL
           title: "Field type (text, email, radio, etc.)"
           type: string
@@ -21457,7 +22373,14 @@ components:
       title: "Option for radio, checkbox, or select fields"
     FormFieldType:
       default: FORM_FIELD_TYPE_UNSPECIFIED
-      description: "- FORM_FIELD_TYPE_UNSPECIFIED: Form field type not specified"
+      description: |-
+        - FORM_FIELD_TYPE_UNSPECIFIED: Form field type not specified
+         - FORM_FIELD_TYPE_CONSENT: A checkbox where the visitor agrees to the workspace's marketing, in the
+        workspace's own words (the label), never pre-ticked. Its key is always
+        $marketingConsent: granted when ticked, denied when not, and each answer is
+        kept as proof (who, the wording, where, when). Integrations subscribe only
+        visitors who granted it; a visitor data condition can route on it. As a
+        chat bot objective, the agent asks it as a yes or no question instead.
       enum:
       - FORM_FIELD_TYPE_UNSPECIFIED
       - FORM_FIELD_TYPE_TEXT
@@ -21470,6 +22393,7 @@ components:
       - FORM_FIELD_TYPE_NUMBER
       - FORM_FIELD_TYPE_DATE
       - FORM_FIELD_TYPE_RATING
+      - FORM_FIELD_TYPE_CONSENT
       title: Form field types for FORM_SUBMIT event action
       type: string
     FormIntegrationsServiceCompleteOAuthBody:
@@ -22076,6 +23000,14 @@ components:
           title: Total number of events in the date range
           type: integer
       title: GetBreakdownResponse contains dimension breakdown data
+    GetContactConnectionResponse:
+      example:
+        connection: ""
+      properties:
+        connection:
+          allOf:
+          - $ref: "#/components/schemas/ContactConnection"
+          description: Absent when the tool is not connected.
     GetCustomDomainResponse:
       example:
         customDomain:
@@ -24162,6 +25094,17 @@ components:
       - LINK_INTEGRATION_KIND_PAPERFORM
       - LINK_INTEGRATION_KIND_N8N
       - LINK_INTEGRATION_KIND_INTEGRATELY
+      - LINK_INTEGRATION_KIND_BIRD
+      - LINK_INTEGRATION_KIND_BREVO
+      - LINK_INTEGRATION_KIND_MAILERLITE
+      - LINK_INTEGRATION_KIND_KIT
+      - LINK_INTEGRATION_KIND_LOOPS
+      - LINK_INTEGRATION_KIND_MAILCHIMP
+      - LINK_INTEGRATION_KIND_PIPEDRIVE
+      - LINK_INTEGRATION_KIND_FRESHSALES
+      - LINK_INTEGRATION_KIND_KLAVIYO
+      - LINK_INTEGRATION_KIND_CUSTOMER_IO
+      - LINK_INTEGRATION_KIND_HUBSPOT
       type: string
     LinkSetting:
       description: Stores per-link compliance preferences that drive how Linkbreakers
@@ -24630,6 +25573,88 @@ components:
           description: "Every scope, ordered by resource then read before write."
           items:
             $ref: "#/components/schemas/ApiScopeInfo"
+          type: array
+    ListContactConnectionsResponse:
+      example:
+        connections:
+        - delivery: ""
+          capabilities: ""
+          lastError: lastError
+          lastErrorAt: 2000-01-23T04:56:07.000+00:00
+          contactListName: contactListName
+          contactsSynced: 0
+          lastSyncedAt: 2000-01-23T04:56:07.000+00:00
+          tool: ""
+          createdAt: 2000-01-23T04:56:07.000+00:00
+          contactListId: contactListId
+          options: ""
+          accountLabel: accountLabel
+          updatedAt: 2000-01-23T04:56:07.000+00:00
+        - delivery: ""
+          capabilities: ""
+          lastError: lastError
+          lastErrorAt: 2000-01-23T04:56:07.000+00:00
+          contactListName: contactListName
+          contactsSynced: 0
+          lastSyncedAt: 2000-01-23T04:56:07.000+00:00
+          tool: ""
+          createdAt: 2000-01-23T04:56:07.000+00:00
+          contactListId: contactListId
+          options: ""
+          accountLabel: accountLabel
+          updatedAt: 2000-01-23T04:56:07.000+00:00
+      properties:
+        connections:
+          description: Every tool the workspace syncs contacts to.
+          items:
+            $ref: "#/components/schemas/ContactConnection"
+          type: array
+    ListContactToolFieldsResponse:
+      example:
+        fields:
+        - type: type
+          key: key
+        - type: type
+          key: key
+      properties:
+        fields:
+          items:
+            $ref: "#/components/schemas/ContactField"
+          type: array
+    ListContactToolListsResponse:
+      example:
+        lists:
+        - name: name
+          id: id
+        - name: name
+          id: id
+      properties:
+        lists:
+          description: "The tool's lists, audiences or groups."
+          items:
+            $ref: "#/components/schemas/ContactList"
+          type: array
+    ListContactToolPipelinesResponse:
+      example:
+        pipelines:
+        - name: name
+          stages:
+          - name: name
+            id: id
+          - name: name
+            id: id
+          id: id
+        - name: name
+          stages:
+          - name: name
+            id: id
+          - name: name
+            id: id
+          id: id
+      properties:
+        pipelines:
+          items:
+            $ref: "#/components/schemas/ContactPipeline"
           type: array
     ListCustomDomainsResponse:
       example:
@@ -26452,6 +27477,34 @@ components:
             offer the filter operators that fit each one.
           items:
             $ref: "#/components/schemas/VisitorAttributeKey"
+          type: array
+    ListVisitorConsentsResponse:
+      example:
+        consents:
+        - eventId: eventId
+          linkId: linkId
+          method: method
+          purpose: purpose
+          recordedAt: 2000-01-23T04:56:07.000+00:00
+          channel: channel
+          wording: wording
+          granted: true
+          workflowStepId: workflowStepId
+        - eventId: eventId
+          linkId: linkId
+          method: method
+          purpose: purpose
+          recordedAt: 2000-01-23T04:56:07.000+00:00
+          channel: channel
+          wording: wording
+          granted: true
+          workflowStepId: workflowStepId
+      properties:
+        consents:
+          description: "The visitor's consents, newest first: the first is their consent\
+            \ now."
+          items:
+            $ref: "#/components/schemas/VisitorConsent"
           type: array
     ListVisitorCountriesResponse:
       example:
@@ -30673,6 +31726,25 @@ components:
         visitorsEnriched:
           format: int64
           type: integer
+    TestContactConnectionResponse:
+      example:
+        acceptsAnyField: true
+        customFieldKeys:
+        - customFieldKeys
+        - customFieldKeys
+      properties:
+        acceptsAnyField:
+          description: |-
+            The tool takes any key as a custom field, so every answer the delivery
+            setting sends reaches the contact.
+          type: boolean
+        customFieldKeys:
+          description: |-
+            The tool's custom field keys, the keys visitor data can be saved to.
+            Visitor attributes with other keys are left out.
+          items:
+            type: string
+          type: array
     TestGoogleAnalyticsIntegrationRequest:
       type: object
     TestGoogleAnalyticsIntegrationResponse:
@@ -31033,6 +32105,25 @@ components:
           allOf:
           - $ref: "#/components/schemas/Agent"
           description: "The updated agent, with its knowledge documents."
+    UpdateContactConnectionResponse:
+      example:
+        connection:
+          delivery: ""
+          capabilities: ""
+          lastError: lastError
+          lastErrorAt: 2000-01-23T04:56:07.000+00:00
+          contactListName: contactListName
+          contactsSynced: 0
+          lastSyncedAt: 2000-01-23T04:56:07.000+00:00
+          tool: ""
+          createdAt: 2000-01-23T04:56:07.000+00:00
+          contactListId: contactListId
+          options: ""
+          accountLabel: accountLabel
+          updatedAt: 2000-01-23T04:56:07.000+00:00
+      properties:
+        connection:
+          $ref: "#/components/schemas/ContactConnection"
     UpdateCustomDomainResponse:
       example:
         customDomain:
@@ -32359,6 +33450,50 @@ components:
       - VISITOR_ATTRIBUTE_TYPE_DATE
       - VISITOR_ATTRIBUTE_TYPE_ENUM
       type: string
+    VisitorConsent:
+      description: |-
+        Service for identifying and managing visitors
+        VisitorConsent is one consent a visitor gave or refused, kept as proof.
+      example:
+        eventId: eventId
+        linkId: linkId
+        method: method
+        purpose: purpose
+        recordedAt: 2000-01-23T04:56:07.000+00:00
+        channel: channel
+        wording: wording
+        granted: true
+        workflowStepId: workflowStepId
+      properties:
+        channel:
+          description: "The one way of reaching them it is limited to, empty for what\
+            \ the wording says."
+          type: string
+        eventId:
+          type: string
+        granted:
+          description: Whether the visitor agreed.
+          type: boolean
+        linkId:
+          description: "The link, step and visit it was given on."
+          type: string
+        method:
+          description: "How it was given: FORM or CHAT_BOT."
+          type: string
+        purpose:
+          description: "What it is for: marketing."
+          type: string
+        recordedAt:
+          description: When it was given.
+          format: date-time
+          type: string
+        wording:
+          description: |-
+            The exact wording the visitor was shown. For a chat bot, the question the
+            agent asked and the visitor's reply: Q: "..." A: "...".
+          type: string
+        workflowStepId:
+          type: string
     VisitorCountry:
       description: A country the workspace's visitors came from.
       example:

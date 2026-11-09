@@ -10,6 +10,7 @@ api_analytics_data.go
 api_api_scopes.go
 api_assistant.go
 api_auth.go
+api_contact_integrations.go
 api_custom_domains.go
 api_directories.go
 api_events.go
@@ -130,10 +131,23 @@ model_complete_media_replace_response.go
 model_complete_media_upload_response.go
 model_complete_slack_o_auth_request.go
 model_complete_slack_o_auth_response.go
+model_connect_contact_tool_response.go
 model_connect_form_tool_response.go
 model_connect_workflow_step_response.go
 model_contact_card_trace_card.go
 model_contact_card_trace_data.go
+model_contact_connection.go
+model_contact_field.go
+model_contact_field_mapping.go
+model_contact_integrations_service_connect_tool_body.go
+model_contact_integrations_service_update_body.go
+model_contact_list.go
+model_contact_pipeline.go
+model_contact_pipeline_stage.go
+model_contact_record_kind.go
+model_contact_sync_options.go
+model_contact_tool.go
+model_contact_tool_capabilities.go
 model_container_config.go
 model_corners_dot_options.go
 model_corners_dot_type.go
@@ -284,6 +298,7 @@ model_get_attribute_values_request.go
 model_get_attribute_values_response.go
 model_get_breakdown_request.go
 model_get_breakdown_response.go
+model_get_contact_connection_response.go
 model_get_custom_domain_response.go
 model_get_custom_domain_setup_guide_response.go
 model_get_data_collection_response.go
@@ -371,6 +386,10 @@ model_list_agent_presets_response.go
 model_list_agents_response.go
 model_list_allowances_response.go
 model_list_api_scopes_response.go
+model_list_contact_connections_response.go
+model_list_contact_tool_fields_response.go
+model_list_contact_tool_lists_response.go
+model_list_contact_tool_pipelines_response.go
 model_list_custom_domains_response.go
 model_list_dashboards_response.go
 model_list_detected_google_forms_response.go
@@ -394,6 +413,7 @@ model_list_retargeting_pixels_for_link_response.go
 model_list_slack_channels_response.go
 model_list_tags_response.go
 model_list_visitor_attribute_keys_response.go
+model_list_visitor_consents_response.go
 model_list_visitor_countries_response.go
 model_list_visitors_csv_response.go
 model_list_visitors_json_response.go
@@ -541,6 +561,7 @@ model_submit_review_reward_response.go
 model_subscription_type.go
 model_switch_workspace_response.go
 model_sync_google_forms_response.go
+model_test_contact_connection_response.go
 model_test_google_analytics_integration_response.go
 model_test_slack_integration_response.go
 model_thank_you_page_payload.go
@@ -561,6 +582,7 @@ model_triggered_by.go
 model_type_date.go
 model_update_agent_knowledge_document_response.go
 model_update_agent_response.go
+model_update_contact_connection_response.go
 model_update_custom_domain_response.go
 model_update_dashboard_response.go
 model_update_data_collection_request.go
@@ -609,6 +631,7 @@ model_visitor_attribute_filter.go
 model_visitor_attribute_filter_operator.go
 model_visitor_attribute_key.go
 model_visitor_attribute_type.go
+model_visitor_consent.go
 model_visitor_country.go
 model_visitor_data_condition_option.go
 model_visitor_data_condition_payload.go
