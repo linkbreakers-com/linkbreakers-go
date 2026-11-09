@@ -42,7 +42,7 @@ info:
 
     Send a `Linkbreakers-Client` request header saying which client made the call: `<client>/<version> (<details>)`, for example `my-integration/1.2.0 (python 3.12; linux)`. The official SDKs, the CLI and the MCP bridge set it for you, as `sdk-python/2.3.1 (python 3.12.4; linux)` or `cli/1.4.0 (darwin arm64)`. It is optional and changes nothing about how a request is handled; it tells us which clients and versions are in use, so we know what can be retired and what to fix first. Keep the details short and free of personal data. Browsers may send it too: it is allowed by CORS.
   title: Linkbreakers API
-  version: 1.195.6
+  version: 1.195.7
   x-api-versioning:
     compatibility: additive changes only within a version
     currentVersion: v1
@@ -17758,7 +17758,9 @@ components:
             The visitor attribute key whose answer is the visitor's marketing
             consent, e.g. a form checkbox. Empty: nobody is subscribed to marketing
             by Linkbreakers. Answers read as yes: true, yes, 1, on, accepted, agree,
-            oui, si, ja.
+            oui, si, ja. Pipedrive and Freshsales have no subscription Linkbreakers
+            sets: there the answer only decides, with list_requires_consent, who gets
+            the person label or joins the contact list.
           type: string
         doubleOptIn:
           description: |-
@@ -17773,7 +17775,10 @@ components:
             $ref: "#/components/schemas/ContactFieldMapping"
           type: array
         listRequiresConsent:
-          description: Add contacts to the list only when they consented.
+          description: |-
+            Add contacts to the list only when they consented. Mailchimp keeps every
+            contact in an audience, so there a visitor who did not consent is not
+            synced at all.
           type: boolean
         pipelineId:
           description: "For a deal: the pipeline, from contact_integration_pipelines."
