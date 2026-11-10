@@ -42,7 +42,7 @@ info:
 
     Send a `Linkbreakers-Client` request header saying which client made the call: `<client>/<version> (<details>)`, for example `my-integration/1.2.0 (python 3.12; linux)`. The official SDKs, the CLI and the MCP bridge set it for you, as `sdk-python/2.3.1 (python 3.12.4; linux)` or `cli/1.4.0 (darwin arm64)`. It is optional and changes nothing about how a request is handled; it tells us which clients and versions are in use, so we know what can be retired and what to fix first. Keep the details short and free of personal data. Browsers may send it too: it is allowed by CORS.
   title: Linkbreakers API
-  version: 1.195.8
+  version: 1.195.9
   x-api-versioning:
     compatibility: additive changes only within a version
     currentVersion: v1
@@ -34937,7 +34937,9 @@ components:
           description: |-
             Inserts the new step in front of this one: every branch that led to it
             now leads to the new step, and the new step's "next" branch leads on to
-            it. Saves creating and then connecting each side by hand.
+            it. Saves creating and then connecting each side by hand. A step with no
+            "next" branch, such as a condition or a multi-link, takes over those
+            branches but leads nowhere until its own branches are connected.
           type: string
         payload:
           allOf:
