@@ -124,6 +124,7 @@ model_chat_ui_option.go
 model_check_custom_domain_response.go
 model_claim_agent_workspace_request.go
 model_client_redirect_payload.go
+model_complete_contact_tool_o_auth_response.go
 model_complete_form_tool_o_auth_response.go
 model_complete_google_forms_o_auth_request.go
 model_complete_google_forms_o_auth_response.go
@@ -139,15 +140,19 @@ model_contact_card_trace_data.go
 model_contact_connection.go
 model_contact_field.go
 model_contact_field_mapping.go
+model_contact_integrations_service_complete_o_auth_body.go
 model_contact_integrations_service_connect_tool_body.go
+model_contact_integrations_service_start_o_auth_body.go
 model_contact_integrations_service_update_body.go
 model_contact_list.go
+model_contact_o_auth_environment.go
 model_contact_pipeline.go
 model_contact_pipeline_stage.go
 model_contact_record_kind.go
 model_contact_sync_options.go
 model_contact_tool.go
 model_contact_tool_capabilities.go
+model_contact_tool_info.go
 model_container_config.go
 model_corners_dot_options.go
 model_corners_dot_type.go
@@ -299,6 +304,7 @@ model_get_attribute_values_response.go
 model_get_breakdown_request.go
 model_get_breakdown_response.go
 model_get_contact_connection_response.go
+model_get_contact_tool_response.go
 model_get_custom_domain_response.go
 model_get_custom_domain_setup_guide_response.go
 model_get_data_collection_response.go
@@ -556,6 +562,7 @@ model_specific_date_condition_payload.go
 model_specific_date_condition_trace_data.go
 model_specific_date_condition_trace_option.go
 model_specific_date_option.go
+model_start_contact_tool_o_auth_response.go
 model_submit_review_reward_request.go
 model_submit_review_reward_response.go
 model_subscription_type.go

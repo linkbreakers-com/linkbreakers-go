@@ -42,7 +42,7 @@ info:
 
     Send a `Linkbreakers-Client` request header saying which client made the call: `<client>/<version> (<details>)`, for example `my-integration/1.2.0 (python 3.12; linux)`. The official SDKs, the CLI and the MCP bridge set it for you, as `sdk-python/2.3.1 (python 3.12.4; linux)` or `cli/1.4.0 (darwin arm64)`. It is optional and changes nothing about how a request is handled; it tells us which clients and versions are in use, so we know what can be retired and what to fix first. Keep the details short and free of personal data. Browsers may send it too: it is allowed by CORS.
   title: Linkbreakers API
-  version: 1.195.7
+  version: 1.195.8
   x-api-versioning:
     compatibility: additive changes only within a version
     currentVersion: v1
@@ -5335,6 +5335,60 @@ paths:
       tags:
       - Contact Integrations
       x-required-scope: integrations:read
+  /v1/integrations/contacts/{tool}/info:
+    get:
+      description: |-
+        Return how a contact tool connects, with no connection needed: its capabilities, whether it connects with OAuth, and the URLs where an admin installs Linkbreakers' app first (Salesforce's package), for production and sandbox. Empty URLs when no install is needed.
+
+        Requires the `integrations:read` scope.
+      operationId: ContactIntegrationsService_GetTool
+      parameters:
+      - description: "The tool, connected or not."
+        explode: false
+        in: path
+        name: tool
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetContactToolResponse"
+          description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - integrations:read
+      - oauth2:
+        - integrations:read
+      summary: Get a contact tool
+      tags:
+      - Contact Integrations
+      x-required-scope: integrations:read
   /v1/integrations/contacts/{tool}/lists:
     get:
       description: |-
@@ -5389,6 +5443,152 @@ paths:
       tags:
       - Contact Integrations
       x-required-scope: integrations:read
+  /v1/integrations/contacts/{tool}/oauth/complete:
+    post:
+      description: |-
+        Exchange the code the sign-in returned (with the PKCE verifier kept for its state), check the account, and connect the tool like ConnectTool. The state is valid once, for 15 minutes, for the member who started the sign-in.
+
+        Requires the `integrations:write` scope.
+      operationId: ContactIntegrationsService_CompleteOAuth
+      parameters:
+      - description: The tool being connected.
+        explode: false
+        in: path
+        name: tool
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContactIntegrationsServiceCompleteOAuthBody"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompleteContactToolOAuthResponse"
+          description: Everything worked as expected.
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - integrations:write
+      - oauth2:
+        - integrations:write
+      summary: Finish signing in to a contact tool
+      tags:
+      - Contact Integrations
+      x-required-scope: integrations:write
+  /v1/integrations/contacts/{tool}/oauth/start:
+    post:
+      description: |-
+        Return the URL where the person signs in to a contact tool that connects with OAuth (Salesforce, Zoho CRM). The sign-in comes back to the app's redirect URL with a code and a state, which CompleteOAuth exchanges.
+
+        Requires the `integrations:write` scope.
+      operationId: ContactIntegrationsService_StartOAuth
+      parameters:
+      - description: |-
+          The tool to connect by signing in (CONTACT_TOOL_SALESFORCE,
+          CONTACT_TOOL_ZOHO_CRM).
+        explode: false
+        in: path
+        name: tool
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: Makes retrying this request safe. See components.parameters.IdempotencyKey.
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContactIntegrationsServiceStartOAuthBody"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StartContactToolOAuthResponse"
+          description: Everything worked as expected.
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - integrations:write
+      - oauth2:
+        - integrations:write
+      summary: Start signing in to a contact tool
+      tags:
+      - Contact Integrations
+      x-required-scope: integrations:write
   /v1/integrations/contacts/{tool}/pipelines:
     get:
       description: |-
@@ -17320,14 +17520,36 @@ components:
     ClientRedirectPayload:
       properties:
         conversionTracking:
+          description: |-
+            Controls whether lbid is preserved in redirect URL. Forced on for a Typeform,
+            Tally, Jotform, Paperform or Google Forms destination: left out it turns on,
+            false is refused (CONVERSION_TRACKING_REQUIRED). Typeform gets the lbid after the #.
           example: true
-          title: Controls whether lbid is preserved in redirect URL
           type: boolean
         destination:
           example: https://brand.example.com/checkout
           title: Fully qualified URL used for the redirect
           type: string
       title: Client redirect payload for EVENT_ACTION_CLIENT_REDIRECT
+    CompleteContactToolOAuthResponse:
+      example:
+        connection:
+          delivery: ""
+          capabilities: ""
+          lastError: lastError
+          lastErrorAt: 2000-01-23T04:56:07.000+00:00
+          contactListName: contactListName
+          contactsSynced: 0
+          lastSyncedAt: 2000-01-23T04:56:07.000+00:00
+          tool: ""
+          createdAt: 2000-01-23T04:56:07.000+00:00
+          contactListId: contactListId
+          options: ""
+          accountLabel: accountLabel
+          updatedAt: 2000-01-23T04:56:07.000+00:00
+      properties:
+        connection:
+          $ref: "#/components/schemas/ContactConnection"
     CompleteFormToolOAuthResponse:
       example:
         connection:
@@ -17655,6 +17877,30 @@ components:
         toolField:
           description: "The tool's field, from contact_integration_fields."
           type: string
+    ContactIntegrationsServiceCompleteOAuthBody:
+      example:
+        code: code
+        location: location
+        state: state
+        accountsServer: accountsServer
+      properties:
+        accountsServer:
+          description: |-
+            Zoho: the accounts-server the sign-in returned to the redirect URL, the
+            data center the account lives in (https://accounts.zoho.eu). Empty for
+            the other tools.
+          type: string
+        code:
+          description: The code the sign-in returned to the redirect URL.
+          type: string
+        location:
+          description: |-
+            Zoho: the location the sign-in returned (us, eu, in...). Empty for the
+            other tools.
+          type: string
+        state:
+          description: The state the sign-in returned to the redirect URL.
+          type: string
     ContactIntegrationsServiceConnectToolBody:
       example:
         apiKey: apiKey
@@ -17671,6 +17917,14 @@ components:
             (bk_us1_... or bk_eu1_...) with the email_marketing write scope; the
             others: see contact_integration_connect.
           type: string
+    ContactIntegrationsServiceStartOAuthBody:
+      example:
+        environment: ""
+      properties:
+        environment:
+          allOf:
+          - $ref: "#/components/schemas/ContactOAuthEnvironment"
+          description: "Where the person signs in: PRODUCTION (the default) or SANDBOX."
     ContactIntegrationsServiceTestBody:
       type: object
     ContactIntegrationsServiceUpdateBody:
@@ -17708,6 +17962,20 @@ components:
         name:
           description: Its name in the tool.
           type: string
+    ContactOAuthEnvironment:
+      default: CONTACT_OAUTH_ENVIRONMENT_UNSPECIFIED
+      description: |-
+        ContactOAuthEnvironment is where a person signs in to a tool that connects
+        by signing in.
+
+         - CONTACT_OAUTH_ENVIRONMENT_UNSPECIFIED: The tool's default: production.
+         - CONTACT_OAUTH_ENVIRONMENT_PRODUCTION: The tool's production accounts (Salesforce: login.salesforce.com).
+         - CONTACT_OAUTH_ENVIRONMENT_SANDBOX: A sandbox (Salesforce: test.salesforce.com).
+      enum:
+      - CONTACT_OAUTH_ENVIRONMENT_UNSPECIFIED
+      - CONTACT_OAUTH_ENVIRONMENT_PRODUCTION
+      - CONTACT_OAUTH_ENVIRONMENT_SANDBOX
+      type: string
     ContactPipeline:
       description: ContactPipeline is a CRM pipeline and its stages.
       example:
@@ -17819,6 +18087,10 @@ components:
          - CONTACT_TOOL_KLAVIYO: Klaviyo.
          - CONTACT_TOOL_CUSTOMER_IO: Customer.io.
          - CONTACT_TOOL_HUBSPOT: HubSpot.
+         - CONTACT_TOOL_SALESFORCE: Salesforce: connects by signing in (contact_integration_oauth_start),
+        not with a key.
+         - CONTACT_TOOL_ZOHO_CRM: Zoho CRM: connects by signing in (contact_integration_oauth_start), in
+        whichever Zoho data center the account lives.
       enum:
       - CONTACT_TOOL_UNSPECIFIED
       - CONTACT_TOOL_BIRD
@@ -17832,6 +18104,8 @@ components:
       - CONTACT_TOOL_KLAVIYO
       - CONTACT_TOOL_CUSTOMER_IO
       - CONTACT_TOOL_HUBSPOT
+      - CONTACT_TOOL_SALESFORCE
+      - CONTACT_TOOL_ZOHO_CRM
       type: string
     ContactToolCapabilities:
       description: ContactToolCapabilities is what a contact tool supports.
@@ -17854,6 +18128,37 @@ components:
           type: array
         tags:
           type: boolean
+    ContactToolInfo:
+      description: "ContactToolInfo is how a tool connects, before any connection."
+      example:
+        capabilities: ""
+        sandboxInstallUrl: sandboxInstallUrl
+        connectsWithOauth: true
+        tool: CONTACT_TOOL_UNSPECIFIED
+        installUrl: installUrl
+      properties:
+        capabilities:
+          allOf:
+          - $ref: "#/components/schemas/ContactToolCapabilities"
+          description: "What the tool supports, as on a connection."
+        connectsWithOauth:
+          description: |-
+            The tool connects by signing in (contact_integration_oauth_start), not
+            with a key (contact_integration_connect).
+          type: boolean
+        installUrl:
+          description: |-
+            Where an admin installs Linkbreakers' app in their production account,
+            once, before anyone signs in (Salesforce: the Linkbreakers package,
+            "Install for All Users"). Empty when the tool needs no install.
+          type: string
+        sandboxInstallUrl:
+          description: |-
+            The same for a sandbox account. Empty when the tool needs no install
+            or has no sandbox.
+          type: string
+        tool:
+          $ref: "#/components/schemas/ContactTool"
     ContainerConfig:
       example:
         backgroundColor: ""
@@ -18560,7 +18865,10 @@ components:
         shortlink: my-link
       properties:
         conversionTracking:
-          description: Enable conversion tracking by preserving lbid in redirect URL.
+          description: "Enable conversion tracking by preserving lbid in redirect\
+            \ URL. Forced on for a Typeform, Tally, Jotform, Paperform or Google Forms\
+            \ destination, whose integration matches each answer to its visitor by\
+            \ the lbid: false is refused there."
           example: true
           type: boolean
         customDomainId:
@@ -23013,6 +23321,17 @@ components:
           allOf:
           - $ref: "#/components/schemas/ContactConnection"
           description: Absent when the tool is not connected.
+    GetContactToolResponse:
+      example:
+        tool:
+          capabilities: ""
+          sandboxInstallUrl: sandboxInstallUrl
+          connectsWithOauth: true
+          tool: CONTACT_TOOL_UNSPECIFIED
+          installUrl: installUrl
+      properties:
+        tool:
+          $ref: "#/components/schemas/ContactToolInfo"
     GetCustomDomainResponse:
       example:
         customDomain:
@@ -25110,6 +25429,8 @@ components:
       - LINK_INTEGRATION_KIND_KLAVIYO
       - LINK_INTEGRATION_KIND_CUSTOMER_IO
       - LINK_INTEGRATION_KIND_HUBSPOT
+      - LINK_INTEGRATION_KIND_SALESFORCE
+      - LINK_INTEGRATION_KIND_ZOHO_CRM
       type: string
     LinkSetting:
       description: Stores per-link compliance preferences that drive how Linkbreakers
@@ -30672,9 +30993,6 @@ components:
           format: int32
           type: integer
     RequestEmailVerificationRequest:
-      description: |-
-        RequestEmailVerificationRequest sends a verification email to one member of
-        the caller's workspace.
       example:
         email: you@example.com
       properties:
@@ -31646,6 +31964,15 @@ components:
           title: Optional year for one-time events
           type: integer
       title: Specific date option for EVENT_ACTION_SPECIFIC_DATE_CONDITION
+    StartContactToolOAuthResponse:
+      example:
+        signInUrl: signInUrl
+      properties:
+        signInUrl:
+          description: |-
+            Where the person signs in to the tool. Valid for 15 minutes, once, and
+            only for the member who asked for it.
+          type: string
     SubmitReviewRewardRequest:
       example:
         reviewerName: reviewerName
