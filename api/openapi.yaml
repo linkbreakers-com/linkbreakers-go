@@ -42,7 +42,7 @@ info:
 
     Send a `Linkbreakers-Client` request header saying which client made the call: `<client>/<version> (<details>)`, for example `my-integration/1.2.0 (python 3.12; linux)`. The official SDKs, the CLI and the MCP bridge set it for you, as `sdk-python/2.3.1 (python 3.12.4; linux)` or `cli/1.4.0 (darwin arm64)`. It is optional and changes nothing about how a request is handled; it tells us which clients and versions are in use, so we know what can be retired and what to fix first. Keep the details short and free of personal data. Browsers may send it too: it is allowed by CORS.
   title: Linkbreakers API
-  version: 1.195.10
+  version: 1.195.11
   x-api-versioning:
     compatibility: additive changes only within a version
     currentVersion: v1
@@ -27568,6 +27568,7 @@ components:
             centralImageMediaId: centralImageMediaId
             createdAt: 2000-01-23T04:56:07.000+00:00
             backgroundOptions: ""
+            hasCentralImage: true
             cornersSquareOptions: ""
             width: 5
             centralImageMargin: 0
@@ -27604,6 +27605,7 @@ components:
             centralImageMediaId: centralImageMediaId
             createdAt: 2000-01-23T04:56:07.000+00:00
             backgroundOptions: ""
+            hasCentralImage: true
             cornersSquareOptions: ""
             width: 5
             centralImageMargin: 0
@@ -30423,6 +30425,7 @@ components:
         centralImageMediaId: centralImageMediaId
         createdAt: 2000-01-23T04:56:07.000+00:00
         backgroundOptions: ""
+        hasCentralImage: true
         cornersSquareOptions: ""
         width: 5
         centralImageMargin: 0
@@ -30481,6 +30484,13 @@ components:
           title: "Error correction level forwarded to the QR renderer (\"L\",\"M\"\
             ,\"Q\",\"H\")"
           type: string
+        hasCentralImage:
+          description: |-
+            Whether the design has a central image (a logo) right now, however it got there: applied from a
+            template, uploaded, or picked from the media library. An update that leaves the central image
+            fields out keeps it.
+          readOnly: true
+          type: boolean
         height:
           format: int32
           title: Export height in pixels
@@ -30561,8 +30571,9 @@ components:
           example: iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==
           type: string
         centralImageDelete:
-          description: Set this to true to delete the central image. It can't be used
-            at the same time as transmitting a central image.
+          description: |-
+            Set this to true to delete the central image. It can't be used at the same time as transmitting a central image.
+            Leave it out to keep the current central image, for example when only colors or shapes change.
           type: boolean
         centralImageMargin:
           format: int32
@@ -30679,6 +30690,7 @@ components:
           centralImageMediaId: centralImageMediaId
           createdAt: 2000-01-23T04:56:07.000+00:00
           backgroundOptions: ""
+          hasCentralImage: true
           cornersSquareOptions: ""
           width: 5
           centralImageMargin: 0
