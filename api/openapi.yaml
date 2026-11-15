@@ -42,7 +42,7 @@ info:
 
     Send a `Linkbreakers-Client` request header saying which client made the call: `<client>/<version> (<details>)`, for example `my-integration/1.2.0 (python 3.12; linux)`. The official SDKs, the CLI and the MCP bridge set it for you, as `sdk-python/2.3.1 (python 3.12.4; linux)` or `cli/1.4.0 (darwin arm64)`. It is optional and changes nothing about how a request is handled; it tells us which clients and versions are in use, so we know what can be retired and what to fix first. Keep the details short and free of personal data. Browsers may send it too: it is allowed by CORS.
   title: Linkbreakers API
-  version: 1.195.11
+  version: 1.198.0
   x-api-versioning:
     compatibility: additive changes only within a version
     currentVersion: v1
@@ -17249,11 +17249,17 @@ components:
       title: Canvas position for React Flow node positioning
     ChatBotCollectedValue:
       properties:
+        displayValue:
+          title: |-
+            How the answer reads: the labels of the chosen options for a choice
+            objective, otherwise the value
+          type: string
         key:
           type: string
         label:
           type: string
         value:
+          title: The value as stored on the visitor
           type: string
       title: One answer the chat bot collected
     ChatBotMessageAuthor:
@@ -33679,7 +33685,8 @@ components:
           description: |-
             Attribute key, for example "budget". Reserved fields ($email, $phone,
             $firstName, $lastName) can be filtered with the STRING_*, EXISTS and
-            NOT_EXISTS operators.
+            NOT_EXISTS operators, and so can $marketingConsent ("granted" or
+            "denied", the visitor's latest consent to marketing).
           example: budget
           type: string
         operator:
