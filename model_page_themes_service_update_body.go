@@ -1,9 +1,9 @@
 /*
 Linkbreakers API
 
-This is a documentation of all the APIs of Linkbreakers  ## Entry points  `GET https://api.linkbreakers.com/` and `GET https://api.linkbreakers.com/v1` answer without credentials with the API's name, version and links. This document is served at `https://api.linkbreakers.com/openapi.json`.  ## Rate limits  Every response describes where the caller stands in the IETF `RateLimit-Policy` and `RateLimit` header fields (draft-ietf-httpapi-ratelimit-headers), and in `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset` and `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset` (a Unix timestamp) for clients that read those. A request past the limit gets `429 Too Many Requests` with `Retry-After` in seconds.  - Workspace API token: 720 requests per 60 seconds, per token. - Dashboard session or OAuth token: 600 requests per 60 seconds, per token. - No credentials: 300 requests per 60 seconds, per client IP.  Each plan also includes a number of API calls per billing cycle. Past it, calls answer `429` with the code `MAX_PUBLIC_API_QUERIED_REACHED` until the cycle renews or the plan changes.  ## Pagination  Every list pages with opaque cursors (AIP-158). Pass `pageSize`, then send the `nextPageToken` of each response back as `pageToken` (or its alias `cursor`) to get the next page. An empty or absent `nextPageToken` means the list is complete. Each list operation describes this in `x-pagination`.  ## Batches and background jobs  `POST /v1/links/bulk` creates up to 250 links in one transactional request; `POST /v1/links/batch` takes the same links as a bare JSON array. `POST /v1/links/bulk/jobs` accepts the same batch and answers `202 Accepted` at once with a job and a `Location` header; poll `GET /v1/jobs/{id}` until `status` is `JOB_STATUS_SUCCEEDED` (the created link ids are in `linksBulkCreate.linkIds`) or `JOB_STATUS_FAILED` (`error` says why, and nothing was created). Jobs can be read for 24 hours after they finish.  ## Versioning and deprecation  The version is in the path: every operation lives under `/v1`. Within a version, changes are additive only: new operations, new optional request fields, new response fields and new enum values. Clients should ignore fields and enum values they do not know. Anything that would break an existing client ships under a new path version instead.  An operation is retired in two steps. First it is deprecated: it keeps working, is flagged `deprecated: true` in this document, and every response carries a `Deprecation` header field (RFC 9745) with the time it was deprecated and a `Link` with `rel=\"deprecation\"` to the policy. Then, at least 180 days later, it may be removed; that date is announced in advance in a `Sunset` header field (RFC 8594) and as `x-sunset` on the operation. The full policy: https://linkbreakers.com/help/article/api-versioning-and-deprecation-policy  ## Idempotent retries  Every POST, PUT and PATCH accepts an optional `Idempotency-Key` header (draft-ietf-httpapi-idempotency-key-header). Send a new unique value, such as a UUID, with each logical request and reuse it only to retry that request. A retry with the same key and the same request returns the first response, marked `Idempotent-Replayed: true`, instead of running again. Keys are scoped to the token and kept for 24 hours. The same key with a different request is refused with `422`, and a retry while the first request is still running gets `409` with `Retry-After`. Server errors (5xx) and refusals such as 401, 403 and 429 are not stored, so retrying them runs the request again.  ## Identifying your client  Send a `Linkbreakers-Client` request header saying which client made the call: `<client>/<version> (<details>)`, for example `my-integration/1.2.0 (python 3.12; linux)`. The official SDKs, the CLI and the MCP bridge set it for you, as `sdk-python/2.3.1 (python 3.12.4; linux)` or `cli/1.4.0 (darwin arm64)`. It is optional and changes nothing about how a request is handled; it tells us which clients and versions are in use, so we know what can be retired and what to fix first. Keep the details short and free of personal data. Browsers may send it too: it is allowed by CORS.
+The Linkbreakers REST API: links, QR codes, workflows, visitors and analytics, as JSON over HTTPS. Send a workspace API token as `Authorization: Bearer <token>`.  ## Entry points  `GET https://api.linkbreakers.com/` and `GET https://api.linkbreakers.com/v1` answer without credentials with the API's name, version and links. This document is served at `https://api.linkbreakers.com/openapi.json`.  ## Rate limits  Every response describes where the caller stands in the IETF `RateLimit-Policy` and `RateLimit` header fields (draft-ietf-httpapi-ratelimit-headers), and in `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset` and `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset` (a Unix timestamp) for clients that read those. A request past the limit gets `429 Too Many Requests` with `Retry-After` in seconds.  - Workspace API token: 720 requests per 60 seconds, per token. - Dashboard session or OAuth token: 600 requests per 60 seconds, per token. - No credentials: 300 requests per 60 seconds, per client IP.  Each plan also includes a number of API calls per billing cycle. Past it, calls answer `429` with the code `MAX_PUBLIC_API_QUERIED_REACHED` until the cycle renews or the plan changes.  ## Pagination  Every list pages with opaque cursors (AIP-158). Pass `pageSize`, then send the `nextPageToken` of each response back as `pageToken` (or its alias `cursor`) to get the next page. An empty or absent `nextPageToken` means the list is complete. Each list operation describes this in `x-pagination`.  ## Batches and background jobs  `POST /v1/links/bulk` creates up to 250 links in one transactional request; `POST /v1/links/batch` takes the same links as a bare JSON array. `POST /v1/links/bulk/jobs` accepts the same batch and answers `202 Accepted` at once with a job and a `Location` header; poll `GET /v1/jobs/{id}` until `status` is `JOB_STATUS_SUCCEEDED` (the created link ids are in `linksBulkCreate.linkIds`) or `JOB_STATUS_FAILED` (`error` says why, and nothing was created). Jobs can be read for 24 hours after they finish.  ## Versioning and deprecation  The version is in the path: every operation lives under `/v1`. Within a version, changes are additive only: new operations, new optional request fields, new response fields and new enum values. Clients should ignore fields and enum values they do not know. Anything that would break an existing client ships under a new path version instead.  An operation is retired in two steps. First it is deprecated: it keeps working, is flagged `deprecated: true` in this document, and every response carries a `Deprecation` header field (RFC 9745) with the time it was deprecated and a `Link` with `rel=\"deprecation\"` to the policy. Then, at least 180 days later, it may be removed; that date is announced in advance in a `Sunset` header field (RFC 8594) and as `x-sunset` on the operation. The full policy: https://linkbreakers.com/help/article/api-versioning-and-deprecation-policy  A renamed operation keeps answering its former path until that path's sunset. Responses on a former path carry the same `Deprecation`, `Sunset` and `Link` header fields; this document lists only the current path, and the policy lists the former ones.  ## Idempotent retries  Every POST, PUT and PATCH accepts an optional `Idempotency-Key` header (draft-ietf-httpapi-idempotency-key-header). Send a new unique value, such as a UUID, with each logical request and reuse it only to retry that request. A retry with the same key and the same request returns the first response, marked `Idempotent-Replayed: true`, instead of running again. Keys are scoped to the token and kept for 24 hours. The same key with a different request is refused with `422`, and a retry while the first request is still running gets `409` with `Retry-After`. Server errors (5xx) and refusals such as 401, 403 and 429 are not stored, so retrying them runs the request again.  ## Identifying your client  Send a `Linkbreakers-Client` request header saying which client made the call: `<client>/<version> (<details>)`, for example `my-integration/1.2.0 (python 3.12; linux)`. The official SDKs, the CLI and the MCP bridge set it for you, as `sdk-python/2.3.1 (python 3.12.4; linux)` or `cli/1.4.0 (darwin arm64)`. It is optional and changes nothing about how a request is handled; it tells us which clients and versions are in use, so we know what can be retired and what to fix first. Keep the details short and free of personal data. Browsers may send it too: it is allowed by CORS.
 
-API version: 1.198.0
+API version: 1.198.1
 */
 
 // Code generated by OpenAPI Generator (https://openapi-generator.tech); DO NOT EDIT.
@@ -14,11 +14,11 @@ import (
 	"encoding/json"
 )
 
-// checks if the PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody type satisfies the MappedNullable interface at compile time
-var _ MappedNullable = &PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody{}
+// checks if the PageThemesServiceUpdateBody type satisfies the MappedNullable interface at compile time
+var _ MappedNullable = &PageThemesServiceUpdateBody{}
 
-// PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody UpdatePageThemeTemplateStylingRequest updates the styling of the template's own backing theme.  Template styling is edited through this RPC rather than through UpdatePageTheme so the template's thumbnail is marked for regeneration in the same place the styling changes. Editing the backing theme directly would leave a stale thumbnail.
-type PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody struct {
+// PageThemesServiceUpdateBody struct for PageThemesServiceUpdateBody
+type PageThemesServiceUpdateBody struct {
 	Badge *MediaSelection `json:"badge,omitempty"`
 	BadgeEnabled *bool `json:"badgeEnabled,omitempty"`
 	BadgeIconColor *ThemeColor `json:"badgeIconColor,omitempty"`
@@ -31,33 +31,34 @@ type PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody struct {
 	ContainerEnabled *bool `json:"containerEnabled,omitempty"`
 	ElementColor *ThemeColor `json:"elementColor,omitempty"`
 	ElementFont *FontConfig `json:"elementFont,omitempty"`
+	// Footer logo media selection: id of any image of at most 3 MB from the workspace's media library, or delete to remove the image.
 	FooterLogo *MediaSelection `json:"footerLogo,omitempty"`
-	// Small company or brand logo centered at the bottom of every page using the theme.
+	// Whether to show the footer logo, a small company or brand logo centered at the bottom of every page using this theme (false hides it but keeps the image).
 	FooterLogoEnabled *bool `json:"footerLogoEnabled,omitempty"`
 	TitleFont *FontConfig `json:"titleFont,omitempty"`
-	// How visitor pages pace their content: CLASSIC shows a whole form at once, FOCUSED one question per screen.
+	// How visitor pages pace their content: CLASSIC shows a whole form at once, FOCUSED shows one question per screen.
 	VisitorExperience *string `json:"visitorExperience,omitempty"`
 }
 
-// NewPageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody instantiates a new PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody object
+// NewPageThemesServiceUpdateBody instantiates a new PageThemesServiceUpdateBody object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewPageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody() *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody {
-	this := PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody{}
+func NewPageThemesServiceUpdateBody() *PageThemesServiceUpdateBody {
+	this := PageThemesServiceUpdateBody{}
 	return &this
 }
 
-// NewPageThemeTemplatesServiceUpdatePageThemeTemplateStylingBodyWithDefaults instantiates a new PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody object
+// NewPageThemesServiceUpdateBodyWithDefaults instantiates a new PageThemesServiceUpdateBody object
 // This constructor will only assign default values to properties that have it defined,
 // but it doesn't guarantee that properties required by API are set
-func NewPageThemeTemplatesServiceUpdatePageThemeTemplateStylingBodyWithDefaults() *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody {
-	this := PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody{}
+func NewPageThemesServiceUpdateBodyWithDefaults() *PageThemesServiceUpdateBody {
+	this := PageThemesServiceUpdateBody{}
 	return &this
 }
 
 // GetBadge returns the Badge field value if set, zero value otherwise.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetBadge() MediaSelection {
+func (o *PageThemesServiceUpdateBody) GetBadge() MediaSelection {
 	if o == nil || IsNil(o.Badge) {
 		var ret MediaSelection
 		return ret
@@ -67,7 +68,7 @@ func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetBadge()
 
 // GetBadgeOk returns a tuple with the Badge field value if set, nil otherwise
 // and a boolean to check if the value has been set.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetBadgeOk() (*MediaSelection, bool) {
+func (o *PageThemesServiceUpdateBody) GetBadgeOk() (*MediaSelection, bool) {
 	if o == nil || IsNil(o.Badge) {
 		return nil, false
 	}
@@ -75,7 +76,7 @@ func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetBadgeOk
 }
 
 // HasBadge returns a boolean if a field has been set.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) HasBadge() bool {
+func (o *PageThemesServiceUpdateBody) HasBadge() bool {
 	if o != nil && !IsNil(o.Badge) {
 		return true
 	}
@@ -84,12 +85,12 @@ func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) HasBadge()
 }
 
 // SetBadge gets a reference to the given MediaSelection and assigns it to the Badge field.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) SetBadge(v MediaSelection) {
+func (o *PageThemesServiceUpdateBody) SetBadge(v MediaSelection) {
 	o.Badge = &v
 }
 
 // GetBadgeEnabled returns the BadgeEnabled field value if set, zero value otherwise.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetBadgeEnabled() bool {
+func (o *PageThemesServiceUpdateBody) GetBadgeEnabled() bool {
 	if o == nil || IsNil(o.BadgeEnabled) {
 		var ret bool
 		return ret
@@ -99,7 +100,7 @@ func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetBadgeEn
 
 // GetBadgeEnabledOk returns a tuple with the BadgeEnabled field value if set, nil otherwise
 // and a boolean to check if the value has been set.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetBadgeEnabledOk() (*bool, bool) {
+func (o *PageThemesServiceUpdateBody) GetBadgeEnabledOk() (*bool, bool) {
 	if o == nil || IsNil(o.BadgeEnabled) {
 		return nil, false
 	}
@@ -107,7 +108,7 @@ func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetBadgeEn
 }
 
 // HasBadgeEnabled returns a boolean if a field has been set.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) HasBadgeEnabled() bool {
+func (o *PageThemesServiceUpdateBody) HasBadgeEnabled() bool {
 	if o != nil && !IsNil(o.BadgeEnabled) {
 		return true
 	}
@@ -116,12 +117,12 @@ func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) HasBadgeEn
 }
 
 // SetBadgeEnabled gets a reference to the given bool and assigns it to the BadgeEnabled field.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) SetBadgeEnabled(v bool) {
+func (o *PageThemesServiceUpdateBody) SetBadgeEnabled(v bool) {
 	o.BadgeEnabled = &v
 }
 
 // GetBadgeIconColor returns the BadgeIconColor field value if set, zero value otherwise.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetBadgeIconColor() ThemeColor {
+func (o *PageThemesServiceUpdateBody) GetBadgeIconColor() ThemeColor {
 	if o == nil || IsNil(o.BadgeIconColor) {
 		var ret ThemeColor
 		return ret
@@ -131,7 +132,7 @@ func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetBadgeIc
 
 // GetBadgeIconColorOk returns a tuple with the BadgeIconColor field value if set, nil otherwise
 // and a boolean to check if the value has been set.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetBadgeIconColorOk() (*ThemeColor, bool) {
+func (o *PageThemesServiceUpdateBody) GetBadgeIconColorOk() (*ThemeColor, bool) {
 	if o == nil || IsNil(o.BadgeIconColor) {
 		return nil, false
 	}
@@ -139,7 +140,7 @@ func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetBadgeIc
 }
 
 // HasBadgeIconColor returns a boolean if a field has been set.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) HasBadgeIconColor() bool {
+func (o *PageThemesServiceUpdateBody) HasBadgeIconColor() bool {
 	if o != nil && !IsNil(o.BadgeIconColor) {
 		return true
 	}
@@ -148,12 +149,12 @@ func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) HasBadgeIc
 }
 
 // SetBadgeIconColor gets a reference to the given ThemeColor and assigns it to the BadgeIconColor field.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) SetBadgeIconColor(v ThemeColor) {
+func (o *PageThemesServiceUpdateBody) SetBadgeIconColor(v ThemeColor) {
 	o.BadgeIconColor = &v
 }
 
 // GetBadgeShape returns the BadgeShape field value if set, zero value otherwise.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetBadgeShape() string {
+func (o *PageThemesServiceUpdateBody) GetBadgeShape() string {
 	if o == nil || IsNil(o.BadgeShape) {
 		var ret string
 		return ret
@@ -163,7 +164,7 @@ func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetBadgeSh
 
 // GetBadgeShapeOk returns a tuple with the BadgeShape field value if set, nil otherwise
 // and a boolean to check if the value has been set.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetBadgeShapeOk() (*string, bool) {
+func (o *PageThemesServiceUpdateBody) GetBadgeShapeOk() (*string, bool) {
 	if o == nil || IsNil(o.BadgeShape) {
 		return nil, false
 	}
@@ -171,7 +172,7 @@ func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetBadgeSh
 }
 
 // HasBadgeShape returns a boolean if a field has been set.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) HasBadgeShape() bool {
+func (o *PageThemesServiceUpdateBody) HasBadgeShape() bool {
 	if o != nil && !IsNil(o.BadgeShape) {
 		return true
 	}
@@ -180,12 +181,12 @@ func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) HasBadgeSh
 }
 
 // SetBadgeShape gets a reference to the given string and assigns it to the BadgeShape field.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) SetBadgeShape(v string) {
+func (o *PageThemesServiceUpdateBody) SetBadgeShape(v string) {
 	o.BadgeShape = &v
 }
 
 // GetBodyFont returns the BodyFont field value if set, zero value otherwise.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetBodyFont() FontConfig {
+func (o *PageThemesServiceUpdateBody) GetBodyFont() FontConfig {
 	if o == nil || IsNil(o.BodyFont) {
 		var ret FontConfig
 		return ret
@@ -195,7 +196,7 @@ func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetBodyFon
 
 // GetBodyFontOk returns a tuple with the BodyFont field value if set, nil otherwise
 // and a boolean to check if the value has been set.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetBodyFontOk() (*FontConfig, bool) {
+func (o *PageThemesServiceUpdateBody) GetBodyFontOk() (*FontConfig, bool) {
 	if o == nil || IsNil(o.BodyFont) {
 		return nil, false
 	}
@@ -203,7 +204,7 @@ func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetBodyFon
 }
 
 // HasBodyFont returns a boolean if a field has been set.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) HasBodyFont() bool {
+func (o *PageThemesServiceUpdateBody) HasBodyFont() bool {
 	if o != nil && !IsNil(o.BodyFont) {
 		return true
 	}
@@ -212,12 +213,12 @@ func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) HasBodyFon
 }
 
 // SetBodyFont gets a reference to the given FontConfig and assigns it to the BodyFont field.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) SetBodyFont(v FontConfig) {
+func (o *PageThemesServiceUpdateBody) SetBodyFont(v FontConfig) {
 	o.BodyFont = &v
 }
 
 // GetCanvasColor returns the CanvasColor field value if set, zero value otherwise.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetCanvasColor() ThemeColor {
+func (o *PageThemesServiceUpdateBody) GetCanvasColor() ThemeColor {
 	if o == nil || IsNil(o.CanvasColor) {
 		var ret ThemeColor
 		return ret
@@ -227,7 +228,7 @@ func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetCanvasC
 
 // GetCanvasColorOk returns a tuple with the CanvasColor field value if set, nil otherwise
 // and a boolean to check if the value has been set.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetCanvasColorOk() (*ThemeColor, bool) {
+func (o *PageThemesServiceUpdateBody) GetCanvasColorOk() (*ThemeColor, bool) {
 	if o == nil || IsNil(o.CanvasColor) {
 		return nil, false
 	}
@@ -235,7 +236,7 @@ func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetCanvasC
 }
 
 // HasCanvasColor returns a boolean if a field has been set.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) HasCanvasColor() bool {
+func (o *PageThemesServiceUpdateBody) HasCanvasColor() bool {
 	if o != nil && !IsNil(o.CanvasColor) {
 		return true
 	}
@@ -244,12 +245,12 @@ func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) HasCanvasC
 }
 
 // SetCanvasColor gets a reference to the given ThemeColor and assigns it to the CanvasColor field.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) SetCanvasColor(v ThemeColor) {
+func (o *PageThemesServiceUpdateBody) SetCanvasColor(v ThemeColor) {
 	o.CanvasColor = &v
 }
 
 // GetCanvasCover returns the CanvasCover field value if set, zero value otherwise.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetCanvasCover() MediaSelection {
+func (o *PageThemesServiceUpdateBody) GetCanvasCover() MediaSelection {
 	if o == nil || IsNil(o.CanvasCover) {
 		var ret MediaSelection
 		return ret
@@ -259,7 +260,7 @@ func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetCanvasC
 
 // GetCanvasCoverOk returns a tuple with the CanvasCover field value if set, nil otherwise
 // and a boolean to check if the value has been set.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetCanvasCoverOk() (*MediaSelection, bool) {
+func (o *PageThemesServiceUpdateBody) GetCanvasCoverOk() (*MediaSelection, bool) {
 	if o == nil || IsNil(o.CanvasCover) {
 		return nil, false
 	}
@@ -267,7 +268,7 @@ func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetCanvasC
 }
 
 // HasCanvasCover returns a boolean if a field has been set.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) HasCanvasCover() bool {
+func (o *PageThemesServiceUpdateBody) HasCanvasCover() bool {
 	if o != nil && !IsNil(o.CanvasCover) {
 		return true
 	}
@@ -276,12 +277,12 @@ func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) HasCanvasC
 }
 
 // SetCanvasCover gets a reference to the given MediaSelection and assigns it to the CanvasCover field.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) SetCanvasCover(v MediaSelection) {
+func (o *PageThemesServiceUpdateBody) SetCanvasCover(v MediaSelection) {
 	o.CanvasCover = &v
 }
 
 // GetCanvasCoverMode returns the CanvasCoverMode field value if set, zero value otherwise.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetCanvasCoverMode() string {
+func (o *PageThemesServiceUpdateBody) GetCanvasCoverMode() string {
 	if o == nil || IsNil(o.CanvasCoverMode) {
 		var ret string
 		return ret
@@ -291,7 +292,7 @@ func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetCanvasC
 
 // GetCanvasCoverModeOk returns a tuple with the CanvasCoverMode field value if set, nil otherwise
 // and a boolean to check if the value has been set.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetCanvasCoverModeOk() (*string, bool) {
+func (o *PageThemesServiceUpdateBody) GetCanvasCoverModeOk() (*string, bool) {
 	if o == nil || IsNil(o.CanvasCoverMode) {
 		return nil, false
 	}
@@ -299,7 +300,7 @@ func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetCanvasC
 }
 
 // HasCanvasCoverMode returns a boolean if a field has been set.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) HasCanvasCoverMode() bool {
+func (o *PageThemesServiceUpdateBody) HasCanvasCoverMode() bool {
 	if o != nil && !IsNil(o.CanvasCoverMode) {
 		return true
 	}
@@ -308,12 +309,12 @@ func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) HasCanvasC
 }
 
 // SetCanvasCoverMode gets a reference to the given string and assigns it to the CanvasCoverMode field.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) SetCanvasCoverMode(v string) {
+func (o *PageThemesServiceUpdateBody) SetCanvasCoverMode(v string) {
 	o.CanvasCoverMode = &v
 }
 
 // GetContainerConfig returns the ContainerConfig field value if set, zero value otherwise.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetContainerConfig() ContainerConfig {
+func (o *PageThemesServiceUpdateBody) GetContainerConfig() ContainerConfig {
 	if o == nil || IsNil(o.ContainerConfig) {
 		var ret ContainerConfig
 		return ret
@@ -323,7 +324,7 @@ func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetContain
 
 // GetContainerConfigOk returns a tuple with the ContainerConfig field value if set, nil otherwise
 // and a boolean to check if the value has been set.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetContainerConfigOk() (*ContainerConfig, bool) {
+func (o *PageThemesServiceUpdateBody) GetContainerConfigOk() (*ContainerConfig, bool) {
 	if o == nil || IsNil(o.ContainerConfig) {
 		return nil, false
 	}
@@ -331,7 +332,7 @@ func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetContain
 }
 
 // HasContainerConfig returns a boolean if a field has been set.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) HasContainerConfig() bool {
+func (o *PageThemesServiceUpdateBody) HasContainerConfig() bool {
 	if o != nil && !IsNil(o.ContainerConfig) {
 		return true
 	}
@@ -340,12 +341,12 @@ func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) HasContain
 }
 
 // SetContainerConfig gets a reference to the given ContainerConfig and assigns it to the ContainerConfig field.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) SetContainerConfig(v ContainerConfig) {
+func (o *PageThemesServiceUpdateBody) SetContainerConfig(v ContainerConfig) {
 	o.ContainerConfig = &v
 }
 
 // GetContainerEnabled returns the ContainerEnabled field value if set, zero value otherwise.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetContainerEnabled() bool {
+func (o *PageThemesServiceUpdateBody) GetContainerEnabled() bool {
 	if o == nil || IsNil(o.ContainerEnabled) {
 		var ret bool
 		return ret
@@ -355,7 +356,7 @@ func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetContain
 
 // GetContainerEnabledOk returns a tuple with the ContainerEnabled field value if set, nil otherwise
 // and a boolean to check if the value has been set.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetContainerEnabledOk() (*bool, bool) {
+func (o *PageThemesServiceUpdateBody) GetContainerEnabledOk() (*bool, bool) {
 	if o == nil || IsNil(o.ContainerEnabled) {
 		return nil, false
 	}
@@ -363,7 +364,7 @@ func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetContain
 }
 
 // HasContainerEnabled returns a boolean if a field has been set.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) HasContainerEnabled() bool {
+func (o *PageThemesServiceUpdateBody) HasContainerEnabled() bool {
 	if o != nil && !IsNil(o.ContainerEnabled) {
 		return true
 	}
@@ -372,12 +373,12 @@ func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) HasContain
 }
 
 // SetContainerEnabled gets a reference to the given bool and assigns it to the ContainerEnabled field.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) SetContainerEnabled(v bool) {
+func (o *PageThemesServiceUpdateBody) SetContainerEnabled(v bool) {
 	o.ContainerEnabled = &v
 }
 
 // GetElementColor returns the ElementColor field value if set, zero value otherwise.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetElementColor() ThemeColor {
+func (o *PageThemesServiceUpdateBody) GetElementColor() ThemeColor {
 	if o == nil || IsNil(o.ElementColor) {
 		var ret ThemeColor
 		return ret
@@ -387,7 +388,7 @@ func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetElement
 
 // GetElementColorOk returns a tuple with the ElementColor field value if set, nil otherwise
 // and a boolean to check if the value has been set.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetElementColorOk() (*ThemeColor, bool) {
+func (o *PageThemesServiceUpdateBody) GetElementColorOk() (*ThemeColor, bool) {
 	if o == nil || IsNil(o.ElementColor) {
 		return nil, false
 	}
@@ -395,7 +396,7 @@ func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetElement
 }
 
 // HasElementColor returns a boolean if a field has been set.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) HasElementColor() bool {
+func (o *PageThemesServiceUpdateBody) HasElementColor() bool {
 	if o != nil && !IsNil(o.ElementColor) {
 		return true
 	}
@@ -404,12 +405,12 @@ func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) HasElement
 }
 
 // SetElementColor gets a reference to the given ThemeColor and assigns it to the ElementColor field.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) SetElementColor(v ThemeColor) {
+func (o *PageThemesServiceUpdateBody) SetElementColor(v ThemeColor) {
 	o.ElementColor = &v
 }
 
 // GetElementFont returns the ElementFont field value if set, zero value otherwise.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetElementFont() FontConfig {
+func (o *PageThemesServiceUpdateBody) GetElementFont() FontConfig {
 	if o == nil || IsNil(o.ElementFont) {
 		var ret FontConfig
 		return ret
@@ -419,7 +420,7 @@ func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetElement
 
 // GetElementFontOk returns a tuple with the ElementFont field value if set, nil otherwise
 // and a boolean to check if the value has been set.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetElementFontOk() (*FontConfig, bool) {
+func (o *PageThemesServiceUpdateBody) GetElementFontOk() (*FontConfig, bool) {
 	if o == nil || IsNil(o.ElementFont) {
 		return nil, false
 	}
@@ -427,7 +428,7 @@ func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetElement
 }
 
 // HasElementFont returns a boolean if a field has been set.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) HasElementFont() bool {
+func (o *PageThemesServiceUpdateBody) HasElementFont() bool {
 	if o != nil && !IsNil(o.ElementFont) {
 		return true
 	}
@@ -436,12 +437,12 @@ func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) HasElement
 }
 
 // SetElementFont gets a reference to the given FontConfig and assigns it to the ElementFont field.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) SetElementFont(v FontConfig) {
+func (o *PageThemesServiceUpdateBody) SetElementFont(v FontConfig) {
 	o.ElementFont = &v
 }
 
 // GetFooterLogo returns the FooterLogo field value if set, zero value otherwise.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetFooterLogo() MediaSelection {
+func (o *PageThemesServiceUpdateBody) GetFooterLogo() MediaSelection {
 	if o == nil || IsNil(o.FooterLogo) {
 		var ret MediaSelection
 		return ret
@@ -451,7 +452,7 @@ func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetFooterL
 
 // GetFooterLogoOk returns a tuple with the FooterLogo field value if set, nil otherwise
 // and a boolean to check if the value has been set.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetFooterLogoOk() (*MediaSelection, bool) {
+func (o *PageThemesServiceUpdateBody) GetFooterLogoOk() (*MediaSelection, bool) {
 	if o == nil || IsNil(o.FooterLogo) {
 		return nil, false
 	}
@@ -459,7 +460,7 @@ func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetFooterL
 }
 
 // HasFooterLogo returns a boolean if a field has been set.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) HasFooterLogo() bool {
+func (o *PageThemesServiceUpdateBody) HasFooterLogo() bool {
 	if o != nil && !IsNil(o.FooterLogo) {
 		return true
 	}
@@ -468,12 +469,12 @@ func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) HasFooterL
 }
 
 // SetFooterLogo gets a reference to the given MediaSelection and assigns it to the FooterLogo field.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) SetFooterLogo(v MediaSelection) {
+func (o *PageThemesServiceUpdateBody) SetFooterLogo(v MediaSelection) {
 	o.FooterLogo = &v
 }
 
 // GetFooterLogoEnabled returns the FooterLogoEnabled field value if set, zero value otherwise.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetFooterLogoEnabled() bool {
+func (o *PageThemesServiceUpdateBody) GetFooterLogoEnabled() bool {
 	if o == nil || IsNil(o.FooterLogoEnabled) {
 		var ret bool
 		return ret
@@ -483,7 +484,7 @@ func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetFooterL
 
 // GetFooterLogoEnabledOk returns a tuple with the FooterLogoEnabled field value if set, nil otherwise
 // and a boolean to check if the value has been set.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetFooterLogoEnabledOk() (*bool, bool) {
+func (o *PageThemesServiceUpdateBody) GetFooterLogoEnabledOk() (*bool, bool) {
 	if o == nil || IsNil(o.FooterLogoEnabled) {
 		return nil, false
 	}
@@ -491,7 +492,7 @@ func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetFooterL
 }
 
 // HasFooterLogoEnabled returns a boolean if a field has been set.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) HasFooterLogoEnabled() bool {
+func (o *PageThemesServiceUpdateBody) HasFooterLogoEnabled() bool {
 	if o != nil && !IsNil(o.FooterLogoEnabled) {
 		return true
 	}
@@ -500,12 +501,12 @@ func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) HasFooterL
 }
 
 // SetFooterLogoEnabled gets a reference to the given bool and assigns it to the FooterLogoEnabled field.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) SetFooterLogoEnabled(v bool) {
+func (o *PageThemesServiceUpdateBody) SetFooterLogoEnabled(v bool) {
 	o.FooterLogoEnabled = &v
 }
 
 // GetTitleFont returns the TitleFont field value if set, zero value otherwise.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetTitleFont() FontConfig {
+func (o *PageThemesServiceUpdateBody) GetTitleFont() FontConfig {
 	if o == nil || IsNil(o.TitleFont) {
 		var ret FontConfig
 		return ret
@@ -515,7 +516,7 @@ func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetTitleFo
 
 // GetTitleFontOk returns a tuple with the TitleFont field value if set, nil otherwise
 // and a boolean to check if the value has been set.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetTitleFontOk() (*FontConfig, bool) {
+func (o *PageThemesServiceUpdateBody) GetTitleFontOk() (*FontConfig, bool) {
 	if o == nil || IsNil(o.TitleFont) {
 		return nil, false
 	}
@@ -523,7 +524,7 @@ func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetTitleFo
 }
 
 // HasTitleFont returns a boolean if a field has been set.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) HasTitleFont() bool {
+func (o *PageThemesServiceUpdateBody) HasTitleFont() bool {
 	if o != nil && !IsNil(o.TitleFont) {
 		return true
 	}
@@ -532,12 +533,12 @@ func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) HasTitleFo
 }
 
 // SetTitleFont gets a reference to the given FontConfig and assigns it to the TitleFont field.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) SetTitleFont(v FontConfig) {
+func (o *PageThemesServiceUpdateBody) SetTitleFont(v FontConfig) {
 	o.TitleFont = &v
 }
 
 // GetVisitorExperience returns the VisitorExperience field value if set, zero value otherwise.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetVisitorExperience() string {
+func (o *PageThemesServiceUpdateBody) GetVisitorExperience() string {
 	if o == nil || IsNil(o.VisitorExperience) {
 		var ret string
 		return ret
@@ -547,7 +548,7 @@ func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetVisitor
 
 // GetVisitorExperienceOk returns a tuple with the VisitorExperience field value if set, nil otherwise
 // and a boolean to check if the value has been set.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetVisitorExperienceOk() (*string, bool) {
+func (o *PageThemesServiceUpdateBody) GetVisitorExperienceOk() (*string, bool) {
 	if o == nil || IsNil(o.VisitorExperience) {
 		return nil, false
 	}
@@ -555,7 +556,7 @@ func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) GetVisitor
 }
 
 // HasVisitorExperience returns a boolean if a field has been set.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) HasVisitorExperience() bool {
+func (o *PageThemesServiceUpdateBody) HasVisitorExperience() bool {
 	if o != nil && !IsNil(o.VisitorExperience) {
 		return true
 	}
@@ -564,11 +565,11 @@ func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) HasVisitor
 }
 
 // SetVisitorExperience gets a reference to the given string and assigns it to the VisitorExperience field.
-func (o *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) SetVisitorExperience(v string) {
+func (o *PageThemesServiceUpdateBody) SetVisitorExperience(v string) {
 	o.VisitorExperience = &v
 }
 
-func (o PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) MarshalJSON() ([]byte, error) {
+func (o PageThemesServiceUpdateBody) MarshalJSON() ([]byte, error) {
 	toSerialize,err := o.ToMap()
 	if err != nil {
 		return []byte{}, err
@@ -576,7 +577,7 @@ func (o PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) MarshalJSON
 	return json.Marshal(toSerialize)
 }
 
-func (o PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) ToMap() (map[string]interface{}, error) {
+func (o PageThemesServiceUpdateBody) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	if !IsNil(o.Badge) {
 		toSerialize["badge"] = o.Badge
@@ -629,38 +630,38 @@ func (o PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) ToMap() (ma
 	return toSerialize, nil
 }
 
-type NullablePageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody struct {
-	value *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody
+type NullablePageThemesServiceUpdateBody struct {
+	value *PageThemesServiceUpdateBody
 	isSet bool
 }
 
-func (v NullablePageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) Get() *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody {
+func (v NullablePageThemesServiceUpdateBody) Get() *PageThemesServiceUpdateBody {
 	return v.value
 }
 
-func (v *NullablePageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) Set(val *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) {
+func (v *NullablePageThemesServiceUpdateBody) Set(val *PageThemesServiceUpdateBody) {
 	v.value = val
 	v.isSet = true
 }
 
-func (v NullablePageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) IsSet() bool {
+func (v NullablePageThemesServiceUpdateBody) IsSet() bool {
 	return v.isSet
 }
 
-func (v *NullablePageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) Unset() {
+func (v *NullablePageThemesServiceUpdateBody) Unset() {
 	v.value = nil
 	v.isSet = false
 }
 
-func NewNullablePageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody(val *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) *NullablePageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody {
-	return &NullablePageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody{value: val, isSet: true}
+func NewNullablePageThemesServiceUpdateBody(val *PageThemesServiceUpdateBody) *NullablePageThemesServiceUpdateBody {
+	return &NullablePageThemesServiceUpdateBody{value: val, isSet: true}
 }
 
-func (v NullablePageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) MarshalJSON() ([]byte, error) {
+func (v NullablePageThemesServiceUpdateBody) MarshalJSON() ([]byte, error) {
 	return json.Marshal(v.value)
 }
 
-func (v *NullablePageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) UnmarshalJSON(src []byte) error {
+func (v *NullablePageThemesServiceUpdateBody) UnmarshalJSON(src []byte) error {
 	v.isSet = true
 	return json.Unmarshal(src, &v.value)
 }

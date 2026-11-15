@@ -1,9 +1,9 @@
 /*
 Linkbreakers API
 
-This is a documentation of all the APIs of Linkbreakers  ## Entry points  `GET https://api.linkbreakers.com/` and `GET https://api.linkbreakers.com/v1` answer without credentials with the API's name, version and links. This document is served at `https://api.linkbreakers.com/openapi.json`.  ## Rate limits  Every response describes where the caller stands in the IETF `RateLimit-Policy` and `RateLimit` header fields (draft-ietf-httpapi-ratelimit-headers), and in `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset` and `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset` (a Unix timestamp) for clients that read those. A request past the limit gets `429 Too Many Requests` with `Retry-After` in seconds.  - Workspace API token: 720 requests per 60 seconds, per token. - Dashboard session or OAuth token: 600 requests per 60 seconds, per token. - No credentials: 300 requests per 60 seconds, per client IP.  Each plan also includes a number of API calls per billing cycle. Past it, calls answer `429` with the code `MAX_PUBLIC_API_QUERIED_REACHED` until the cycle renews or the plan changes.  ## Pagination  Every list pages with opaque cursors (AIP-158). Pass `pageSize`, then send the `nextPageToken` of each response back as `pageToken` (or its alias `cursor`) to get the next page. An empty or absent `nextPageToken` means the list is complete. Each list operation describes this in `x-pagination`.  ## Batches and background jobs  `POST /v1/links/bulk` creates up to 250 links in one transactional request; `POST /v1/links/batch` takes the same links as a bare JSON array. `POST /v1/links/bulk/jobs` accepts the same batch and answers `202 Accepted` at once with a job and a `Location` header; poll `GET /v1/jobs/{id}` until `status` is `JOB_STATUS_SUCCEEDED` (the created link ids are in `linksBulkCreate.linkIds`) or `JOB_STATUS_FAILED` (`error` says why, and nothing was created). Jobs can be read for 24 hours after they finish.  ## Versioning and deprecation  The version is in the path: every operation lives under `/v1`. Within a version, changes are additive only: new operations, new optional request fields, new response fields and new enum values. Clients should ignore fields and enum values they do not know. Anything that would break an existing client ships under a new path version instead.  An operation is retired in two steps. First it is deprecated: it keeps working, is flagged `deprecated: true` in this document, and every response carries a `Deprecation` header field (RFC 9745) with the time it was deprecated and a `Link` with `rel=\"deprecation\"` to the policy. Then, at least 180 days later, it may be removed; that date is announced in advance in a `Sunset` header field (RFC 8594) and as `x-sunset` on the operation. The full policy: https://linkbreakers.com/help/article/api-versioning-and-deprecation-policy  ## Idempotent retries  Every POST, PUT and PATCH accepts an optional `Idempotency-Key` header (draft-ietf-httpapi-idempotency-key-header). Send a new unique value, such as a UUID, with each logical request and reuse it only to retry that request. A retry with the same key and the same request returns the first response, marked `Idempotent-Replayed: true`, instead of running again. Keys are scoped to the token and kept for 24 hours. The same key with a different request is refused with `422`, and a retry while the first request is still running gets `409` with `Retry-After`. Server errors (5xx) and refusals such as 401, 403 and 429 are not stored, so retrying them runs the request again.  ## Identifying your client  Send a `Linkbreakers-Client` request header saying which client made the call: `<client>/<version> (<details>)`, for example `my-integration/1.2.0 (python 3.12; linux)`. The official SDKs, the CLI and the MCP bridge set it for you, as `sdk-python/2.3.1 (python 3.12.4; linux)` or `cli/1.4.0 (darwin arm64)`. It is optional and changes nothing about how a request is handled; it tells us which clients and versions are in use, so we know what can be retired and what to fix first. Keep the details short and free of personal data. Browsers may send it too: it is allowed by CORS.
+The Linkbreakers REST API: links, QR codes, workflows, visitors and analytics, as JSON over HTTPS. Send a workspace API token as `Authorization: Bearer <token>`.  ## Entry points  `GET https://api.linkbreakers.com/` and `GET https://api.linkbreakers.com/v1` answer without credentials with the API's name, version and links. This document is served at `https://api.linkbreakers.com/openapi.json`.  ## Rate limits  Every response describes where the caller stands in the IETF `RateLimit-Policy` and `RateLimit` header fields (draft-ietf-httpapi-ratelimit-headers), and in `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset` and `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset` (a Unix timestamp) for clients that read those. A request past the limit gets `429 Too Many Requests` with `Retry-After` in seconds.  - Workspace API token: 720 requests per 60 seconds, per token. - Dashboard session or OAuth token: 600 requests per 60 seconds, per token. - No credentials: 300 requests per 60 seconds, per client IP.  Each plan also includes a number of API calls per billing cycle. Past it, calls answer `429` with the code `MAX_PUBLIC_API_QUERIED_REACHED` until the cycle renews or the plan changes.  ## Pagination  Every list pages with opaque cursors (AIP-158). Pass `pageSize`, then send the `nextPageToken` of each response back as `pageToken` (or its alias `cursor`) to get the next page. An empty or absent `nextPageToken` means the list is complete. Each list operation describes this in `x-pagination`.  ## Batches and background jobs  `POST /v1/links/bulk` creates up to 250 links in one transactional request; `POST /v1/links/batch` takes the same links as a bare JSON array. `POST /v1/links/bulk/jobs` accepts the same batch and answers `202 Accepted` at once with a job and a `Location` header; poll `GET /v1/jobs/{id}` until `status` is `JOB_STATUS_SUCCEEDED` (the created link ids are in `linksBulkCreate.linkIds`) or `JOB_STATUS_FAILED` (`error` says why, and nothing was created). Jobs can be read for 24 hours after they finish.  ## Versioning and deprecation  The version is in the path: every operation lives under `/v1`. Within a version, changes are additive only: new operations, new optional request fields, new response fields and new enum values. Clients should ignore fields and enum values they do not know. Anything that would break an existing client ships under a new path version instead.  An operation is retired in two steps. First it is deprecated: it keeps working, is flagged `deprecated: true` in this document, and every response carries a `Deprecation` header field (RFC 9745) with the time it was deprecated and a `Link` with `rel=\"deprecation\"` to the policy. Then, at least 180 days later, it may be removed; that date is announced in advance in a `Sunset` header field (RFC 8594) and as `x-sunset` on the operation. The full policy: https://linkbreakers.com/help/article/api-versioning-and-deprecation-policy  A renamed operation keeps answering its former path until that path's sunset. Responses on a former path carry the same `Deprecation`, `Sunset` and `Link` header fields; this document lists only the current path, and the policy lists the former ones.  ## Idempotent retries  Every POST, PUT and PATCH accepts an optional `Idempotency-Key` header (draft-ietf-httpapi-idempotency-key-header). Send a new unique value, such as a UUID, with each logical request and reuse it only to retry that request. A retry with the same key and the same request returns the first response, marked `Idempotent-Replayed: true`, instead of running again. Keys are scoped to the token and kept for 24 hours. The same key with a different request is refused with `422`, and a retry while the first request is still running gets `409` with `Retry-After`. Server errors (5xx) and refusals such as 401, 403 and 429 are not stored, so retrying them runs the request again.  ## Identifying your client  Send a `Linkbreakers-Client` request header saying which client made the call: `<client>/<version> (<details>)`, for example `my-integration/1.2.0 (python 3.12; linux)`. The official SDKs, the CLI and the MCP bridge set it for you, as `sdk-python/2.3.1 (python 3.12.4; linux)` or `cli/1.4.0 (darwin arm64)`. It is optional and changes nothing about how a request is handled; it tells us which clients and versions are in use, so we know what can be retired and what to fix first. Keep the details short and free of personal data. Browsers may send it too: it is allowed by CORS.
 
-API version: 1.198.0
+API version: 1.198.1
 */
 
 // Code generated by OpenAPI Generator (https://openapi-generator.tech); DO NOT EDIT.
@@ -24,6 +24,147 @@ import (
 // LinksAPIService LinksAPI service
 type LinksAPIService service
 
+type ApiLinksServiceCheckShortlinkAvailabilityRequest struct {
+	ctx context.Context
+	ApiService *LinksAPIService
+	shortlink *string
+	customDomainId *string
+}
+
+// The shortlink to check availability for.
+func (r ApiLinksServiceCheckShortlinkAvailabilityRequest) Shortlink(shortlink string) ApiLinksServiceCheckShortlinkAvailabilityRequest {
+	r.shortlink = &shortlink
+	return r
+}
+
+// The ID of the custom domain to check against (UUID) If not provided, checks against the default domain
+func (r ApiLinksServiceCheckShortlinkAvailabilityRequest) CustomDomainId(customDomainId string) ApiLinksServiceCheckShortlinkAvailabilityRequest {
+	r.customDomainId = &customDomainId
+	return r
+}
+
+func (r ApiLinksServiceCheckShortlinkAvailabilityRequest) Execute() (*CheckShortlinkAvailabilityResponse, *http.Response, error) {
+	return r.ApiService.LinksServiceCheckShortlinkAvailabilityExecute(r)
+}
+
+/*
+LinksServiceCheckShortlinkAvailability Check shortlink availability
+
+Checks if a shortlink is available for use to create a new link. A custom domain can be provided to check against.
+It typically checks the shortlink slugs and shortlink IDs already present within the system.
+
+Requires the `links:read` scope.
+
+ @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+ @return ApiLinksServiceCheckShortlinkAvailabilityRequest
+*/
+func (a *LinksAPIService) LinksServiceCheckShortlinkAvailability(ctx context.Context) ApiLinksServiceCheckShortlinkAvailabilityRequest {
+	return ApiLinksServiceCheckShortlinkAvailabilityRequest{
+		ApiService: a,
+		ctx: ctx,
+	}
+}
+
+// Execute executes the request
+//  @return CheckShortlinkAvailabilityResponse
+func (a *LinksAPIService) LinksServiceCheckShortlinkAvailabilityExecute(r ApiLinksServiceCheckShortlinkAvailabilityRequest) (*CheckShortlinkAvailabilityResponse, *http.Response, error) {
+	var (
+		localVarHTTPMethod   = http.MethodGet
+		localVarPostBody     interface{}
+		formFiles            []formFile
+		localVarReturnValue  *CheckShortlinkAvailabilityResponse
+	)
+
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "LinksAPIService.LinksServiceCheckShortlinkAvailability")
+	if err != nil {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
+	}
+
+	localVarPath := localBasePath + "/v1/links/shortlink-availability"
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+	localVarFormParams := url.Values{}
+
+	if r.shortlink != nil {
+		parameterAddToHeaderOrQuery(localVarQueryParams, "shortlink", r.shortlink, "form", "")
+	}
+	if r.customDomainId != nil {
+		parameterAddToHeaderOrQuery(localVarQueryParams, "customDomainId", r.customDomainId, "form", "")
+	}
+	// to determine the Content-Type header
+	localVarHTTPContentTypes := []string{}
+
+	// set Content-Type header
+	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
+	if localVarHTTPContentType != "" {
+		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
+	}
+
+	// to determine the Accept header
+	localVarHTTPHeaderAccepts := []string{"application/json"}
+
+	// set Accept header
+	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
+	if localVarHTTPHeaderAccept != "" {
+		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
+	}
+	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
+	if err != nil {
+		return localVarReturnValue, nil, err
+	}
+
+	localVarHTTPResponse, err := a.client.callAPI(req)
+	if err != nil || localVarHTTPResponse == nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
+	localVarHTTPResponse.Body.Close()
+	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
+	if err != nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	if localVarHTTPResponse.StatusCode >= 300 {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: localVarHTTPResponse.Status,
+		}
+		if localVarHTTPResponse.StatusCode == 429 {
+			var v ErrorResponse
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+					newErr.model = v
+			return localVarReturnValue, localVarHTTPResponse, newErr
+		}
+			var v ErrorResponse
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+					newErr.model = v
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
+}
+
 type ApiLinksServiceCreateRequest struct {
 	ctx context.Context
 	ApiService *LinksAPIService
@@ -36,7 +177,7 @@ func (r ApiLinksServiceCreateRequest) CreateLinkRequest(createLinkRequest Create
 	return r
 }
 
-// Makes retrying this request safe. See components.parameters.IdempotencyKey.
+// A unique value per request, such as a UUID, that makes retrying it safe: a retry with the same key and body returns the first response instead of acting twice.
 func (r ApiLinksServiceCreateRequest) IdempotencyKey(idempotencyKey string) ApiLinksServiceCreateRequest {
 	r.idempotencyKey = &idempotencyKey
 	return r
@@ -178,7 +319,7 @@ func (r ApiLinksServiceCreateBatchRequest) CreateLinkRequest(createLinkRequest [
 	return r
 }
 
-// Makes retrying this request safe. See components.parameters.IdempotencyKey.
+// A unique value per request, such as a UUID, that makes retrying it safe: a retry with the same key and body returns the first response instead of acting twice.
 func (r ApiLinksServiceCreateBatchRequest) IdempotencyKey(idempotencyKey string) ApiLinksServiceCreateBatchRequest {
 	r.idempotencyKey = &idempotencyKey
 	return r
@@ -189,7 +330,7 @@ func (r ApiLinksServiceCreateBatchRequest) Execute() (*CreateBulkLinksResponse, 
 }
 
 /*
-LinksServiceCreateBatch Create multiple links in a single request
+LinksServiceCreateBatch Create multiple links from a bare JSON array
 
 Creates links in batch using the same per-link options as Create.
 This operation is transactional: if one link fails validation or insertion,
@@ -321,7 +462,7 @@ func (r ApiLinksServiceCreateBulkRequest) CreateBulkLinksRequest(createBulkLinks
 	return r
 }
 
-// Makes retrying this request safe. See components.parameters.IdempotencyKey.
+// A unique value per request, such as a UUID, that makes retrying it safe: a retry with the same key and body returns the first response instead of acting twice.
 func (r ApiLinksServiceCreateBulkRequest) IdempotencyKey(idempotencyKey string) ApiLinksServiceCreateBulkRequest {
 	r.idempotencyKey = &idempotencyKey
 	return r
@@ -464,7 +605,7 @@ func (r ApiLinksServiceCreateBulkAsyncRequest) CreateBulkLinksRequest(createBulk
 	return r
 }
 
-// Makes retrying this request safe. See components.parameters.IdempotencyKey.
+// A unique value per request, such as a UUID, that makes retrying it safe: a retry with the same key and body returns the first response instead of acting twice.
 func (r ApiLinksServiceCreateBulkAsyncRequest) IdempotencyKey(idempotencyKey string) ApiLinksServiceCreateBulkAsyncRequest {
 	r.idempotencyKey = &idempotencyKey
 	return r
@@ -608,7 +749,7 @@ func (r ApiLinksServiceCreateContactLinkRequest) CreateContactLinkRequest(create
 	return r
 }
 
-// Makes retrying this request safe. See components.parameters.IdempotencyKey.
+// A unique value per request, such as a UUID, that makes retrying it safe: a retry with the same key and body returns the first response instead of acting twice.
 func (r ApiLinksServiceCreateContactLinkRequest) IdempotencyKey(idempotencyKey string) ApiLinksServiceCreateContactLinkRequest {
 	r.idempotencyKey = &idempotencyKey
 	return r
@@ -750,7 +891,7 @@ func (r ApiLinksServiceCreateOpenMediaLinkRequest) CreateOpenMediaLinkRequest(cr
 	return r
 }
 
-// Makes retrying this request safe. See components.parameters.IdempotencyKey.
+// A unique value per request, such as a UUID, that makes retrying it safe: a retry with the same key and body returns the first response instead of acting twice.
 func (r ApiLinksServiceCreateOpenMediaLinkRequest) IdempotencyKey(idempotencyKey string) ApiLinksServiceCreateOpenMediaLinkRequest {
 	r.idempotencyKey = &idempotencyKey
 	return r
@@ -766,7 +907,7 @@ LinksServiceCreateOpenMediaLink Create a new media link
 Creates a link, and its QR code, that hands visitors one piece of media from the media
 library: a PDF (a menu or brochure), an image (PNG, JPEG, WebP, SVG) or an MP4 video. Upload
 the media first (POST /v1/media, or a direct upload for media over 3 MB; no usage is needed),
-then pass its media_id. Any media of the library can be opened. The Open media step is the exit step. Swap the media later by
+then pass its mediaId. Any media of the library can be opened. The Open media step is the exit step. Swap the media later by
 pointing the step at another media item.
 
 Requires the `links:write` scope.
@@ -895,7 +1036,7 @@ func (r ApiLinksServiceCreateThankYouLinkRequest) CreateThankYouLinkRequest(crea
 	return r
 }
 
-// Makes retrying this request safe. See components.parameters.IdempotencyKey.
+// A unique value per request, such as a UUID, that makes retrying it safe: a retry with the same key and body returns the first response instead of acting twice.
 func (r ApiLinksServiceCreateThankYouLinkRequest) IdempotencyKey(idempotencyKey string) ApiLinksServiceCreateThankYouLinkRequest {
 	r.idempotencyKey = &idempotencyKey
 	return r
@@ -1070,6 +1211,126 @@ func (a *LinksAPIService) LinksServiceDeleteExecute(r ApiLinksServiceDeleteReque
 
 	localVarPath := localBasePath + "/v1/links/{id}"
 	localVarPath = strings.Replace(localVarPath, "{"+"id"+"}", url.PathEscape(parameterValueToString(r.id, "id")), -1)
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+	localVarFormParams := url.Values{}
+
+	// to determine the Content-Type header
+	localVarHTTPContentTypes := []string{}
+
+	// set Content-Type header
+	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
+	if localVarHTTPContentType != "" {
+		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
+	}
+
+	// to determine the Accept header
+	localVarHTTPHeaderAccepts := []string{"application/json"}
+
+	// set Accept header
+	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
+	if localVarHTTPHeaderAccept != "" {
+		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
+	}
+	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
+	if err != nil {
+		return localVarReturnValue, nil, err
+	}
+
+	localVarHTTPResponse, err := a.client.callAPI(req)
+	if err != nil || localVarHTTPResponse == nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
+	localVarHTTPResponse.Body.Close()
+	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
+	if err != nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	if localVarHTTPResponse.StatusCode >= 300 {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: localVarHTTPResponse.Status,
+		}
+		if localVarHTTPResponse.StatusCode == 429 {
+			var v ErrorResponse
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+					newErr.model = v
+			return localVarReturnValue, localVarHTTPResponse, newErr
+		}
+			var v ErrorResponse
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+					newErr.model = v
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
+}
+
+type ApiLinksServiceGenerateShortlinkRequest struct {
+	ctx context.Context
+	ApiService *LinksAPIService
+}
+
+func (r ApiLinksServiceGenerateShortlinkRequest) Execute() (*GenerateShortlinkResponse, *http.Response, error) {
+	return r.ApiService.LinksServiceGenerateShortlinkExecute(r)
+}
+
+/*
+LinksServiceGenerateShortlink Generate a shortlink
+
+Generates a random shortlink that is still available, to use for a new link.
+
+Requires the `links:read` scope.
+
+ @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+ @return ApiLinksServiceGenerateShortlinkRequest
+*/
+func (a *LinksAPIService) LinksServiceGenerateShortlink(ctx context.Context) ApiLinksServiceGenerateShortlinkRequest {
+	return ApiLinksServiceGenerateShortlinkRequest{
+		ApiService: a,
+		ctx: ctx,
+	}
+}
+
+// Execute executes the request
+//  @return GenerateShortlinkResponse
+func (a *LinksAPIService) LinksServiceGenerateShortlinkExecute(r ApiLinksServiceGenerateShortlinkRequest) (*GenerateShortlinkResponse, *http.Response, error) {
+	var (
+		localVarHTTPMethod   = http.MethodGet
+		localVarPostBody     interface{}
+		formFiles            []formFile
+		localVarReturnValue  *GenerateShortlinkResponse
+	)
+
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "LinksAPIService.LinksServiceGenerateShortlink")
+	if err != nil {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
+	}
+
+	localVarPath := localBasePath + "/v1/links/shortlink-random"
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
@@ -1335,7 +1596,7 @@ func (r ApiLinksServiceListRequest) Search(search string) ApiLinksServiceListReq
 	return r
 }
 
-// Field to sort links by (defaults to updated_at if not specified)  Field to sort links by   - LINK_SORT_FIELD_UNSPECIFIED: Sort field not specified (defaults to updated_at)  - LINK_SORT_FIELD_CREATED_AT: Sort by creation date  - LINK_SORT_FIELD_UPDATED_AT: Sort by last update date  - LINK_SORT_FIELD_SHORTLINK: Sort by shortlink name  - LINK_SORT_FIELD_NAME: Sort by link name  - LINK_SORT_FIELD_EVENT_COUNT: Sort by event count
+// Field to sort links by (defaults to updatedAt if not specified)  Field to sort links by   - LINK_SORT_FIELD_UNSPECIFIED: Sort field not specified (defaults to updatedAt)  - LINK_SORT_FIELD_CREATED_AT: Sort by creation date  - LINK_SORT_FIELD_UPDATED_AT: Sort by last update date  - LINK_SORT_FIELD_SHORTLINK: Sort by shortlink name  - LINK_SORT_FIELD_NAME: Sort by link name  - LINK_SORT_FIELD_EVENT_COUNT: Sort by event count
 func (r ApiLinksServiceListRequest) SortBy(sortBy string) ApiLinksServiceListRequest {
 	r.sortBy = &sortBy
 	return r
@@ -1347,7 +1608,7 @@ func (r ApiLinksServiceListRequest) SortDirection(sortDirection string) ApiLinks
 	return r
 }
 
-// View mode. Default returns all links. LINK_VIEW_DIRECTORY scopes to a directory (or root when directory_id is empty).   - LINK_VIEW_UNSPECIFIED: Return all links regardless of directory (default)  - LINK_VIEW_DIRECTORY: Return links scoped to a directory. When directory_id is set, returns links in that directory. When directory_id is empty, returns root-level links (no directory).
+// View mode. Default returns all links. LINK_VIEW_DIRECTORY scopes to a directory (or root when directoryId is empty).   - LINK_VIEW_UNSPECIFIED: Return all links regardless of directory (default)  - LINK_VIEW_DIRECTORY: Return links scoped to a directory. When directoryId is set, returns links in that directory. When directoryId is empty, returns root-level links (no directory).
 func (r ApiLinksServiceListRequest) View(view string) ApiLinksServiceListRequest {
 	r.view = &view
 	return r
@@ -1540,7 +1801,7 @@ func (r ApiLinksServiceRenderQrcodeImagesRequest) LinksServiceRenderQrcodeImages
 	return r
 }
 
-// Makes retrying this request safe. See components.parameters.IdempotencyKey.
+// A unique value per request, such as a UUID, that makes retrying it safe: a retry with the same key and body returns the first response instead of acting twice.
 func (r ApiLinksServiceRenderQrcodeImagesRequest) IdempotencyKey(idempotencyKey string) ApiLinksServiceRenderQrcodeImagesRequest {
 	r.idempotencyKey = &idempotencyKey
 	return r
@@ -1672,408 +1933,6 @@ func (a *LinksAPIService) LinksServiceRenderQrcodeImagesExecute(r ApiLinksServic
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiLinksServiceResolveQrcodeImagesRequest struct {
-	ctx context.Context
-	ApiService *LinksAPIService
-	resolveQrcodeImagesRequest *ResolveQrcodeImagesRequest
-	idempotencyKey *string
-}
-
-func (r ApiLinksServiceResolveQrcodeImagesRequest) ResolveQrcodeImagesRequest(resolveQrcodeImagesRequest ResolveQrcodeImagesRequest) ApiLinksServiceResolveQrcodeImagesRequest {
-	r.resolveQrcodeImagesRequest = &resolveQrcodeImagesRequest
-	return r
-}
-
-// Makes retrying this request safe. See components.parameters.IdempotencyKey.
-func (r ApiLinksServiceResolveQrcodeImagesRequest) IdempotencyKey(idempotencyKey string) ApiLinksServiceResolveQrcodeImagesRequest {
-	r.idempotencyKey = &idempotencyKey
-	return r
-}
-
-func (r ApiLinksServiceResolveQrcodeImagesRequest) Execute() (*ResolveQrcodeImagesResponse, *http.Response, error) {
-	return r.ApiService.LinksServiceResolveQrcodeImagesExecute(r)
-}
-
-/*
-LinksServiceResolveQrcodeImages Resolve QR code image URLs
-
-Return freshly signed QR code image URLs for the given links. The URLs expire, so callers fetch them when they need to render rather than storing them.
-
-Requires the `links:read` scope.
-
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiLinksServiceResolveQrcodeImagesRequest
-*/
-func (a *LinksAPIService) LinksServiceResolveQrcodeImages(ctx context.Context) ApiLinksServiceResolveQrcodeImagesRequest {
-	return ApiLinksServiceResolveQrcodeImagesRequest{
-		ApiService: a,
-		ctx: ctx,
-	}
-}
-
-// Execute executes the request
-//  @return ResolveQrcodeImagesResponse
-func (a *LinksAPIService) LinksServiceResolveQrcodeImagesExecute(r ApiLinksServiceResolveQrcodeImagesRequest) (*ResolveQrcodeImagesResponse, *http.Response, error) {
-	var (
-		localVarHTTPMethod   = http.MethodPost
-		localVarPostBody     interface{}
-		formFiles            []formFile
-		localVarReturnValue  *ResolveQrcodeImagesResponse
-	)
-
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "LinksAPIService.LinksServiceResolveQrcodeImages")
-	if err != nil {
-		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
-	}
-
-	localVarPath := localBasePath + "/v1/links/qrcode-images:resolve"
-
-	localVarHeaderParams := make(map[string]string)
-	localVarQueryParams := url.Values{}
-	localVarFormParams := url.Values{}
-	if r.resolveQrcodeImagesRequest == nil {
-		return localVarReturnValue, nil, reportError("resolveQrcodeImagesRequest is required and must be specified")
-	}
-
-	// to determine the Content-Type header
-	localVarHTTPContentTypes := []string{"application/json"}
-
-	// set Content-Type header
-	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
-	if localVarHTTPContentType != "" {
-		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
-	}
-
-	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{"application/json"}
-
-	// set Accept header
-	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
-	if localVarHTTPHeaderAccept != "" {
-		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
-	}
-	if r.idempotencyKey != nil {
-		parameterAddToHeaderOrQuery(localVarHeaderParams, "Idempotency-Key", r.idempotencyKey, "simple", "")
-	}
-	// body params
-	localVarPostBody = r.resolveQrcodeImagesRequest
-	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
-	if err != nil {
-		return localVarReturnValue, nil, err
-	}
-
-	localVarHTTPResponse, err := a.client.callAPI(req)
-	if err != nil || localVarHTTPResponse == nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
-	localVarHTTPResponse.Body.Close()
-	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
-	if err != nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	if localVarHTTPResponse.StatusCode >= 300 {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: localVarHTTPResponse.Status,
-		}
-		if localVarHTTPResponse.StatusCode == 429 {
-			var v ErrorResponse
-			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-			if err != nil {
-				newErr.error = err.Error()
-				return localVarReturnValue, localVarHTTPResponse, newErr
-			}
-					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
-					newErr.model = v
-			return localVarReturnValue, localVarHTTPResponse, newErr
-		}
-			var v ErrorResponse
-			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-			if err != nil {
-				newErr.error = err.Error()
-				return localVarReturnValue, localVarHTTPResponse, newErr
-			}
-					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
-					newErr.model = v
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-	if err != nil {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: err.Error(),
-		}
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	return localVarReturnValue, localVarHTTPResponse, nil
-}
-
-type ApiLinksServiceShortlinkAvailabilityRequest struct {
-	ctx context.Context
-	ApiService *LinksAPIService
-	shortlink *string
-	customDomainId *string
-}
-
-// The shortlink to check availability for.
-func (r ApiLinksServiceShortlinkAvailabilityRequest) Shortlink(shortlink string) ApiLinksServiceShortlinkAvailabilityRequest {
-	r.shortlink = &shortlink
-	return r
-}
-
-// The ID of the custom domain to check against (UUID) If not provided, checks against the default domain
-func (r ApiLinksServiceShortlinkAvailabilityRequest) CustomDomainId(customDomainId string) ApiLinksServiceShortlinkAvailabilityRequest {
-	r.customDomainId = &customDomainId
-	return r
-}
-
-func (r ApiLinksServiceShortlinkAvailabilityRequest) Execute() (*ShortlinkAvailabilityResponse, *http.Response, error) {
-	return r.ApiService.LinksServiceShortlinkAvailabilityExecute(r)
-}
-
-/*
-LinksServiceShortlinkAvailability Check shortlink availability
-
-Checks if a shortlink is available for use to create a new link. A custom domain can be provided to check against.
-It typically checks the shortlink slugs and shortlink IDs already present within the system.
-
-Requires the `links:read` scope.
-
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiLinksServiceShortlinkAvailabilityRequest
-*/
-func (a *LinksAPIService) LinksServiceShortlinkAvailability(ctx context.Context) ApiLinksServiceShortlinkAvailabilityRequest {
-	return ApiLinksServiceShortlinkAvailabilityRequest{
-		ApiService: a,
-		ctx: ctx,
-	}
-}
-
-// Execute executes the request
-//  @return ShortlinkAvailabilityResponse
-func (a *LinksAPIService) LinksServiceShortlinkAvailabilityExecute(r ApiLinksServiceShortlinkAvailabilityRequest) (*ShortlinkAvailabilityResponse, *http.Response, error) {
-	var (
-		localVarHTTPMethod   = http.MethodGet
-		localVarPostBody     interface{}
-		formFiles            []formFile
-		localVarReturnValue  *ShortlinkAvailabilityResponse
-	)
-
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "LinksAPIService.LinksServiceShortlinkAvailability")
-	if err != nil {
-		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
-	}
-
-	localVarPath := localBasePath + "/v1/links/shortlink-availability"
-
-	localVarHeaderParams := make(map[string]string)
-	localVarQueryParams := url.Values{}
-	localVarFormParams := url.Values{}
-
-	if r.shortlink != nil {
-		parameterAddToHeaderOrQuery(localVarQueryParams, "shortlink", r.shortlink, "form", "")
-	}
-	if r.customDomainId != nil {
-		parameterAddToHeaderOrQuery(localVarQueryParams, "customDomainId", r.customDomainId, "form", "")
-	}
-	// to determine the Content-Type header
-	localVarHTTPContentTypes := []string{}
-
-	// set Content-Type header
-	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
-	if localVarHTTPContentType != "" {
-		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
-	}
-
-	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{"application/json"}
-
-	// set Accept header
-	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
-	if localVarHTTPHeaderAccept != "" {
-		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
-	}
-	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
-	if err != nil {
-		return localVarReturnValue, nil, err
-	}
-
-	localVarHTTPResponse, err := a.client.callAPI(req)
-	if err != nil || localVarHTTPResponse == nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
-	localVarHTTPResponse.Body.Close()
-	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
-	if err != nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	if localVarHTTPResponse.StatusCode >= 300 {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: localVarHTTPResponse.Status,
-		}
-		if localVarHTTPResponse.StatusCode == 429 {
-			var v ErrorResponse
-			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-			if err != nil {
-				newErr.error = err.Error()
-				return localVarReturnValue, localVarHTTPResponse, newErr
-			}
-					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
-					newErr.model = v
-			return localVarReturnValue, localVarHTTPResponse, newErr
-		}
-			var v ErrorResponse
-			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-			if err != nil {
-				newErr.error = err.Error()
-				return localVarReturnValue, localVarHTTPResponse, newErr
-			}
-					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
-					newErr.model = v
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-	if err != nil {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: err.Error(),
-		}
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	return localVarReturnValue, localVarHTTPResponse, nil
-}
-
-type ApiLinksServiceShortlinkRandomRequest struct {
-	ctx context.Context
-	ApiService *LinksAPIService
-}
-
-func (r ApiLinksServiceShortlinkRandomRequest) Execute() (*ShortlinkRandomResponse, *http.Response, error) {
-	return r.ApiService.LinksServiceShortlinkRandomExecute(r)
-}
-
-/*
-LinksServiceShortlinkRandom Get a random shortlink
-
-Generates a random availableshortlink for a new link.
-
-Requires the `links:read` scope.
-
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiLinksServiceShortlinkRandomRequest
-*/
-func (a *LinksAPIService) LinksServiceShortlinkRandom(ctx context.Context) ApiLinksServiceShortlinkRandomRequest {
-	return ApiLinksServiceShortlinkRandomRequest{
-		ApiService: a,
-		ctx: ctx,
-	}
-}
-
-// Execute executes the request
-//  @return ShortlinkRandomResponse
-func (a *LinksAPIService) LinksServiceShortlinkRandomExecute(r ApiLinksServiceShortlinkRandomRequest) (*ShortlinkRandomResponse, *http.Response, error) {
-	var (
-		localVarHTTPMethod   = http.MethodGet
-		localVarPostBody     interface{}
-		formFiles            []formFile
-		localVarReturnValue  *ShortlinkRandomResponse
-	)
-
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "LinksAPIService.LinksServiceShortlinkRandom")
-	if err != nil {
-		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
-	}
-
-	localVarPath := localBasePath + "/v1/links/shortlink-random"
-
-	localVarHeaderParams := make(map[string]string)
-	localVarQueryParams := url.Values{}
-	localVarFormParams := url.Values{}
-
-	// to determine the Content-Type header
-	localVarHTTPContentTypes := []string{}
-
-	// set Content-Type header
-	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
-	if localVarHTTPContentType != "" {
-		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
-	}
-
-	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{"application/json"}
-
-	// set Accept header
-	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
-	if localVarHTTPHeaderAccept != "" {
-		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
-	}
-	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
-	if err != nil {
-		return localVarReturnValue, nil, err
-	}
-
-	localVarHTTPResponse, err := a.client.callAPI(req)
-	if err != nil || localVarHTTPResponse == nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
-	localVarHTTPResponse.Body.Close()
-	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
-	if err != nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	if localVarHTTPResponse.StatusCode >= 300 {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: localVarHTTPResponse.Status,
-		}
-		if localVarHTTPResponse.StatusCode == 429 {
-			var v ErrorResponse
-			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-			if err != nil {
-				newErr.error = err.Error()
-				return localVarReturnValue, localVarHTTPResponse, newErr
-			}
-					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
-					newErr.model = v
-			return localVarReturnValue, localVarHTTPResponse, newErr
-		}
-			var v ErrorResponse
-			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-			if err != nil {
-				newErr.error = err.Error()
-				return localVarReturnValue, localVarHTTPResponse, newErr
-			}
-					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
-					newErr.model = v
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-	if err != nil {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: err.Error(),
-		}
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	return localVarReturnValue, localVarHTTPResponse, nil
-}
-
 type ApiLinksServiceUpdateRequest struct {
 	ctx context.Context
 	ApiService *LinksAPIService
@@ -2087,7 +1946,7 @@ func (r ApiLinksServiceUpdateRequest) LinksServiceUpdateBody(linksServiceUpdateB
 	return r
 }
 
-// Makes retrying this request safe. See components.parameters.IdempotencyKey.
+// A unique value per request, such as a UUID, that makes retrying it safe: a retry with the same key and body returns the first response instead of acting twice.
 func (r ApiLinksServiceUpdateRequest) IdempotencyKey(idempotencyKey string) ApiLinksServiceUpdateRequest {
 	r.idempotencyKey = &idempotencyKey
 	return r

@@ -1,9 +1,9 @@
 /*
 Linkbreakers API
 
-This is a documentation of all the APIs of Linkbreakers  ## Entry points  `GET https://api.linkbreakers.com/` and `GET https://api.linkbreakers.com/v1` answer without credentials with the API's name, version and links. This document is served at `https://api.linkbreakers.com/openapi.json`.  ## Rate limits  Every response describes where the caller stands in the IETF `RateLimit-Policy` and `RateLimit` header fields (draft-ietf-httpapi-ratelimit-headers), and in `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset` and `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset` (a Unix timestamp) for clients that read those. A request past the limit gets `429 Too Many Requests` with `Retry-After` in seconds.  - Workspace API token: 720 requests per 60 seconds, per token. - Dashboard session or OAuth token: 600 requests per 60 seconds, per token. - No credentials: 300 requests per 60 seconds, per client IP.  Each plan also includes a number of API calls per billing cycle. Past it, calls answer `429` with the code `MAX_PUBLIC_API_QUERIED_REACHED` until the cycle renews or the plan changes.  ## Pagination  Every list pages with opaque cursors (AIP-158). Pass `pageSize`, then send the `nextPageToken` of each response back as `pageToken` (or its alias `cursor`) to get the next page. An empty or absent `nextPageToken` means the list is complete. Each list operation describes this in `x-pagination`.  ## Batches and background jobs  `POST /v1/links/bulk` creates up to 250 links in one transactional request; `POST /v1/links/batch` takes the same links as a bare JSON array. `POST /v1/links/bulk/jobs` accepts the same batch and answers `202 Accepted` at once with a job and a `Location` header; poll `GET /v1/jobs/{id}` until `status` is `JOB_STATUS_SUCCEEDED` (the created link ids are in `linksBulkCreate.linkIds`) or `JOB_STATUS_FAILED` (`error` says why, and nothing was created). Jobs can be read for 24 hours after they finish.  ## Versioning and deprecation  The version is in the path: every operation lives under `/v1`. Within a version, changes are additive only: new operations, new optional request fields, new response fields and new enum values. Clients should ignore fields and enum values they do not know. Anything that would break an existing client ships under a new path version instead.  An operation is retired in two steps. First it is deprecated: it keeps working, is flagged `deprecated: true` in this document, and every response carries a `Deprecation` header field (RFC 9745) with the time it was deprecated and a `Link` with `rel=\"deprecation\"` to the policy. Then, at least 180 days later, it may be removed; that date is announced in advance in a `Sunset` header field (RFC 8594) and as `x-sunset` on the operation. The full policy: https://linkbreakers.com/help/article/api-versioning-and-deprecation-policy  ## Idempotent retries  Every POST, PUT and PATCH accepts an optional `Idempotency-Key` header (draft-ietf-httpapi-idempotency-key-header). Send a new unique value, such as a UUID, with each logical request and reuse it only to retry that request. A retry with the same key and the same request returns the first response, marked `Idempotent-Replayed: true`, instead of running again. Keys are scoped to the token and kept for 24 hours. The same key with a different request is refused with `422`, and a retry while the first request is still running gets `409` with `Retry-After`. Server errors (5xx) and refusals such as 401, 403 and 429 are not stored, so retrying them runs the request again.  ## Identifying your client  Send a `Linkbreakers-Client` request header saying which client made the call: `<client>/<version> (<details>)`, for example `my-integration/1.2.0 (python 3.12; linux)`. The official SDKs, the CLI and the MCP bridge set it for you, as `sdk-python/2.3.1 (python 3.12.4; linux)` or `cli/1.4.0 (darwin arm64)`. It is optional and changes nothing about how a request is handled; it tells us which clients and versions are in use, so we know what can be retired and what to fix first. Keep the details short and free of personal data. Browsers may send it too: it is allowed by CORS.
+The Linkbreakers REST API: links, QR codes, workflows, visitors and analytics, as JSON over HTTPS. Send a workspace API token as `Authorization: Bearer <token>`.  ## Entry points  `GET https://api.linkbreakers.com/` and `GET https://api.linkbreakers.com/v1` answer without credentials with the API's name, version and links. This document is served at `https://api.linkbreakers.com/openapi.json`.  ## Rate limits  Every response describes where the caller stands in the IETF `RateLimit-Policy` and `RateLimit` header fields (draft-ietf-httpapi-ratelimit-headers), and in `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset` and `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset` (a Unix timestamp) for clients that read those. A request past the limit gets `429 Too Many Requests` with `Retry-After` in seconds.  - Workspace API token: 720 requests per 60 seconds, per token. - Dashboard session or OAuth token: 600 requests per 60 seconds, per token. - No credentials: 300 requests per 60 seconds, per client IP.  Each plan also includes a number of API calls per billing cycle. Past it, calls answer `429` with the code `MAX_PUBLIC_API_QUERIED_REACHED` until the cycle renews or the plan changes.  ## Pagination  Every list pages with opaque cursors (AIP-158). Pass `pageSize`, then send the `nextPageToken` of each response back as `pageToken` (or its alias `cursor`) to get the next page. An empty or absent `nextPageToken` means the list is complete. Each list operation describes this in `x-pagination`.  ## Batches and background jobs  `POST /v1/links/bulk` creates up to 250 links in one transactional request; `POST /v1/links/batch` takes the same links as a bare JSON array. `POST /v1/links/bulk/jobs` accepts the same batch and answers `202 Accepted` at once with a job and a `Location` header; poll `GET /v1/jobs/{id}` until `status` is `JOB_STATUS_SUCCEEDED` (the created link ids are in `linksBulkCreate.linkIds`) or `JOB_STATUS_FAILED` (`error` says why, and nothing was created). Jobs can be read for 24 hours after they finish.  ## Versioning and deprecation  The version is in the path: every operation lives under `/v1`. Within a version, changes are additive only: new operations, new optional request fields, new response fields and new enum values. Clients should ignore fields and enum values they do not know. Anything that would break an existing client ships under a new path version instead.  An operation is retired in two steps. First it is deprecated: it keeps working, is flagged `deprecated: true` in this document, and every response carries a `Deprecation` header field (RFC 9745) with the time it was deprecated and a `Link` with `rel=\"deprecation\"` to the policy. Then, at least 180 days later, it may be removed; that date is announced in advance in a `Sunset` header field (RFC 8594) and as `x-sunset` on the operation. The full policy: https://linkbreakers.com/help/article/api-versioning-and-deprecation-policy  A renamed operation keeps answering its former path until that path's sunset. Responses on a former path carry the same `Deprecation`, `Sunset` and `Link` header fields; this document lists only the current path, and the policy lists the former ones.  ## Idempotent retries  Every POST, PUT and PATCH accepts an optional `Idempotency-Key` header (draft-ietf-httpapi-idempotency-key-header). Send a new unique value, such as a UUID, with each logical request and reuse it only to retry that request. A retry with the same key and the same request returns the first response, marked `Idempotent-Replayed: true`, instead of running again. Keys are scoped to the token and kept for 24 hours. The same key with a different request is refused with `422`, and a retry while the first request is still running gets `409` with `Retry-After`. Server errors (5xx) and refusals such as 401, 403 and 429 are not stored, so retrying them runs the request again.  ## Identifying your client  Send a `Linkbreakers-Client` request header saying which client made the call: `<client>/<version> (<details>)`, for example `my-integration/1.2.0 (python 3.12; linux)`. The official SDKs, the CLI and the MCP bridge set it for you, as `sdk-python/2.3.1 (python 3.12.4; linux)` or `cli/1.4.0 (darwin arm64)`. It is optional and changes nothing about how a request is handled; it tells us which clients and versions are in use, so we know what can be retired and what to fix first. Keep the details short and free of personal data. Browsers may send it too: it is allowed by CORS.
 
-API version: 1.198.0
+API version: 1.198.1
 */
 
 // Code generated by OpenAPI Generator (https://openapi-generator.tech); DO NOT EDIT.
@@ -24,40 +24,40 @@ import (
 // PageThemeTemplatesAPIService PageThemeTemplatesAPI service
 type PageThemeTemplatesAPIService service
 
-type ApiPageThemeTemplatesServiceCreatePageThemeTemplateRequest struct {
+type ApiPageThemeTemplatesServiceCreateRequest struct {
 	ctx context.Context
 	ApiService *PageThemeTemplatesAPIService
 	createPageThemeTemplateRequest *CreatePageThemeTemplateRequest
 	idempotencyKey *string
 }
 
-func (r ApiPageThemeTemplatesServiceCreatePageThemeTemplateRequest) CreatePageThemeTemplateRequest(createPageThemeTemplateRequest CreatePageThemeTemplateRequest) ApiPageThemeTemplatesServiceCreatePageThemeTemplateRequest {
+func (r ApiPageThemeTemplatesServiceCreateRequest) CreatePageThemeTemplateRequest(createPageThemeTemplateRequest CreatePageThemeTemplateRequest) ApiPageThemeTemplatesServiceCreateRequest {
 	r.createPageThemeTemplateRequest = &createPageThemeTemplateRequest
 	return r
 }
 
-// Makes retrying this request safe. See components.parameters.IdempotencyKey.
-func (r ApiPageThemeTemplatesServiceCreatePageThemeTemplateRequest) IdempotencyKey(idempotencyKey string) ApiPageThemeTemplatesServiceCreatePageThemeTemplateRequest {
+// A unique value per request, such as a UUID, that makes retrying it safe: a retry with the same key and body returns the first response instead of acting twice.
+func (r ApiPageThemeTemplatesServiceCreateRequest) IdempotencyKey(idempotencyKey string) ApiPageThemeTemplatesServiceCreateRequest {
 	r.idempotencyKey = &idempotencyKey
 	return r
 }
 
-func (r ApiPageThemeTemplatesServiceCreatePageThemeTemplateRequest) Execute() (*CreatePageThemeTemplateResponse, *http.Response, error) {
-	return r.ApiService.PageThemeTemplatesServiceCreatePageThemeTemplateExecute(r)
+func (r ApiPageThemeTemplatesServiceCreateRequest) Execute() (*CreatePageThemeTemplateResponse, *http.Response, error) {
+	return r.ApiService.PageThemeTemplatesServiceCreateExecute(r)
 }
 
 /*
-PageThemeTemplatesServiceCreatePageThemeTemplate Create a new page theme template
+PageThemeTemplatesServiceCreate Create a new page theme template
 
 Create a page theme template by copying the styling of an existing page theme into a fresh detached theme owned by the template.
 
 Requires the `page_themes:write` scope.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiPageThemeTemplatesServiceCreatePageThemeTemplateRequest
+ @return ApiPageThemeTemplatesServiceCreateRequest
 */
-func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceCreatePageThemeTemplate(ctx context.Context) ApiPageThemeTemplatesServiceCreatePageThemeTemplateRequest {
-	return ApiPageThemeTemplatesServiceCreatePageThemeTemplateRequest{
+func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceCreate(ctx context.Context) ApiPageThemeTemplatesServiceCreateRequest {
+	return ApiPageThemeTemplatesServiceCreateRequest{
 		ApiService: a,
 		ctx: ctx,
 	}
@@ -65,7 +65,7 @@ func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceCreatePageThemeT
 
 // Execute executes the request
 //  @return CreatePageThemeTemplateResponse
-func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceCreatePageThemeTemplateExecute(r ApiPageThemeTemplatesServiceCreatePageThemeTemplateRequest) (*CreatePageThemeTemplateResponse, *http.Response, error) {
+func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceCreateExecute(r ApiPageThemeTemplatesServiceCreateRequest) (*CreatePageThemeTemplateResponse, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
@@ -73,7 +73,7 @@ func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceCreatePageThemeT
 		localVarReturnValue  *CreatePageThemeTemplateResponse
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PageThemeTemplatesAPIService.PageThemeTemplatesServiceCreatePageThemeTemplate")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PageThemeTemplatesAPIService.PageThemeTemplatesServiceCreate")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
@@ -165,18 +165,18 @@ func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceCreatePageThemeT
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiPageThemeTemplatesServiceDeletePageThemeTemplateRequest struct {
+type ApiPageThemeTemplatesServiceDeleteRequest struct {
 	ctx context.Context
 	ApiService *PageThemeTemplatesAPIService
 	id string
 }
 
-func (r ApiPageThemeTemplatesServiceDeletePageThemeTemplateRequest) Execute() (map[string]interface{}, *http.Response, error) {
-	return r.ApiService.PageThemeTemplatesServiceDeletePageThemeTemplateExecute(r)
+func (r ApiPageThemeTemplatesServiceDeleteRequest) Execute() (map[string]interface{}, *http.Response, error) {
+	return r.ApiService.PageThemeTemplatesServiceDeleteExecute(r)
 }
 
 /*
-PageThemeTemplatesServiceDeletePageThemeTemplate Delete a workspace page theme template
+PageThemeTemplatesServiceDelete Delete a workspace page theme template
 
 Remove a page theme template belonging to the authenticated caller's workspace. Pages already styled from it are unaffected.
 
@@ -184,10 +184,10 @@ Requires the `page_themes:write` scope.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
- @return ApiPageThemeTemplatesServiceDeletePageThemeTemplateRequest
+ @return ApiPageThemeTemplatesServiceDeleteRequest
 */
-func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceDeletePageThemeTemplate(ctx context.Context, id string) ApiPageThemeTemplatesServiceDeletePageThemeTemplateRequest {
-	return ApiPageThemeTemplatesServiceDeletePageThemeTemplateRequest{
+func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceDelete(ctx context.Context, id string) ApiPageThemeTemplatesServiceDeleteRequest {
+	return ApiPageThemeTemplatesServiceDeleteRequest{
 		ApiService: a,
 		ctx: ctx,
 		id: id,
@@ -196,7 +196,7 @@ func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceDeletePageThemeT
 
 // Execute executes the request
 //  @return map[string]interface{}
-func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceDeletePageThemeTemplateExecute(r ApiPageThemeTemplatesServiceDeletePageThemeTemplateRequest) (map[string]interface{}, *http.Response, error) {
+func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceDeleteExecute(r ApiPageThemeTemplatesServiceDeleteRequest) (map[string]interface{}, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodDelete
 		localVarPostBody     interface{}
@@ -204,7 +204,7 @@ func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceDeletePageThemeT
 		localVarReturnValue  map[string]interface{}
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PageThemeTemplatesAPIService.PageThemeTemplatesServiceDeletePageThemeTemplate")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PageThemeTemplatesAPIService.PageThemeTemplatesServiceDelete")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
@@ -289,24 +289,24 @@ func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceDeletePageThemeT
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiPageThemeTemplatesServiceGetPageThemeTemplateRequest struct {
+type ApiPageThemeTemplatesServiceGetRequest struct {
 	ctx context.Context
 	ApiService *PageThemeTemplatesAPIService
 	id string
 	include *[]string
 }
 
-func (r ApiPageThemeTemplatesServiceGetPageThemeTemplateRequest) Include(include []string) ApiPageThemeTemplatesServiceGetPageThemeTemplateRequest {
+func (r ApiPageThemeTemplatesServiceGetRequest) Include(include []string) ApiPageThemeTemplatesServiceGetRequest {
 	r.include = &include
 	return r
 }
 
-func (r ApiPageThemeTemplatesServiceGetPageThemeTemplateRequest) Execute() (*PageThemeTemplate, *http.Response, error) {
-	return r.ApiService.PageThemeTemplatesServiceGetPageThemeTemplateExecute(r)
+func (r ApiPageThemeTemplatesServiceGetRequest) Execute() (*PageThemeTemplate, *http.Response, error) {
+	return r.ApiService.PageThemeTemplatesServiceGetExecute(r)
 }
 
 /*
-PageThemeTemplatesServiceGetPageThemeTemplate Get a workspace page theme template
+PageThemeTemplatesServiceGet Get a workspace page theme template
 
 Retrieve a page theme template that belongs to the authenticated caller's workspace.
 
@@ -314,10 +314,10 @@ Requires the `page_themes:read` scope.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
- @return ApiPageThemeTemplatesServiceGetPageThemeTemplateRequest
+ @return ApiPageThemeTemplatesServiceGetRequest
 */
-func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceGetPageThemeTemplate(ctx context.Context, id string) ApiPageThemeTemplatesServiceGetPageThemeTemplateRequest {
-	return ApiPageThemeTemplatesServiceGetPageThemeTemplateRequest{
+func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceGet(ctx context.Context, id string) ApiPageThemeTemplatesServiceGetRequest {
+	return ApiPageThemeTemplatesServiceGetRequest{
 		ApiService: a,
 		ctx: ctx,
 		id: id,
@@ -326,7 +326,7 @@ func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceGetPageThemeTemp
 
 // Execute executes the request
 //  @return PageThemeTemplate
-func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceGetPageThemeTemplateExecute(r ApiPageThemeTemplatesServiceGetPageThemeTemplateRequest) (*PageThemeTemplate, *http.Response, error) {
+func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceGetExecute(r ApiPageThemeTemplatesServiceGetRequest) (*PageThemeTemplate, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
@@ -334,7 +334,7 @@ func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceGetPageThemeTemp
 		localVarReturnValue  *PageThemeTemplate
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PageThemeTemplatesAPIService.PageThemeTemplatesServiceGetPageThemeTemplate")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PageThemeTemplatesAPIService.PageThemeTemplatesServiceGet")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
@@ -430,40 +430,180 @@ func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceGetPageThemeTemp
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiPageThemeTemplatesServiceImportPageThemeTemplateRequest struct {
+type ApiPageThemeTemplatesServiceGetPublicRequest struct {
+	ctx context.Context
+	ApiService *PageThemeTemplatesAPIService
+	slug string
+	include *[]string
+}
+
+// Related objects to include in the response  List of related objects to include. Supported values: &#39;workspace&#39;
+func (r ApiPageThemeTemplatesServiceGetPublicRequest) Include(include []string) ApiPageThemeTemplatesServiceGetPublicRequest {
+	r.include = &include
+	return r
+}
+
+func (r ApiPageThemeTemplatesServiceGetPublicRequest) Execute() (*PublicPageThemeTemplate, *http.Response, error) {
+	return r.ApiService.PageThemeTemplatesServiceGetPublicExecute(r)
+}
+
+/*
+PageThemeTemplatesServiceGetPublic Get a public page theme template
+
+Retrieve a single published page theme template that is visible in the public gallery.
+
+ @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+ @param slug
+ @return ApiPageThemeTemplatesServiceGetPublicRequest
+*/
+func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceGetPublic(ctx context.Context, slug string) ApiPageThemeTemplatesServiceGetPublicRequest {
+	return ApiPageThemeTemplatesServiceGetPublicRequest{
+		ApiService: a,
+		ctx: ctx,
+		slug: slug,
+	}
+}
+
+// Execute executes the request
+//  @return PublicPageThemeTemplate
+func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceGetPublicExecute(r ApiPageThemeTemplatesServiceGetPublicRequest) (*PublicPageThemeTemplate, *http.Response, error) {
+	var (
+		localVarHTTPMethod   = http.MethodGet
+		localVarPostBody     interface{}
+		formFiles            []formFile
+		localVarReturnValue  *PublicPageThemeTemplate
+	)
+
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PageThemeTemplatesAPIService.PageThemeTemplatesServiceGetPublic")
+	if err != nil {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
+	}
+
+	localVarPath := localBasePath + "/v1/public/page-theme-templates/{slug}"
+	localVarPath = strings.Replace(localVarPath, "{"+"slug"+"}", url.PathEscape(parameterValueToString(r.slug, "slug")), -1)
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+	localVarFormParams := url.Values{}
+
+	if r.include != nil {
+		t := *r.include
+		if reflect.TypeOf(t).Kind() == reflect.Slice {
+			s := reflect.ValueOf(t)
+			for i := 0; i < s.Len(); i++ {
+				parameterAddToHeaderOrQuery(localVarQueryParams, "include", s.Index(i).Interface(), "form", "multi")
+			}
+		} else {
+			parameterAddToHeaderOrQuery(localVarQueryParams, "include", t, "form", "multi")
+		}
+	}
+	// to determine the Content-Type header
+	localVarHTTPContentTypes := []string{}
+
+	// set Content-Type header
+	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
+	if localVarHTTPContentType != "" {
+		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
+	}
+
+	// to determine the Accept header
+	localVarHTTPHeaderAccepts := []string{"application/json"}
+
+	// set Accept header
+	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
+	if localVarHTTPHeaderAccept != "" {
+		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
+	}
+	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
+	if err != nil {
+		return localVarReturnValue, nil, err
+	}
+
+	localVarHTTPResponse, err := a.client.callAPI(req)
+	if err != nil || localVarHTTPResponse == nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
+	localVarHTTPResponse.Body.Close()
+	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
+	if err != nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	if localVarHTTPResponse.StatusCode >= 300 {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: localVarHTTPResponse.Status,
+		}
+		if localVarHTTPResponse.StatusCode == 429 {
+			var v ErrorResponse
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+					newErr.model = v
+			return localVarReturnValue, localVarHTTPResponse, newErr
+		}
+			var v ErrorResponse
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+					newErr.model = v
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
+}
+
+type ApiPageThemeTemplatesServiceImportRequest struct {
 	ctx context.Context
 	ApiService *PageThemeTemplatesAPIService
 	importPageThemeTemplateRequest *ImportPageThemeTemplateRequest
 	idempotencyKey *string
 }
 
-func (r ApiPageThemeTemplatesServiceImportPageThemeTemplateRequest) ImportPageThemeTemplateRequest(importPageThemeTemplateRequest ImportPageThemeTemplateRequest) ApiPageThemeTemplatesServiceImportPageThemeTemplateRequest {
+func (r ApiPageThemeTemplatesServiceImportRequest) ImportPageThemeTemplateRequest(importPageThemeTemplateRequest ImportPageThemeTemplateRequest) ApiPageThemeTemplatesServiceImportRequest {
 	r.importPageThemeTemplateRequest = &importPageThemeTemplateRequest
 	return r
 }
 
-// Makes retrying this request safe. See components.parameters.IdempotencyKey.
-func (r ApiPageThemeTemplatesServiceImportPageThemeTemplateRequest) IdempotencyKey(idempotencyKey string) ApiPageThemeTemplatesServiceImportPageThemeTemplateRequest {
+// A unique value per request, such as a UUID, that makes retrying it safe: a retry with the same key and body returns the first response instead of acting twice.
+func (r ApiPageThemeTemplatesServiceImportRequest) IdempotencyKey(idempotencyKey string) ApiPageThemeTemplatesServiceImportRequest {
 	r.idempotencyKey = &idempotencyKey
 	return r
 }
 
-func (r ApiPageThemeTemplatesServiceImportPageThemeTemplateRequest) Execute() (*ImportPageThemeTemplateResponse, *http.Response, error) {
-	return r.ApiService.PageThemeTemplatesServiceImportPageThemeTemplateExecute(r)
+func (r ApiPageThemeTemplatesServiceImportRequest) Execute() (*ImportPageThemeTemplateResponse, *http.Response, error) {
+	return r.ApiService.PageThemeTemplatesServiceImportExecute(r)
 }
 
 /*
-PageThemeTemplatesServiceImportPageThemeTemplate Import a public page theme template
+PageThemeTemplatesServiceImport Import a public page theme template
 
 Import a public page theme template into your workspace by slug. Creates a private copy owned by your workspace.
 
 Requires the `page_themes:write` scope.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiPageThemeTemplatesServiceImportPageThemeTemplateRequest
+ @return ApiPageThemeTemplatesServiceImportRequest
 */
-func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceImportPageThemeTemplate(ctx context.Context) ApiPageThemeTemplatesServiceImportPageThemeTemplateRequest {
-	return ApiPageThemeTemplatesServiceImportPageThemeTemplateRequest{
+func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceImport(ctx context.Context) ApiPageThemeTemplatesServiceImportRequest {
+	return ApiPageThemeTemplatesServiceImportRequest{
 		ApiService: a,
 		ctx: ctx,
 	}
@@ -471,7 +611,7 @@ func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceImportPageThemeT
 
 // Execute executes the request
 //  @return ImportPageThemeTemplateResponse
-func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceImportPageThemeTemplateExecute(r ApiPageThemeTemplatesServiceImportPageThemeTemplateRequest) (*ImportPageThemeTemplateResponse, *http.Response, error) {
+func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceImportExecute(r ApiPageThemeTemplatesServiceImportRequest) (*ImportPageThemeTemplateResponse, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
@@ -479,7 +619,7 @@ func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceImportPageThemeT
 		localVarReturnValue  *ImportPageThemeTemplateResponse
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PageThemeTemplatesAPIService.PageThemeTemplatesServiceImportPageThemeTemplate")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PageThemeTemplatesAPIService.PageThemeTemplatesServiceImport")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
@@ -571,7 +711,7 @@ func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceImportPageThemeT
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiPageThemeTemplatesServiceListPageThemeTemplatesRequest struct {
+type ApiPageThemeTemplatesServiceListRequest struct {
 	ctx context.Context
 	ApiService *PageThemeTemplatesAPIService
 	include *[]string
@@ -582,54 +722,54 @@ type ApiPageThemeTemplatesServiceListPageThemeTemplatesRequest struct {
 	cursor *string
 }
 
-func (r ApiPageThemeTemplatesServiceListPageThemeTemplatesRequest) Include(include []string) ApiPageThemeTemplatesServiceListPageThemeTemplatesRequest {
+func (r ApiPageThemeTemplatesServiceListRequest) Include(include []string) ApiPageThemeTemplatesServiceListRequest {
 	r.include = &include
 	return r
 }
 
-func (r ApiPageThemeTemplatesServiceListPageThemeTemplatesRequest) Search(search string) ApiPageThemeTemplatesServiceListPageThemeTemplatesRequest {
+func (r ApiPageThemeTemplatesServiceListRequest) Search(search string) ApiPageThemeTemplatesServiceListRequest {
 	r.search = &search
 	return r
 }
 
-func (r ApiPageThemeTemplatesServiceListPageThemeTemplatesRequest) PageSize(pageSize int64) ApiPageThemeTemplatesServiceListPageThemeTemplatesRequest {
+func (r ApiPageThemeTemplatesServiceListRequest) PageSize(pageSize int64) ApiPageThemeTemplatesServiceListRequest {
 	r.pageSize = &pageSize
 	return r
 }
 
-func (r ApiPageThemeTemplatesServiceListPageThemeTemplatesRequest) PageToken(pageToken string) ApiPageThemeTemplatesServiceListPageThemeTemplatesRequest {
+func (r ApiPageThemeTemplatesServiceListRequest) PageToken(pageToken string) ApiPageThemeTemplatesServiceListRequest {
 	r.pageToken = &pageToken
 	return r
 }
 
 // Which templates to return. WORKSPACE (default) returns only templates owned by the caller&#39;s workspace. AVAILABLE also returns built-in templates and templates other workspaces have published, ordered by the workspace&#39;s own usage first, then its own templates, then the rest.   - PAGE_THEME_TEMPLATE_SCOPE_UNSPECIFIED: Defaults to PAGE_THEME_TEMPLATE_SCOPE_WORKSPACE.  - PAGE_THEME_TEMPLATE_SCOPE_WORKSPACE: Only templates owned by the caller&#39;s workspace.  - PAGE_THEME_TEMPLATE_SCOPE_AVAILABLE: Every template the workspace may use: its own, built-in ones, and templates published by other workspaces.
-func (r ApiPageThemeTemplatesServiceListPageThemeTemplatesRequest) Scope(scope string) ApiPageThemeTemplatesServiceListPageThemeTemplatesRequest {
+func (r ApiPageThemeTemplatesServiceListRequest) Scope(scope string) ApiPageThemeTemplatesServiceListRequest {
 	r.scope = &scope
 	return r
 }
 
 // Opaque cursor from the previous page&#39;s nextPageToken. Same as pageToken; when both are sent, pageToken wins.
-func (r ApiPageThemeTemplatesServiceListPageThemeTemplatesRequest) Cursor(cursor string) ApiPageThemeTemplatesServiceListPageThemeTemplatesRequest {
+func (r ApiPageThemeTemplatesServiceListRequest) Cursor(cursor string) ApiPageThemeTemplatesServiceListRequest {
 	r.cursor = &cursor
 	return r
 }
 
-func (r ApiPageThemeTemplatesServiceListPageThemeTemplatesRequest) Execute() (*ListPageThemeTemplatesResponse, *http.Response, error) {
-	return r.ApiService.PageThemeTemplatesServiceListPageThemeTemplatesExecute(r)
+func (r ApiPageThemeTemplatesServiceListRequest) Execute() (*ListPageThemeTemplatesResponse, *http.Response, error) {
+	return r.ApiService.PageThemeTemplatesServiceListExecute(r)
 }
 
 /*
-PageThemeTemplatesServiceListPageThemeTemplates List my page theme templates
+PageThemeTemplatesServiceList List my page theme templates
 
 Retrieve page theme templates that belong to the authenticated caller's workspace.
 
 Requires the `page_themes:read` scope.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiPageThemeTemplatesServiceListPageThemeTemplatesRequest
+ @return ApiPageThemeTemplatesServiceListRequest
 */
-func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceListPageThemeTemplates(ctx context.Context) ApiPageThemeTemplatesServiceListPageThemeTemplatesRequest {
-	return ApiPageThemeTemplatesServiceListPageThemeTemplatesRequest{
+func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceList(ctx context.Context) ApiPageThemeTemplatesServiceListRequest {
+	return ApiPageThemeTemplatesServiceListRequest{
 		ApiService: a,
 		ctx: ctx,
 	}
@@ -637,7 +777,7 @@ func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceListPageThemeTem
 
 // Execute executes the request
 //  @return ListPageThemeTemplatesResponse
-func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceListPageThemeTemplatesExecute(r ApiPageThemeTemplatesServiceListPageThemeTemplatesRequest) (*ListPageThemeTemplatesResponse, *http.Response, error) {
+func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceListExecute(r ApiPageThemeTemplatesServiceListRequest) (*ListPageThemeTemplatesResponse, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
@@ -645,7 +785,7 @@ func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceListPageThemeTem
 		localVarReturnValue  *ListPageThemeTemplatesResponse
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PageThemeTemplatesAPIService.PageThemeTemplatesServiceListPageThemeTemplates")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PageThemeTemplatesAPIService.PageThemeTemplatesServiceList")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
@@ -755,147 +895,7 @@ func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceListPageThemeTem
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiPageThemeTemplatesServicePublicGetPageThemeTemplateRequest struct {
-	ctx context.Context
-	ApiService *PageThemeTemplatesAPIService
-	slug string
-	include *[]string
-}
-
-// Related objects to include in the response  List of related objects to include. Supported values: &#39;workspace&#39;
-func (r ApiPageThemeTemplatesServicePublicGetPageThemeTemplateRequest) Include(include []string) ApiPageThemeTemplatesServicePublicGetPageThemeTemplateRequest {
-	r.include = &include
-	return r
-}
-
-func (r ApiPageThemeTemplatesServicePublicGetPageThemeTemplateRequest) Execute() (*PublicPageThemeTemplate, *http.Response, error) {
-	return r.ApiService.PageThemeTemplatesServicePublicGetPageThemeTemplateExecute(r)
-}
-
-/*
-PageThemeTemplatesServicePublicGetPageThemeTemplate Get a public page theme template
-
-Retrieve a single published page theme template that is visible in the public gallery.
-
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param slug
- @return ApiPageThemeTemplatesServicePublicGetPageThemeTemplateRequest
-*/
-func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServicePublicGetPageThemeTemplate(ctx context.Context, slug string) ApiPageThemeTemplatesServicePublicGetPageThemeTemplateRequest {
-	return ApiPageThemeTemplatesServicePublicGetPageThemeTemplateRequest{
-		ApiService: a,
-		ctx: ctx,
-		slug: slug,
-	}
-}
-
-// Execute executes the request
-//  @return PublicPageThemeTemplate
-func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServicePublicGetPageThemeTemplateExecute(r ApiPageThemeTemplatesServicePublicGetPageThemeTemplateRequest) (*PublicPageThemeTemplate, *http.Response, error) {
-	var (
-		localVarHTTPMethod   = http.MethodGet
-		localVarPostBody     interface{}
-		formFiles            []formFile
-		localVarReturnValue  *PublicPageThemeTemplate
-	)
-
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PageThemeTemplatesAPIService.PageThemeTemplatesServicePublicGetPageThemeTemplate")
-	if err != nil {
-		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
-	}
-
-	localVarPath := localBasePath + "/v1/public/page-theme-templates/{slug}"
-	localVarPath = strings.Replace(localVarPath, "{"+"slug"+"}", url.PathEscape(parameterValueToString(r.slug, "slug")), -1)
-
-	localVarHeaderParams := make(map[string]string)
-	localVarQueryParams := url.Values{}
-	localVarFormParams := url.Values{}
-
-	if r.include != nil {
-		t := *r.include
-		if reflect.TypeOf(t).Kind() == reflect.Slice {
-			s := reflect.ValueOf(t)
-			for i := 0; i < s.Len(); i++ {
-				parameterAddToHeaderOrQuery(localVarQueryParams, "include", s.Index(i).Interface(), "form", "multi")
-			}
-		} else {
-			parameterAddToHeaderOrQuery(localVarQueryParams, "include", t, "form", "multi")
-		}
-	}
-	// to determine the Content-Type header
-	localVarHTTPContentTypes := []string{}
-
-	// set Content-Type header
-	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
-	if localVarHTTPContentType != "" {
-		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
-	}
-
-	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{"application/json"}
-
-	// set Accept header
-	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
-	if localVarHTTPHeaderAccept != "" {
-		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
-	}
-	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
-	if err != nil {
-		return localVarReturnValue, nil, err
-	}
-
-	localVarHTTPResponse, err := a.client.callAPI(req)
-	if err != nil || localVarHTTPResponse == nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
-	localVarHTTPResponse.Body.Close()
-	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
-	if err != nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	if localVarHTTPResponse.StatusCode >= 300 {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: localVarHTTPResponse.Status,
-		}
-		if localVarHTTPResponse.StatusCode == 429 {
-			var v ErrorResponse
-			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-			if err != nil {
-				newErr.error = err.Error()
-				return localVarReturnValue, localVarHTTPResponse, newErr
-			}
-					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
-					newErr.model = v
-			return localVarReturnValue, localVarHTTPResponse, newErr
-		}
-			var v ErrorResponse
-			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-			if err != nil {
-				newErr.error = err.Error()
-				return localVarReturnValue, localVarHTTPResponse, newErr
-			}
-					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
-					newErr.model = v
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-	if err != nil {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: err.Error(),
-		}
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	return localVarReturnValue, localVarHTTPResponse, nil
-}
-
-type ApiPageThemeTemplatesServicePublicListPageThemeTemplatesRequest struct {
+type ApiPageThemeTemplatesServiceListPublicRequest struct {
 	ctx context.Context
 	ApiService *PageThemeTemplatesAPIService
 	include *[]string
@@ -907,55 +907,55 @@ type ApiPageThemeTemplatesServicePublicListPageThemeTemplatesRequest struct {
 }
 
 // Related objects to include in the response  List of related objects to include. Supported values: &#39;workspace&#39;
-func (r ApiPageThemeTemplatesServicePublicListPageThemeTemplatesRequest) Include(include []string) ApiPageThemeTemplatesServicePublicListPageThemeTemplatesRequest {
+func (r ApiPageThemeTemplatesServiceListPublicRequest) Include(include []string) ApiPageThemeTemplatesServiceListPublicRequest {
 	r.include = &include
 	return r
 }
 
 // Search query applied to template name/description
-func (r ApiPageThemeTemplatesServicePublicListPageThemeTemplatesRequest) Search(search string) ApiPageThemeTemplatesServicePublicListPageThemeTemplatesRequest {
+func (r ApiPageThemeTemplatesServiceListPublicRequest) Search(search string) ApiPageThemeTemplatesServiceListPublicRequest {
 	r.search = &search
 	return r
 }
 
 // Maximum number of templates to return (defaults to 20)
-func (r ApiPageThemeTemplatesServicePublicListPageThemeTemplatesRequest) PageSize(pageSize int64) ApiPageThemeTemplatesServicePublicListPageThemeTemplatesRequest {
+func (r ApiPageThemeTemplatesServiceListPublicRequest) PageSize(pageSize int64) ApiPageThemeTemplatesServiceListPublicRequest {
 	r.pageSize = &pageSize
 	return r
 }
 
 // Cursor token to retrieve the next page of results
-func (r ApiPageThemeTemplatesServicePublicListPageThemeTemplatesRequest) PageToken(pageToken string) ApiPageThemeTemplatesServicePublicListPageThemeTemplatesRequest {
+func (r ApiPageThemeTemplatesServiceListPublicRequest) PageToken(pageToken string) ApiPageThemeTemplatesServiceListPublicRequest {
 	r.pageToken = &pageToken
 	return r
 }
 
 // Optional workspace ID to filter templates by workspace  Filter public templates by workspace. Only published templates for that workspace will be returned.
-func (r ApiPageThemeTemplatesServicePublicListPageThemeTemplatesRequest) WorkspaceId(workspaceId string) ApiPageThemeTemplatesServicePublicListPageThemeTemplatesRequest {
+func (r ApiPageThemeTemplatesServiceListPublicRequest) WorkspaceId(workspaceId string) ApiPageThemeTemplatesServiceListPublicRequest {
 	r.workspaceId = &workspaceId
 	return r
 }
 
 // Opaque cursor from the previous page&#39;s nextPageToken. Same as pageToken; when both are sent, pageToken wins.
-func (r ApiPageThemeTemplatesServicePublicListPageThemeTemplatesRequest) Cursor(cursor string) ApiPageThemeTemplatesServicePublicListPageThemeTemplatesRequest {
+func (r ApiPageThemeTemplatesServiceListPublicRequest) Cursor(cursor string) ApiPageThemeTemplatesServiceListPublicRequest {
 	r.cursor = &cursor
 	return r
 }
 
-func (r ApiPageThemeTemplatesServicePublicListPageThemeTemplatesRequest) Execute() (*PublicListPageThemeTemplatesResponse, *http.Response, error) {
-	return r.ApiService.PageThemeTemplatesServicePublicListPageThemeTemplatesExecute(r)
+func (r ApiPageThemeTemplatesServiceListPublicRequest) Execute() (*PublicListPageThemeTemplatesResponse, *http.Response, error) {
+	return r.ApiService.PageThemeTemplatesServiceListPublicExecute(r)
 }
 
 /*
-PageThemeTemplatesServicePublicListPageThemeTemplates List page theme templates
+PageThemeTemplatesServiceListPublic List page theme templates
 
 Retrieve available public page theme templates, optionally filtered by search terms.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiPageThemeTemplatesServicePublicListPageThemeTemplatesRequest
+ @return ApiPageThemeTemplatesServiceListPublicRequest
 */
-func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServicePublicListPageThemeTemplates(ctx context.Context) ApiPageThemeTemplatesServicePublicListPageThemeTemplatesRequest {
-	return ApiPageThemeTemplatesServicePublicListPageThemeTemplatesRequest{
+func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceListPublic(ctx context.Context) ApiPageThemeTemplatesServiceListPublicRequest {
+	return ApiPageThemeTemplatesServiceListPublicRequest{
 		ApiService: a,
 		ctx: ctx,
 	}
@@ -963,7 +963,7 @@ func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServicePublicListPageTh
 
 // Execute executes the request
 //  @return PublicListPageThemeTemplatesResponse
-func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServicePublicListPageThemeTemplatesExecute(r ApiPageThemeTemplatesServicePublicListPageThemeTemplatesRequest) (*PublicListPageThemeTemplatesResponse, *http.Response, error) {
+func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceListPublicExecute(r ApiPageThemeTemplatesServiceListPublicRequest) (*PublicListPageThemeTemplatesResponse, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
@@ -971,7 +971,7 @@ func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServicePublicListPageTh
 		localVarReturnValue  *PublicListPageThemeTemplatesResponse
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PageThemeTemplatesAPIService.PageThemeTemplatesServicePublicListPageThemeTemplates")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PageThemeTemplatesAPIService.PageThemeTemplatesServiceListPublic")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
@@ -1081,7 +1081,7 @@ func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServicePublicListPageTh
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiPageThemeTemplatesServicePublishPageThemeTemplateRequest struct {
+type ApiPageThemeTemplatesServicePublishRequest struct {
 	ctx context.Context
 	ApiService *PageThemeTemplatesAPIService
 	id string
@@ -1089,23 +1089,23 @@ type ApiPageThemeTemplatesServicePublishPageThemeTemplateRequest struct {
 	idempotencyKey *string
 }
 
-func (r ApiPageThemeTemplatesServicePublishPageThemeTemplateRequest) Body(body map[string]interface{}) ApiPageThemeTemplatesServicePublishPageThemeTemplateRequest {
+func (r ApiPageThemeTemplatesServicePublishRequest) Body(body map[string]interface{}) ApiPageThemeTemplatesServicePublishRequest {
 	r.body = &body
 	return r
 }
 
-// Makes retrying this request safe. See components.parameters.IdempotencyKey.
-func (r ApiPageThemeTemplatesServicePublishPageThemeTemplateRequest) IdempotencyKey(idempotencyKey string) ApiPageThemeTemplatesServicePublishPageThemeTemplateRequest {
+// A unique value per request, such as a UUID, that makes retrying it safe: a retry with the same key and body returns the first response instead of acting twice.
+func (r ApiPageThemeTemplatesServicePublishRequest) IdempotencyKey(idempotencyKey string) ApiPageThemeTemplatesServicePublishRequest {
 	r.idempotencyKey = &idempotencyKey
 	return r
 }
 
-func (r ApiPageThemeTemplatesServicePublishPageThemeTemplateRequest) Execute() (*PublishPageThemeTemplateResponse, *http.Response, error) {
-	return r.ApiService.PageThemeTemplatesServicePublishPageThemeTemplateExecute(r)
+func (r ApiPageThemeTemplatesServicePublishRequest) Execute() (*PublishPageThemeTemplateResponse, *http.Response, error) {
+	return r.ApiService.PageThemeTemplatesServicePublishExecute(r)
 }
 
 /*
-PageThemeTemplatesServicePublishPageThemeTemplate Publish a workspace page theme template
+PageThemeTemplatesServicePublish Publish a workspace page theme template
 
 Publish a page theme template to make it available in the public gallery. Requires workspace to be public and template to have slug, description, and name.
 
@@ -1113,10 +1113,10 @@ Requires the `page_themes:write` scope.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id The ID of the page theme template to publish (UUID)
- @return ApiPageThemeTemplatesServicePublishPageThemeTemplateRequest
+ @return ApiPageThemeTemplatesServicePublishRequest
 */
-func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServicePublishPageThemeTemplate(ctx context.Context, id string) ApiPageThemeTemplatesServicePublishPageThemeTemplateRequest {
-	return ApiPageThemeTemplatesServicePublishPageThemeTemplateRequest{
+func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServicePublish(ctx context.Context, id string) ApiPageThemeTemplatesServicePublishRequest {
+	return ApiPageThemeTemplatesServicePublishRequest{
 		ApiService: a,
 		ctx: ctx,
 		id: id,
@@ -1125,7 +1125,7 @@ func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServicePublishPageTheme
 
 // Execute executes the request
 //  @return PublishPageThemeTemplateResponse
-func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServicePublishPageThemeTemplateExecute(r ApiPageThemeTemplatesServicePublishPageThemeTemplateRequest) (*PublishPageThemeTemplateResponse, *http.Response, error) {
+func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServicePublishExecute(r ApiPageThemeTemplatesServicePublishRequest) (*PublishPageThemeTemplateResponse, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
@@ -1133,7 +1133,7 @@ func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServicePublishPageTheme
 		localVarReturnValue  *PublishPageThemeTemplateResponse
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PageThemeTemplatesAPIService.PageThemeTemplatesServicePublishPageThemeTemplate")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PageThemeTemplatesAPIService.PageThemeTemplatesServicePublish")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
@@ -1226,172 +1226,31 @@ func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServicePublishPageTheme
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiPageThemeTemplatesServiceResolvePageThemeTemplateImagesRequest struct {
-	ctx context.Context
-	ApiService *PageThemeTemplatesAPIService
-	resolvePageThemeTemplateImagesRequest *ResolvePageThemeTemplateImagesRequest
-	idempotencyKey *string
-}
-
-func (r ApiPageThemeTemplatesServiceResolvePageThemeTemplateImagesRequest) ResolvePageThemeTemplateImagesRequest(resolvePageThemeTemplateImagesRequest ResolvePageThemeTemplateImagesRequest) ApiPageThemeTemplatesServiceResolvePageThemeTemplateImagesRequest {
-	r.resolvePageThemeTemplateImagesRequest = &resolvePageThemeTemplateImagesRequest
-	return r
-}
-
-// Makes retrying this request safe. See components.parameters.IdempotencyKey.
-func (r ApiPageThemeTemplatesServiceResolvePageThemeTemplateImagesRequest) IdempotencyKey(idempotencyKey string) ApiPageThemeTemplatesServiceResolvePageThemeTemplateImagesRequest {
-	r.idempotencyKey = &idempotencyKey
-	return r
-}
-
-func (r ApiPageThemeTemplatesServiceResolvePageThemeTemplateImagesRequest) Execute() (*ResolvePageThemeTemplateImagesResponse, *http.Response, error) {
-	return r.ApiService.PageThemeTemplatesServiceResolvePageThemeTemplateImagesExecute(r)
-}
-
-/*
-PageThemeTemplatesServiceResolvePageThemeTemplateImages Resolve page theme template images
-
-Return freshly signed thumbnail, cover, badge and footer logo URLs for the given templates. The URLs expire, so callers fetch them when they need to render rather than storing them.
-
-Requires the `page_themes:read` scope.
-
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiPageThemeTemplatesServiceResolvePageThemeTemplateImagesRequest
-*/
-func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceResolvePageThemeTemplateImages(ctx context.Context) ApiPageThemeTemplatesServiceResolvePageThemeTemplateImagesRequest {
-	return ApiPageThemeTemplatesServiceResolvePageThemeTemplateImagesRequest{
-		ApiService: a,
-		ctx: ctx,
-	}
-}
-
-// Execute executes the request
-//  @return ResolvePageThemeTemplateImagesResponse
-func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceResolvePageThemeTemplateImagesExecute(r ApiPageThemeTemplatesServiceResolvePageThemeTemplateImagesRequest) (*ResolvePageThemeTemplateImagesResponse, *http.Response, error) {
-	var (
-		localVarHTTPMethod   = http.MethodPost
-		localVarPostBody     interface{}
-		formFiles            []formFile
-		localVarReturnValue  *ResolvePageThemeTemplateImagesResponse
-	)
-
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PageThemeTemplatesAPIService.PageThemeTemplatesServiceResolvePageThemeTemplateImages")
-	if err != nil {
-		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
-	}
-
-	localVarPath := localBasePath + "/v1/page-theme-templates/images:resolve"
-
-	localVarHeaderParams := make(map[string]string)
-	localVarQueryParams := url.Values{}
-	localVarFormParams := url.Values{}
-	if r.resolvePageThemeTemplateImagesRequest == nil {
-		return localVarReturnValue, nil, reportError("resolvePageThemeTemplateImagesRequest is required and must be specified")
-	}
-
-	// to determine the Content-Type header
-	localVarHTTPContentTypes := []string{"application/json"}
-
-	// set Content-Type header
-	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
-	if localVarHTTPContentType != "" {
-		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
-	}
-
-	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{"application/json"}
-
-	// set Accept header
-	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
-	if localVarHTTPHeaderAccept != "" {
-		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
-	}
-	if r.idempotencyKey != nil {
-		parameterAddToHeaderOrQuery(localVarHeaderParams, "Idempotency-Key", r.idempotencyKey, "simple", "")
-	}
-	// body params
-	localVarPostBody = r.resolvePageThemeTemplateImagesRequest
-	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
-	if err != nil {
-		return localVarReturnValue, nil, err
-	}
-
-	localVarHTTPResponse, err := a.client.callAPI(req)
-	if err != nil || localVarHTTPResponse == nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
-	localVarHTTPResponse.Body.Close()
-	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
-	if err != nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	if localVarHTTPResponse.StatusCode >= 300 {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: localVarHTTPResponse.Status,
-		}
-		if localVarHTTPResponse.StatusCode == 429 {
-			var v ErrorResponse
-			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-			if err != nil {
-				newErr.error = err.Error()
-				return localVarReturnValue, localVarHTTPResponse, newErr
-			}
-					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
-					newErr.model = v
-			return localVarReturnValue, localVarHTTPResponse, newErr
-		}
-			var v ErrorResponse
-			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-			if err != nil {
-				newErr.error = err.Error()
-				return localVarReturnValue, localVarHTTPResponse, newErr
-			}
-					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
-					newErr.model = v
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-	if err != nil {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: err.Error(),
-		}
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	return localVarReturnValue, localVarHTTPResponse, nil
-}
-
-type ApiPageThemeTemplatesServiceUpdatePageThemeTemplateRequest struct {
+type ApiPageThemeTemplatesServiceUpdateRequest struct {
 	ctx context.Context
 	ApiService *PageThemeTemplatesAPIService
 	id string
-	pageThemeTemplatesServiceUpdatePageThemeTemplateBody *PageThemeTemplatesServiceUpdatePageThemeTemplateBody
+	pageThemeTemplatesServiceUpdateBody *PageThemeTemplatesServiceUpdateBody
 	idempotencyKey *string
 }
 
-func (r ApiPageThemeTemplatesServiceUpdatePageThemeTemplateRequest) PageThemeTemplatesServiceUpdatePageThemeTemplateBody(pageThemeTemplatesServiceUpdatePageThemeTemplateBody PageThemeTemplatesServiceUpdatePageThemeTemplateBody) ApiPageThemeTemplatesServiceUpdatePageThemeTemplateRequest {
-	r.pageThemeTemplatesServiceUpdatePageThemeTemplateBody = &pageThemeTemplatesServiceUpdatePageThemeTemplateBody
+func (r ApiPageThemeTemplatesServiceUpdateRequest) PageThemeTemplatesServiceUpdateBody(pageThemeTemplatesServiceUpdateBody PageThemeTemplatesServiceUpdateBody) ApiPageThemeTemplatesServiceUpdateRequest {
+	r.pageThemeTemplatesServiceUpdateBody = &pageThemeTemplatesServiceUpdateBody
 	return r
 }
 
-// Makes retrying this request safe. See components.parameters.IdempotencyKey.
-func (r ApiPageThemeTemplatesServiceUpdatePageThemeTemplateRequest) IdempotencyKey(idempotencyKey string) ApiPageThemeTemplatesServiceUpdatePageThemeTemplateRequest {
+// A unique value per request, such as a UUID, that makes retrying it safe: a retry with the same key and body returns the first response instead of acting twice.
+func (r ApiPageThemeTemplatesServiceUpdateRequest) IdempotencyKey(idempotencyKey string) ApiPageThemeTemplatesServiceUpdateRequest {
 	r.idempotencyKey = &idempotencyKey
 	return r
 }
 
-func (r ApiPageThemeTemplatesServiceUpdatePageThemeTemplateRequest) Execute() (*UpdatePageThemeTemplateResponse, *http.Response, error) {
-	return r.ApiService.PageThemeTemplatesServiceUpdatePageThemeTemplateExecute(r)
+func (r ApiPageThemeTemplatesServiceUpdateRequest) Execute() (*UpdatePageThemeTemplateResponse, *http.Response, error) {
+	return r.ApiService.PageThemeTemplatesServiceUpdateExecute(r)
 }
 
 /*
-PageThemeTemplatesServiceUpdatePageThemeTemplate Update a workspace page theme template
+PageThemeTemplatesServiceUpdate Update a workspace page theme template
 
 Modify the metadata of a page theme template owned by the authenticated workspace.
 
@@ -1399,10 +1258,10 @@ Requires the `page_themes:write` scope.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id The ID of the page theme template to update (UUID)
- @return ApiPageThemeTemplatesServiceUpdatePageThemeTemplateRequest
+ @return ApiPageThemeTemplatesServiceUpdateRequest
 */
-func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceUpdatePageThemeTemplate(ctx context.Context, id string) ApiPageThemeTemplatesServiceUpdatePageThemeTemplateRequest {
-	return ApiPageThemeTemplatesServiceUpdatePageThemeTemplateRequest{
+func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceUpdate(ctx context.Context, id string) ApiPageThemeTemplatesServiceUpdateRequest {
+	return ApiPageThemeTemplatesServiceUpdateRequest{
 		ApiService: a,
 		ctx: ctx,
 		id: id,
@@ -1411,7 +1270,7 @@ func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceUpdatePageThemeT
 
 // Execute executes the request
 //  @return UpdatePageThemeTemplateResponse
-func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceUpdatePageThemeTemplateExecute(r ApiPageThemeTemplatesServiceUpdatePageThemeTemplateRequest) (*UpdatePageThemeTemplateResponse, *http.Response, error) {
+func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceUpdateExecute(r ApiPageThemeTemplatesServiceUpdateRequest) (*UpdatePageThemeTemplateResponse, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPatch
 		localVarPostBody     interface{}
@@ -1419,7 +1278,7 @@ func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceUpdatePageThemeT
 		localVarReturnValue  *UpdatePageThemeTemplateResponse
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PageThemeTemplatesAPIService.PageThemeTemplatesServiceUpdatePageThemeTemplate")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PageThemeTemplatesAPIService.PageThemeTemplatesServiceUpdate")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
@@ -1430,8 +1289,8 @@ func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceUpdatePageThemeT
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
-	if r.pageThemeTemplatesServiceUpdatePageThemeTemplateBody == nil {
-		return localVarReturnValue, nil, reportError("pageThemeTemplatesServiceUpdatePageThemeTemplateBody is required and must be specified")
+	if r.pageThemeTemplatesServiceUpdateBody == nil {
+		return localVarReturnValue, nil, reportError("pageThemeTemplatesServiceUpdateBody is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -1455,7 +1314,7 @@ func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceUpdatePageThemeT
 		parameterAddToHeaderOrQuery(localVarHeaderParams, "Idempotency-Key", r.idempotencyKey, "simple", "")
 	}
 	// body params
-	localVarPostBody = r.pageThemeTemplatesServiceUpdatePageThemeTemplateBody
+	localVarPostBody = r.pageThemeTemplatesServiceUpdateBody
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
 		return localVarReturnValue, nil, err
@@ -1512,31 +1371,31 @@ func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceUpdatePageThemeT
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiPageThemeTemplatesServiceUpdatePageThemeTemplateStylingRequest struct {
+type ApiPageThemeTemplatesServiceUpdateStylingRequest struct {
 	ctx context.Context
 	ApiService *PageThemeTemplatesAPIService
 	id string
-	pageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody *PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody
+	pageThemeTemplatesServiceUpdateStylingBody *PageThemeTemplatesServiceUpdateStylingBody
 	idempotencyKey *string
 }
 
-func (r ApiPageThemeTemplatesServiceUpdatePageThemeTemplateStylingRequest) PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody(pageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody PageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody) ApiPageThemeTemplatesServiceUpdatePageThemeTemplateStylingRequest {
-	r.pageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody = &pageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody
+func (r ApiPageThemeTemplatesServiceUpdateStylingRequest) PageThemeTemplatesServiceUpdateStylingBody(pageThemeTemplatesServiceUpdateStylingBody PageThemeTemplatesServiceUpdateStylingBody) ApiPageThemeTemplatesServiceUpdateStylingRequest {
+	r.pageThemeTemplatesServiceUpdateStylingBody = &pageThemeTemplatesServiceUpdateStylingBody
 	return r
 }
 
-// Makes retrying this request safe. See components.parameters.IdempotencyKey.
-func (r ApiPageThemeTemplatesServiceUpdatePageThemeTemplateStylingRequest) IdempotencyKey(idempotencyKey string) ApiPageThemeTemplatesServiceUpdatePageThemeTemplateStylingRequest {
+// A unique value per request, such as a UUID, that makes retrying it safe: a retry with the same key and body returns the first response instead of acting twice.
+func (r ApiPageThemeTemplatesServiceUpdateStylingRequest) IdempotencyKey(idempotencyKey string) ApiPageThemeTemplatesServiceUpdateStylingRequest {
 	r.idempotencyKey = &idempotencyKey
 	return r
 }
 
-func (r ApiPageThemeTemplatesServiceUpdatePageThemeTemplateStylingRequest) Execute() (*UpdatePageThemeTemplateStylingResponse, *http.Response, error) {
-	return r.ApiService.PageThemeTemplatesServiceUpdatePageThemeTemplateStylingExecute(r)
+func (r ApiPageThemeTemplatesServiceUpdateStylingRequest) Execute() (*UpdatePageThemeTemplateStylingResponse, *http.Response, error) {
+	return r.ApiService.PageThemeTemplatesServiceUpdateStylingExecute(r)
 }
 
 /*
-PageThemeTemplatesServiceUpdatePageThemeTemplateStyling Update a page theme template's styling
+PageThemeTemplatesServiceUpdateStyling Update a page theme template's styling
 
 Edit the colours, typography, container and media of a page theme template. Queues a thumbnail regeneration.
 
@@ -1544,10 +1403,10 @@ Requires the `page_themes:write` scope.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id The ID of the page theme template whose styling to update (UUID)
- @return ApiPageThemeTemplatesServiceUpdatePageThemeTemplateStylingRequest
+ @return ApiPageThemeTemplatesServiceUpdateStylingRequest
 */
-func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceUpdatePageThemeTemplateStyling(ctx context.Context, id string) ApiPageThemeTemplatesServiceUpdatePageThemeTemplateStylingRequest {
-	return ApiPageThemeTemplatesServiceUpdatePageThemeTemplateStylingRequest{
+func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceUpdateStyling(ctx context.Context, id string) ApiPageThemeTemplatesServiceUpdateStylingRequest {
+	return ApiPageThemeTemplatesServiceUpdateStylingRequest{
 		ApiService: a,
 		ctx: ctx,
 		id: id,
@@ -1556,7 +1415,7 @@ func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceUpdatePageThemeT
 
 // Execute executes the request
 //  @return UpdatePageThemeTemplateStylingResponse
-func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceUpdatePageThemeTemplateStylingExecute(r ApiPageThemeTemplatesServiceUpdatePageThemeTemplateStylingRequest) (*UpdatePageThemeTemplateStylingResponse, *http.Response, error) {
+func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceUpdateStylingExecute(r ApiPageThemeTemplatesServiceUpdateStylingRequest) (*UpdatePageThemeTemplateStylingResponse, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPatch
 		localVarPostBody     interface{}
@@ -1564,7 +1423,7 @@ func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceUpdatePageThemeT
 		localVarReturnValue  *UpdatePageThemeTemplateStylingResponse
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PageThemeTemplatesAPIService.PageThemeTemplatesServiceUpdatePageThemeTemplateStyling")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PageThemeTemplatesAPIService.PageThemeTemplatesServiceUpdateStyling")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
@@ -1575,8 +1434,8 @@ func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceUpdatePageThemeT
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
-	if r.pageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody == nil {
-		return localVarReturnValue, nil, reportError("pageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody is required and must be specified")
+	if r.pageThemeTemplatesServiceUpdateStylingBody == nil {
+		return localVarReturnValue, nil, reportError("pageThemeTemplatesServiceUpdateStylingBody is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -1600,7 +1459,7 @@ func (a *PageThemeTemplatesAPIService) PageThemeTemplatesServiceUpdatePageThemeT
 		parameterAddToHeaderOrQuery(localVarHeaderParams, "Idempotency-Key", r.idempotencyKey, "simple", "")
 	}
 	// body params
-	localVarPostBody = r.pageThemeTemplatesServiceUpdatePageThemeTemplateStylingBody
+	localVarPostBody = r.pageThemeTemplatesServiceUpdateStylingBody
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
 		return localVarReturnValue, nil, err

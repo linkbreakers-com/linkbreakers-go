@@ -1,9 +1,9 @@
 /*
 Linkbreakers API
 
-This is a documentation of all the APIs of Linkbreakers  ## Entry points  `GET https://api.linkbreakers.com/` and `GET https://api.linkbreakers.com/v1` answer without credentials with the API's name, version and links. This document is served at `https://api.linkbreakers.com/openapi.json`.  ## Rate limits  Every response describes where the caller stands in the IETF `RateLimit-Policy` and `RateLimit` header fields (draft-ietf-httpapi-ratelimit-headers), and in `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset` and `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset` (a Unix timestamp) for clients that read those. A request past the limit gets `429 Too Many Requests` with `Retry-After` in seconds.  - Workspace API token: 720 requests per 60 seconds, per token. - Dashboard session or OAuth token: 600 requests per 60 seconds, per token. - No credentials: 300 requests per 60 seconds, per client IP.  Each plan also includes a number of API calls per billing cycle. Past it, calls answer `429` with the code `MAX_PUBLIC_API_QUERIED_REACHED` until the cycle renews or the plan changes.  ## Pagination  Every list pages with opaque cursors (AIP-158). Pass `pageSize`, then send the `nextPageToken` of each response back as `pageToken` (or its alias `cursor`) to get the next page. An empty or absent `nextPageToken` means the list is complete. Each list operation describes this in `x-pagination`.  ## Batches and background jobs  `POST /v1/links/bulk` creates up to 250 links in one transactional request; `POST /v1/links/batch` takes the same links as a bare JSON array. `POST /v1/links/bulk/jobs` accepts the same batch and answers `202 Accepted` at once with a job and a `Location` header; poll `GET /v1/jobs/{id}` until `status` is `JOB_STATUS_SUCCEEDED` (the created link ids are in `linksBulkCreate.linkIds`) or `JOB_STATUS_FAILED` (`error` says why, and nothing was created). Jobs can be read for 24 hours after they finish.  ## Versioning and deprecation  The version is in the path: every operation lives under `/v1`. Within a version, changes are additive only: new operations, new optional request fields, new response fields and new enum values. Clients should ignore fields and enum values they do not know. Anything that would break an existing client ships under a new path version instead.  An operation is retired in two steps. First it is deprecated: it keeps working, is flagged `deprecated: true` in this document, and every response carries a `Deprecation` header field (RFC 9745) with the time it was deprecated and a `Link` with `rel=\"deprecation\"` to the policy. Then, at least 180 days later, it may be removed; that date is announced in advance in a `Sunset` header field (RFC 8594) and as `x-sunset` on the operation. The full policy: https://linkbreakers.com/help/article/api-versioning-and-deprecation-policy  ## Idempotent retries  Every POST, PUT and PATCH accepts an optional `Idempotency-Key` header (draft-ietf-httpapi-idempotency-key-header). Send a new unique value, such as a UUID, with each logical request and reuse it only to retry that request. A retry with the same key and the same request returns the first response, marked `Idempotent-Replayed: true`, instead of running again. Keys are scoped to the token and kept for 24 hours. The same key with a different request is refused with `422`, and a retry while the first request is still running gets `409` with `Retry-After`. Server errors (5xx) and refusals such as 401, 403 and 429 are not stored, so retrying them runs the request again.  ## Identifying your client  Send a `Linkbreakers-Client` request header saying which client made the call: `<client>/<version> (<details>)`, for example `my-integration/1.2.0 (python 3.12; linux)`. The official SDKs, the CLI and the MCP bridge set it for you, as `sdk-python/2.3.1 (python 3.12.4; linux)` or `cli/1.4.0 (darwin arm64)`. It is optional and changes nothing about how a request is handled; it tells us which clients and versions are in use, so we know what can be retired and what to fix first. Keep the details short and free of personal data. Browsers may send it too: it is allowed by CORS.
+The Linkbreakers REST API: links, QR codes, workflows, visitors and analytics, as JSON over HTTPS. Send a workspace API token as `Authorization: Bearer <token>`.  ## Entry points  `GET https://api.linkbreakers.com/` and `GET https://api.linkbreakers.com/v1` answer without credentials with the API's name, version and links. This document is served at `https://api.linkbreakers.com/openapi.json`.  ## Rate limits  Every response describes where the caller stands in the IETF `RateLimit-Policy` and `RateLimit` header fields (draft-ietf-httpapi-ratelimit-headers), and in `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset` and `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset` (a Unix timestamp) for clients that read those. A request past the limit gets `429 Too Many Requests` with `Retry-After` in seconds.  - Workspace API token: 720 requests per 60 seconds, per token. - Dashboard session or OAuth token: 600 requests per 60 seconds, per token. - No credentials: 300 requests per 60 seconds, per client IP.  Each plan also includes a number of API calls per billing cycle. Past it, calls answer `429` with the code `MAX_PUBLIC_API_QUERIED_REACHED` until the cycle renews or the plan changes.  ## Pagination  Every list pages with opaque cursors (AIP-158). Pass `pageSize`, then send the `nextPageToken` of each response back as `pageToken` (or its alias `cursor`) to get the next page. An empty or absent `nextPageToken` means the list is complete. Each list operation describes this in `x-pagination`.  ## Batches and background jobs  `POST /v1/links/bulk` creates up to 250 links in one transactional request; `POST /v1/links/batch` takes the same links as a bare JSON array. `POST /v1/links/bulk/jobs` accepts the same batch and answers `202 Accepted` at once with a job and a `Location` header; poll `GET /v1/jobs/{id}` until `status` is `JOB_STATUS_SUCCEEDED` (the created link ids are in `linksBulkCreate.linkIds`) or `JOB_STATUS_FAILED` (`error` says why, and nothing was created). Jobs can be read for 24 hours after they finish.  ## Versioning and deprecation  The version is in the path: every operation lives under `/v1`. Within a version, changes are additive only: new operations, new optional request fields, new response fields and new enum values. Clients should ignore fields and enum values they do not know. Anything that would break an existing client ships under a new path version instead.  An operation is retired in two steps. First it is deprecated: it keeps working, is flagged `deprecated: true` in this document, and every response carries a `Deprecation` header field (RFC 9745) with the time it was deprecated and a `Link` with `rel=\"deprecation\"` to the policy. Then, at least 180 days later, it may be removed; that date is announced in advance in a `Sunset` header field (RFC 8594) and as `x-sunset` on the operation. The full policy: https://linkbreakers.com/help/article/api-versioning-and-deprecation-policy  A renamed operation keeps answering its former path until that path's sunset. Responses on a former path carry the same `Deprecation`, `Sunset` and `Link` header fields; this document lists only the current path, and the policy lists the former ones.  ## Idempotent retries  Every POST, PUT and PATCH accepts an optional `Idempotency-Key` header (draft-ietf-httpapi-idempotency-key-header). Send a new unique value, such as a UUID, with each logical request and reuse it only to retry that request. A retry with the same key and the same request returns the first response, marked `Idempotent-Replayed: true`, instead of running again. Keys are scoped to the token and kept for 24 hours. The same key with a different request is refused with `422`, and a retry while the first request is still running gets `409` with `Retry-After`. Server errors (5xx) and refusals such as 401, 403 and 429 are not stored, so retrying them runs the request again.  ## Identifying your client  Send a `Linkbreakers-Client` request header saying which client made the call: `<client>/<version> (<details>)`, for example `my-integration/1.2.0 (python 3.12; linux)`. The official SDKs, the CLI and the MCP bridge set it for you, as `sdk-python/2.3.1 (python 3.12.4; linux)` or `cli/1.4.0 (darwin arm64)`. It is optional and changes nothing about how a request is handled; it tells us which clients and versions are in use, so we know what can be retired and what to fix first. Keep the details short and free of personal data. Browsers may send it too: it is allowed by CORS.
 
-API version: 1.198.0
+API version: 1.198.1
 */
 
 // Code generated by OpenAPI Generator (https://openapi-generator.tech); DO NOT EDIT.
@@ -20,157 +20,12 @@ import (
 )
 
 
-// ContactIntegrationsAPIService ContactIntegrationsAPI service
-type ContactIntegrationsAPIService service
-
-type ApiContactIntegrationsServiceCompleteOAuthRequest struct {
-	ctx context.Context
-	ApiService *ContactIntegrationsAPIService
-	tool string
-	contactIntegrationsServiceCompleteOAuthBody *ContactIntegrationsServiceCompleteOAuthBody
-	idempotencyKey *string
-}
-
-func (r ApiContactIntegrationsServiceCompleteOAuthRequest) ContactIntegrationsServiceCompleteOAuthBody(contactIntegrationsServiceCompleteOAuthBody ContactIntegrationsServiceCompleteOAuthBody) ApiContactIntegrationsServiceCompleteOAuthRequest {
-	r.contactIntegrationsServiceCompleteOAuthBody = &contactIntegrationsServiceCompleteOAuthBody
-	return r
-}
-
-// Makes retrying this request safe. See components.parameters.IdempotencyKey.
-func (r ApiContactIntegrationsServiceCompleteOAuthRequest) IdempotencyKey(idempotencyKey string) ApiContactIntegrationsServiceCompleteOAuthRequest {
-	r.idempotencyKey = &idempotencyKey
-	return r
-}
-
-func (r ApiContactIntegrationsServiceCompleteOAuthRequest) Execute() (*CompleteContactToolOAuthResponse, *http.Response, error) {
-	return r.ApiService.ContactIntegrationsServiceCompleteOAuthExecute(r)
-}
-
-/*
-ContactIntegrationsServiceCompleteOAuth Finish signing in to a contact tool
-
-Exchange the code the sign-in returned (with the PKCE verifier kept for its state), check the account, and connect the tool like ConnectTool. The state is valid once, for 15 minutes, for the member who started the sign-in.
-
-Requires the `integrations:write` scope.
-
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param tool The tool being connected.
- @return ApiContactIntegrationsServiceCompleteOAuthRequest
-*/
-func (a *ContactIntegrationsAPIService) ContactIntegrationsServiceCompleteOAuth(ctx context.Context, tool string) ApiContactIntegrationsServiceCompleteOAuthRequest {
-	return ApiContactIntegrationsServiceCompleteOAuthRequest{
-		ApiService: a,
-		ctx: ctx,
-		tool: tool,
-	}
-}
-
-// Execute executes the request
-//  @return CompleteContactToolOAuthResponse
-func (a *ContactIntegrationsAPIService) ContactIntegrationsServiceCompleteOAuthExecute(r ApiContactIntegrationsServiceCompleteOAuthRequest) (*CompleteContactToolOAuthResponse, *http.Response, error) {
-	var (
-		localVarHTTPMethod   = http.MethodPost
-		localVarPostBody     interface{}
-		formFiles            []formFile
-		localVarReturnValue  *CompleteContactToolOAuthResponse
-	)
-
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ContactIntegrationsAPIService.ContactIntegrationsServiceCompleteOAuth")
-	if err != nil {
-		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
-	}
-
-	localVarPath := localBasePath + "/v1/integrations/contacts/{tool}/oauth/complete"
-	localVarPath = strings.Replace(localVarPath, "{"+"tool"+"}", url.PathEscape(parameterValueToString(r.tool, "tool")), -1)
-
-	localVarHeaderParams := make(map[string]string)
-	localVarQueryParams := url.Values{}
-	localVarFormParams := url.Values{}
-	if r.contactIntegrationsServiceCompleteOAuthBody == nil {
-		return localVarReturnValue, nil, reportError("contactIntegrationsServiceCompleteOAuthBody is required and must be specified")
-	}
-
-	// to determine the Content-Type header
-	localVarHTTPContentTypes := []string{"application/json"}
-
-	// set Content-Type header
-	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
-	if localVarHTTPContentType != "" {
-		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
-	}
-
-	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{"application/json"}
-
-	// set Accept header
-	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
-	if localVarHTTPHeaderAccept != "" {
-		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
-	}
-	if r.idempotencyKey != nil {
-		parameterAddToHeaderOrQuery(localVarHeaderParams, "Idempotency-Key", r.idempotencyKey, "simple", "")
-	}
-	// body params
-	localVarPostBody = r.contactIntegrationsServiceCompleteOAuthBody
-	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
-	if err != nil {
-		return localVarReturnValue, nil, err
-	}
-
-	localVarHTTPResponse, err := a.client.callAPI(req)
-	if err != nil || localVarHTTPResponse == nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
-	localVarHTTPResponse.Body.Close()
-	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
-	if err != nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	if localVarHTTPResponse.StatusCode >= 300 {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: localVarHTTPResponse.Status,
-		}
-		if localVarHTTPResponse.StatusCode == 429 {
-			var v ErrorResponse
-			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-			if err != nil {
-				newErr.error = err.Error()
-				return localVarReturnValue, localVarHTTPResponse, newErr
-			}
-					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
-					newErr.model = v
-			return localVarReturnValue, localVarHTTPResponse, newErr
-		}
-			var v ErrorResponse
-			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-			if err != nil {
-				newErr.error = err.Error()
-				return localVarReturnValue, localVarHTTPResponse, newErr
-			}
-					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
-					newErr.model = v
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-	if err != nil {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: err.Error(),
-		}
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	return localVarReturnValue, localVarHTTPResponse, nil
-}
+// IntegrationsContactToolsAPIService IntegrationsContactToolsAPI service
+type IntegrationsContactToolsAPIService service
 
 type ApiContactIntegrationsServiceConnectToolRequest struct {
 	ctx context.Context
-	ApiService *ContactIntegrationsAPIService
+	ApiService *IntegrationsContactToolsAPIService
 	tool string
 	contactIntegrationsServiceConnectToolBody *ContactIntegrationsServiceConnectToolBody
 	idempotencyKey *string
@@ -181,7 +36,7 @@ func (r ApiContactIntegrationsServiceConnectToolRequest) ContactIntegrationsServ
 	return r
 }
 
-// Makes retrying this request safe. See components.parameters.IdempotencyKey.
+// A unique value per request, such as a UUID, that makes retrying it safe: a retry with the same key and body returns the first response instead of acting twice.
 func (r ApiContactIntegrationsServiceConnectToolRequest) IdempotencyKey(idempotencyKey string) ApiContactIntegrationsServiceConnectToolRequest {
 	r.idempotencyKey = &idempotencyKey
 	return r
@@ -202,7 +57,7 @@ Requires the `integrations:write` scope.
  @param tool The tool to connect.
  @return ApiContactIntegrationsServiceConnectToolRequest
 */
-func (a *ContactIntegrationsAPIService) ContactIntegrationsServiceConnectTool(ctx context.Context, tool string) ApiContactIntegrationsServiceConnectToolRequest {
+func (a *IntegrationsContactToolsAPIService) ContactIntegrationsServiceConnectTool(ctx context.Context, tool string) ApiContactIntegrationsServiceConnectToolRequest {
 	return ApiContactIntegrationsServiceConnectToolRequest{
 		ApiService: a,
 		ctx: ctx,
@@ -212,7 +67,7 @@ func (a *ContactIntegrationsAPIService) ContactIntegrationsServiceConnectTool(ct
 
 // Execute executes the request
 //  @return ConnectContactToolResponse
-func (a *ContactIntegrationsAPIService) ContactIntegrationsServiceConnectToolExecute(r ApiContactIntegrationsServiceConnectToolRequest) (*ConnectContactToolResponse, *http.Response, error) {
+func (a *IntegrationsContactToolsAPIService) ContactIntegrationsServiceConnectToolExecute(r ApiContactIntegrationsServiceConnectToolRequest) (*ConnectContactToolResponse, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
@@ -220,7 +75,7 @@ func (a *ContactIntegrationsAPIService) ContactIntegrationsServiceConnectToolExe
 		localVarReturnValue  *ConnectContactToolResponse
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ContactIntegrationsAPIService.ContactIntegrationsServiceConnectTool")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "IntegrationsContactToolsAPIService.ContactIntegrationsServiceConnectTool")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
@@ -315,7 +170,7 @@ func (a *ContactIntegrationsAPIService) ContactIntegrationsServiceConnectToolExe
 
 type ApiContactIntegrationsServiceDisconnectRequest struct {
 	ctx context.Context
-	ApiService *ContactIntegrationsAPIService
+	ApiService *IntegrationsContactToolsAPIService
 	tool string
 }
 
@@ -334,7 +189,7 @@ Requires the `integrations:write` scope.
  @param tool The tool to disconnect.
  @return ApiContactIntegrationsServiceDisconnectRequest
 */
-func (a *ContactIntegrationsAPIService) ContactIntegrationsServiceDisconnect(ctx context.Context, tool string) ApiContactIntegrationsServiceDisconnectRequest {
+func (a *IntegrationsContactToolsAPIService) ContactIntegrationsServiceDisconnect(ctx context.Context, tool string) ApiContactIntegrationsServiceDisconnectRequest {
 	return ApiContactIntegrationsServiceDisconnectRequest{
 		ApiService: a,
 		ctx: ctx,
@@ -344,7 +199,7 @@ func (a *ContactIntegrationsAPIService) ContactIntegrationsServiceDisconnect(ctx
 
 // Execute executes the request
 //  @return map[string]interface{}
-func (a *ContactIntegrationsAPIService) ContactIntegrationsServiceDisconnectExecute(r ApiContactIntegrationsServiceDisconnectRequest) (map[string]interface{}, *http.Response, error) {
+func (a *IntegrationsContactToolsAPIService) ContactIntegrationsServiceDisconnectExecute(r ApiContactIntegrationsServiceDisconnectRequest) (map[string]interface{}, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodDelete
 		localVarPostBody     interface{}
@@ -352,7 +207,7 @@ func (a *ContactIntegrationsAPIService) ContactIntegrationsServiceDisconnectExec
 		localVarReturnValue  map[string]interface{}
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ContactIntegrationsAPIService.ContactIntegrationsServiceDisconnect")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "IntegrationsContactToolsAPIService.ContactIntegrationsServiceDisconnect")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
@@ -439,7 +294,7 @@ func (a *ContactIntegrationsAPIService) ContactIntegrationsServiceDisconnectExec
 
 type ApiContactIntegrationsServiceGetRequest struct {
 	ctx context.Context
-	ApiService *ContactIntegrationsAPIService
+	ApiService *IntegrationsContactToolsAPIService
 	tool string
 }
 
@@ -458,7 +313,7 @@ Requires the `integrations:read` scope.
  @param tool The tool.
  @return ApiContactIntegrationsServiceGetRequest
 */
-func (a *ContactIntegrationsAPIService) ContactIntegrationsServiceGet(ctx context.Context, tool string) ApiContactIntegrationsServiceGetRequest {
+func (a *IntegrationsContactToolsAPIService) ContactIntegrationsServiceGet(ctx context.Context, tool string) ApiContactIntegrationsServiceGetRequest {
 	return ApiContactIntegrationsServiceGetRequest{
 		ApiService: a,
 		ctx: ctx,
@@ -468,7 +323,7 @@ func (a *ContactIntegrationsAPIService) ContactIntegrationsServiceGet(ctx contex
 
 // Execute executes the request
 //  @return GetContactConnectionResponse
-func (a *ContactIntegrationsAPIService) ContactIntegrationsServiceGetExecute(r ApiContactIntegrationsServiceGetRequest) (*GetContactConnectionResponse, *http.Response, error) {
+func (a *IntegrationsContactToolsAPIService) ContactIntegrationsServiceGetExecute(r ApiContactIntegrationsServiceGetRequest) (*GetContactConnectionResponse, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
@@ -476,7 +331,7 @@ func (a *ContactIntegrationsAPIService) ContactIntegrationsServiceGetExecute(r A
 		localVarReturnValue  *GetContactConnectionResponse
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ContactIntegrationsAPIService.ContactIntegrationsServiceGet")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "IntegrationsContactToolsAPIService.ContactIntegrationsServiceGet")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
@@ -563,7 +418,7 @@ func (a *ContactIntegrationsAPIService) ContactIntegrationsServiceGetExecute(r A
 
 type ApiContactIntegrationsServiceGetToolRequest struct {
 	ctx context.Context
-	ApiService *ContactIntegrationsAPIService
+	ApiService *IntegrationsContactToolsAPIService
 	tool string
 }
 
@@ -582,7 +437,7 @@ Requires the `integrations:read` scope.
  @param tool The tool, connected or not.
  @return ApiContactIntegrationsServiceGetToolRequest
 */
-func (a *ContactIntegrationsAPIService) ContactIntegrationsServiceGetTool(ctx context.Context, tool string) ApiContactIntegrationsServiceGetToolRequest {
+func (a *IntegrationsContactToolsAPIService) ContactIntegrationsServiceGetTool(ctx context.Context, tool string) ApiContactIntegrationsServiceGetToolRequest {
 	return ApiContactIntegrationsServiceGetToolRequest{
 		ApiService: a,
 		ctx: ctx,
@@ -592,7 +447,7 @@ func (a *ContactIntegrationsAPIService) ContactIntegrationsServiceGetTool(ctx co
 
 // Execute executes the request
 //  @return GetContactToolResponse
-func (a *ContactIntegrationsAPIService) ContactIntegrationsServiceGetToolExecute(r ApiContactIntegrationsServiceGetToolRequest) (*GetContactToolResponse, *http.Response, error) {
+func (a *IntegrationsContactToolsAPIService) ContactIntegrationsServiceGetToolExecute(r ApiContactIntegrationsServiceGetToolRequest) (*GetContactToolResponse, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
@@ -600,7 +455,7 @@ func (a *ContactIntegrationsAPIService) ContactIntegrationsServiceGetToolExecute
 		localVarReturnValue  *GetContactToolResponse
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ContactIntegrationsAPIService.ContactIntegrationsServiceGetTool")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "IntegrationsContactToolsAPIService.ContactIntegrationsServiceGetTool")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
@@ -687,7 +542,7 @@ func (a *ContactIntegrationsAPIService) ContactIntegrationsServiceGetToolExecute
 
 type ApiContactIntegrationsServiceListRequest struct {
 	ctx context.Context
-	ApiService *ContactIntegrationsAPIService
+	ApiService *IntegrationsContactToolsAPIService
 }
 
 func (r ApiContactIntegrationsServiceListRequest) Execute() (*ListContactConnectionsResponse, *http.Response, error) {
@@ -704,7 +559,7 @@ Requires the `integrations:read` scope.
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiContactIntegrationsServiceListRequest
 */
-func (a *ContactIntegrationsAPIService) ContactIntegrationsServiceList(ctx context.Context) ApiContactIntegrationsServiceListRequest {
+func (a *IntegrationsContactToolsAPIService) ContactIntegrationsServiceList(ctx context.Context) ApiContactIntegrationsServiceListRequest {
 	return ApiContactIntegrationsServiceListRequest{
 		ApiService: a,
 		ctx: ctx,
@@ -713,7 +568,7 @@ func (a *ContactIntegrationsAPIService) ContactIntegrationsServiceList(ctx conte
 
 // Execute executes the request
 //  @return ListContactConnectionsResponse
-func (a *ContactIntegrationsAPIService) ContactIntegrationsServiceListExecute(r ApiContactIntegrationsServiceListRequest) (*ListContactConnectionsResponse, *http.Response, error) {
+func (a *IntegrationsContactToolsAPIService) ContactIntegrationsServiceListExecute(r ApiContactIntegrationsServiceListRequest) (*ListContactConnectionsResponse, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
@@ -721,7 +576,7 @@ func (a *ContactIntegrationsAPIService) ContactIntegrationsServiceListExecute(r 
 		localVarReturnValue  *ListContactConnectionsResponse
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ContactIntegrationsAPIService.ContactIntegrationsServiceList")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "IntegrationsContactToolsAPIService.ContactIntegrationsServiceList")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
@@ -807,7 +662,7 @@ func (a *ContactIntegrationsAPIService) ContactIntegrationsServiceListExecute(r 
 
 type ApiContactIntegrationsServiceListFieldsRequest struct {
 	ctx context.Context
-	ApiService *ContactIntegrationsAPIService
+	ApiService *IntegrationsContactToolsAPIService
 	tool string
 }
 
@@ -826,7 +681,7 @@ Requires the `integrations:read` scope.
  @param tool The connected tool.
  @return ApiContactIntegrationsServiceListFieldsRequest
 */
-func (a *ContactIntegrationsAPIService) ContactIntegrationsServiceListFields(ctx context.Context, tool string) ApiContactIntegrationsServiceListFieldsRequest {
+func (a *IntegrationsContactToolsAPIService) ContactIntegrationsServiceListFields(ctx context.Context, tool string) ApiContactIntegrationsServiceListFieldsRequest {
 	return ApiContactIntegrationsServiceListFieldsRequest{
 		ApiService: a,
 		ctx: ctx,
@@ -836,7 +691,7 @@ func (a *ContactIntegrationsAPIService) ContactIntegrationsServiceListFields(ctx
 
 // Execute executes the request
 //  @return ListContactToolFieldsResponse
-func (a *ContactIntegrationsAPIService) ContactIntegrationsServiceListFieldsExecute(r ApiContactIntegrationsServiceListFieldsRequest) (*ListContactToolFieldsResponse, *http.Response, error) {
+func (a *IntegrationsContactToolsAPIService) ContactIntegrationsServiceListFieldsExecute(r ApiContactIntegrationsServiceListFieldsRequest) (*ListContactToolFieldsResponse, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
@@ -844,7 +699,7 @@ func (a *ContactIntegrationsAPIService) ContactIntegrationsServiceListFieldsExec
 		localVarReturnValue  *ListContactToolFieldsResponse
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ContactIntegrationsAPIService.ContactIntegrationsServiceListFields")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "IntegrationsContactToolsAPIService.ContactIntegrationsServiceListFields")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
@@ -931,7 +786,7 @@ func (a *ContactIntegrationsAPIService) ContactIntegrationsServiceListFieldsExec
 
 type ApiContactIntegrationsServiceListListsRequest struct {
 	ctx context.Context
-	ApiService *ContactIntegrationsAPIService
+	ApiService *IntegrationsContactToolsAPIService
 	tool string
 }
 
@@ -950,7 +805,7 @@ Requires the `integrations:read` scope.
  @param tool The connected tool.
  @return ApiContactIntegrationsServiceListListsRequest
 */
-func (a *ContactIntegrationsAPIService) ContactIntegrationsServiceListLists(ctx context.Context, tool string) ApiContactIntegrationsServiceListListsRequest {
+func (a *IntegrationsContactToolsAPIService) ContactIntegrationsServiceListLists(ctx context.Context, tool string) ApiContactIntegrationsServiceListListsRequest {
 	return ApiContactIntegrationsServiceListListsRequest{
 		ApiService: a,
 		ctx: ctx,
@@ -960,7 +815,7 @@ func (a *ContactIntegrationsAPIService) ContactIntegrationsServiceListLists(ctx 
 
 // Execute executes the request
 //  @return ListContactToolListsResponse
-func (a *ContactIntegrationsAPIService) ContactIntegrationsServiceListListsExecute(r ApiContactIntegrationsServiceListListsRequest) (*ListContactToolListsResponse, *http.Response, error) {
+func (a *IntegrationsContactToolsAPIService) ContactIntegrationsServiceListListsExecute(r ApiContactIntegrationsServiceListListsRequest) (*ListContactToolListsResponse, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
@@ -968,7 +823,7 @@ func (a *ContactIntegrationsAPIService) ContactIntegrationsServiceListListsExecu
 		localVarReturnValue  *ListContactToolListsResponse
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ContactIntegrationsAPIService.ContactIntegrationsServiceListLists")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "IntegrationsContactToolsAPIService.ContactIntegrationsServiceListLists")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
@@ -1055,7 +910,7 @@ func (a *ContactIntegrationsAPIService) ContactIntegrationsServiceListListsExecu
 
 type ApiContactIntegrationsServiceListPipelinesRequest struct {
 	ctx context.Context
-	ApiService *ContactIntegrationsAPIService
+	ApiService *IntegrationsContactToolsAPIService
 	tool string
 }
 
@@ -1074,7 +929,7 @@ Requires the `integrations:read` scope.
  @param tool The connected CRM.
  @return ApiContactIntegrationsServiceListPipelinesRequest
 */
-func (a *ContactIntegrationsAPIService) ContactIntegrationsServiceListPipelines(ctx context.Context, tool string) ApiContactIntegrationsServiceListPipelinesRequest {
+func (a *IntegrationsContactToolsAPIService) ContactIntegrationsServiceListPipelines(ctx context.Context, tool string) ApiContactIntegrationsServiceListPipelinesRequest {
 	return ApiContactIntegrationsServiceListPipelinesRequest{
 		ApiService: a,
 		ctx: ctx,
@@ -1084,7 +939,7 @@ func (a *ContactIntegrationsAPIService) ContactIntegrationsServiceListPipelines(
 
 // Execute executes the request
 //  @return ListContactToolPipelinesResponse
-func (a *ContactIntegrationsAPIService) ContactIntegrationsServiceListPipelinesExecute(r ApiContactIntegrationsServiceListPipelinesRequest) (*ListContactToolPipelinesResponse, *http.Response, error) {
+func (a *IntegrationsContactToolsAPIService) ContactIntegrationsServiceListPipelinesExecute(r ApiContactIntegrationsServiceListPipelinesRequest) (*ListContactToolPipelinesResponse, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
@@ -1092,7 +947,7 @@ func (a *ContactIntegrationsAPIService) ContactIntegrationsServiceListPipelinesE
 		localVarReturnValue  *ListContactToolPipelinesResponse
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ContactIntegrationsAPIService.ContactIntegrationsServiceListPipelines")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "IntegrationsContactToolsAPIService.ContactIntegrationsServiceListPipelines")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
@@ -1177,154 +1032,9 @@ func (a *ContactIntegrationsAPIService) ContactIntegrationsServiceListPipelinesE
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiContactIntegrationsServiceStartOAuthRequest struct {
-	ctx context.Context
-	ApiService *ContactIntegrationsAPIService
-	tool string
-	contactIntegrationsServiceStartOAuthBody *ContactIntegrationsServiceStartOAuthBody
-	idempotencyKey *string
-}
-
-func (r ApiContactIntegrationsServiceStartOAuthRequest) ContactIntegrationsServiceStartOAuthBody(contactIntegrationsServiceStartOAuthBody ContactIntegrationsServiceStartOAuthBody) ApiContactIntegrationsServiceStartOAuthRequest {
-	r.contactIntegrationsServiceStartOAuthBody = &contactIntegrationsServiceStartOAuthBody
-	return r
-}
-
-// Makes retrying this request safe. See components.parameters.IdempotencyKey.
-func (r ApiContactIntegrationsServiceStartOAuthRequest) IdempotencyKey(idempotencyKey string) ApiContactIntegrationsServiceStartOAuthRequest {
-	r.idempotencyKey = &idempotencyKey
-	return r
-}
-
-func (r ApiContactIntegrationsServiceStartOAuthRequest) Execute() (*StartContactToolOAuthResponse, *http.Response, error) {
-	return r.ApiService.ContactIntegrationsServiceStartOAuthExecute(r)
-}
-
-/*
-ContactIntegrationsServiceStartOAuth Start signing in to a contact tool
-
-Return the URL where the person signs in to a contact tool that connects with OAuth (Salesforce, Zoho CRM). The sign-in comes back to the app's redirect URL with a code and a state, which CompleteOAuth exchanges.
-
-Requires the `integrations:write` scope.
-
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param tool The tool to connect by signing in (CONTACT_TOOL_SALESFORCE, CONTACT_TOOL_ZOHO_CRM).
- @return ApiContactIntegrationsServiceStartOAuthRequest
-*/
-func (a *ContactIntegrationsAPIService) ContactIntegrationsServiceStartOAuth(ctx context.Context, tool string) ApiContactIntegrationsServiceStartOAuthRequest {
-	return ApiContactIntegrationsServiceStartOAuthRequest{
-		ApiService: a,
-		ctx: ctx,
-		tool: tool,
-	}
-}
-
-// Execute executes the request
-//  @return StartContactToolOAuthResponse
-func (a *ContactIntegrationsAPIService) ContactIntegrationsServiceStartOAuthExecute(r ApiContactIntegrationsServiceStartOAuthRequest) (*StartContactToolOAuthResponse, *http.Response, error) {
-	var (
-		localVarHTTPMethod   = http.MethodPost
-		localVarPostBody     interface{}
-		formFiles            []formFile
-		localVarReturnValue  *StartContactToolOAuthResponse
-	)
-
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ContactIntegrationsAPIService.ContactIntegrationsServiceStartOAuth")
-	if err != nil {
-		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
-	}
-
-	localVarPath := localBasePath + "/v1/integrations/contacts/{tool}/oauth/start"
-	localVarPath = strings.Replace(localVarPath, "{"+"tool"+"}", url.PathEscape(parameterValueToString(r.tool, "tool")), -1)
-
-	localVarHeaderParams := make(map[string]string)
-	localVarQueryParams := url.Values{}
-	localVarFormParams := url.Values{}
-	if r.contactIntegrationsServiceStartOAuthBody == nil {
-		return localVarReturnValue, nil, reportError("contactIntegrationsServiceStartOAuthBody is required and must be specified")
-	}
-
-	// to determine the Content-Type header
-	localVarHTTPContentTypes := []string{"application/json"}
-
-	// set Content-Type header
-	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
-	if localVarHTTPContentType != "" {
-		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
-	}
-
-	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{"application/json"}
-
-	// set Accept header
-	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
-	if localVarHTTPHeaderAccept != "" {
-		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
-	}
-	if r.idempotencyKey != nil {
-		parameterAddToHeaderOrQuery(localVarHeaderParams, "Idempotency-Key", r.idempotencyKey, "simple", "")
-	}
-	// body params
-	localVarPostBody = r.contactIntegrationsServiceStartOAuthBody
-	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
-	if err != nil {
-		return localVarReturnValue, nil, err
-	}
-
-	localVarHTTPResponse, err := a.client.callAPI(req)
-	if err != nil || localVarHTTPResponse == nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
-	localVarHTTPResponse.Body.Close()
-	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
-	if err != nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	if localVarHTTPResponse.StatusCode >= 300 {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: localVarHTTPResponse.Status,
-		}
-		if localVarHTTPResponse.StatusCode == 429 {
-			var v ErrorResponse
-			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-			if err != nil {
-				newErr.error = err.Error()
-				return localVarReturnValue, localVarHTTPResponse, newErr
-			}
-					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
-					newErr.model = v
-			return localVarReturnValue, localVarHTTPResponse, newErr
-		}
-			var v ErrorResponse
-			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-			if err != nil {
-				newErr.error = err.Error()
-				return localVarReturnValue, localVarHTTPResponse, newErr
-			}
-					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
-					newErr.model = v
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-	if err != nil {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: err.Error(),
-		}
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	return localVarReturnValue, localVarHTTPResponse, nil
-}
-
 type ApiContactIntegrationsServiceTestRequest struct {
 	ctx context.Context
-	ApiService *ContactIntegrationsAPIService
+	ApiService *IntegrationsContactToolsAPIService
 	tool string
 	body *map[string]interface{}
 	idempotencyKey *string
@@ -1335,7 +1045,7 @@ func (r ApiContactIntegrationsServiceTestRequest) Body(body map[string]interface
 	return r
 }
 
-// Makes retrying this request safe. See components.parameters.IdempotencyKey.
+// A unique value per request, such as a UUID, that makes retrying it safe: a retry with the same key and body returns the first response instead of acting twice.
 func (r ApiContactIntegrationsServiceTestRequest) IdempotencyKey(idempotencyKey string) ApiContactIntegrationsServiceTestRequest {
 	r.idempotencyKey = &idempotencyKey
 	return r
@@ -1356,7 +1066,7 @@ Requires the `integrations:write` scope.
  @param tool The connected tool.
  @return ApiContactIntegrationsServiceTestRequest
 */
-func (a *ContactIntegrationsAPIService) ContactIntegrationsServiceTest(ctx context.Context, tool string) ApiContactIntegrationsServiceTestRequest {
+func (a *IntegrationsContactToolsAPIService) ContactIntegrationsServiceTest(ctx context.Context, tool string) ApiContactIntegrationsServiceTestRequest {
 	return ApiContactIntegrationsServiceTestRequest{
 		ApiService: a,
 		ctx: ctx,
@@ -1366,7 +1076,7 @@ func (a *ContactIntegrationsAPIService) ContactIntegrationsServiceTest(ctx conte
 
 // Execute executes the request
 //  @return TestContactConnectionResponse
-func (a *ContactIntegrationsAPIService) ContactIntegrationsServiceTestExecute(r ApiContactIntegrationsServiceTestRequest) (*TestContactConnectionResponse, *http.Response, error) {
+func (a *IntegrationsContactToolsAPIService) ContactIntegrationsServiceTestExecute(r ApiContactIntegrationsServiceTestRequest) (*TestContactConnectionResponse, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
@@ -1374,7 +1084,7 @@ func (a *ContactIntegrationsAPIService) ContactIntegrationsServiceTestExecute(r 
 		localVarReturnValue  *TestContactConnectionResponse
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ContactIntegrationsAPIService.ContactIntegrationsServiceTest")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "IntegrationsContactToolsAPIService.ContactIntegrationsServiceTest")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
@@ -1469,7 +1179,7 @@ func (a *ContactIntegrationsAPIService) ContactIntegrationsServiceTestExecute(r 
 
 type ApiContactIntegrationsServiceUpdateRequest struct {
 	ctx context.Context
-	ApiService *ContactIntegrationsAPIService
+	ApiService *IntegrationsContactToolsAPIService
 	tool string
 	contactIntegrationsServiceUpdateBody *ContactIntegrationsServiceUpdateBody
 	idempotencyKey *string
@@ -1480,7 +1190,7 @@ func (r ApiContactIntegrationsServiceUpdateRequest) ContactIntegrationsServiceUp
 	return r
 }
 
-// Makes retrying this request safe. See components.parameters.IdempotencyKey.
+// A unique value per request, such as a UUID, that makes retrying it safe: a retry with the same key and body returns the first response instead of acting twice.
 func (r ApiContactIntegrationsServiceUpdateRequest) IdempotencyKey(idempotencyKey string) ApiContactIntegrationsServiceUpdateRequest {
 	r.idempotencyKey = &idempotencyKey
 	return r
@@ -1501,7 +1211,7 @@ Requires the `integrations:write` scope.
  @param tool The connected tool.
  @return ApiContactIntegrationsServiceUpdateRequest
 */
-func (a *ContactIntegrationsAPIService) ContactIntegrationsServiceUpdate(ctx context.Context, tool string) ApiContactIntegrationsServiceUpdateRequest {
+func (a *IntegrationsContactToolsAPIService) ContactIntegrationsServiceUpdate(ctx context.Context, tool string) ApiContactIntegrationsServiceUpdateRequest {
 	return ApiContactIntegrationsServiceUpdateRequest{
 		ApiService: a,
 		ctx: ctx,
@@ -1511,7 +1221,7 @@ func (a *ContactIntegrationsAPIService) ContactIntegrationsServiceUpdate(ctx con
 
 // Execute executes the request
 //  @return UpdateContactConnectionResponse
-func (a *ContactIntegrationsAPIService) ContactIntegrationsServiceUpdateExecute(r ApiContactIntegrationsServiceUpdateRequest) (*UpdateContactConnectionResponse, *http.Response, error) {
+func (a *IntegrationsContactToolsAPIService) ContactIntegrationsServiceUpdateExecute(r ApiContactIntegrationsServiceUpdateRequest) (*UpdateContactConnectionResponse, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPatch
 		localVarPostBody     interface{}
@@ -1519,7 +1229,7 @@ func (a *ContactIntegrationsAPIService) ContactIntegrationsServiceUpdateExecute(
 		localVarReturnValue  *UpdateContactConnectionResponse
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ContactIntegrationsAPIService.ContactIntegrationsServiceUpdate")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "IntegrationsContactToolsAPIService.ContactIntegrationsServiceUpdate")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}

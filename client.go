@@ -1,9 +1,9 @@
 /*
 Linkbreakers API
 
-This is a documentation of all the APIs of Linkbreakers  ## Entry points  `GET https://api.linkbreakers.com/` and `GET https://api.linkbreakers.com/v1` answer without credentials with the API's name, version and links. This document is served at `https://api.linkbreakers.com/openapi.json`.  ## Rate limits  Every response describes where the caller stands in the IETF `RateLimit-Policy` and `RateLimit` header fields (draft-ietf-httpapi-ratelimit-headers), and in `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset` and `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset` (a Unix timestamp) for clients that read those. A request past the limit gets `429 Too Many Requests` with `Retry-After` in seconds.  - Workspace API token: 720 requests per 60 seconds, per token. - Dashboard session or OAuth token: 600 requests per 60 seconds, per token. - No credentials: 300 requests per 60 seconds, per client IP.  Each plan also includes a number of API calls per billing cycle. Past it, calls answer `429` with the code `MAX_PUBLIC_API_QUERIED_REACHED` until the cycle renews or the plan changes.  ## Pagination  Every list pages with opaque cursors (AIP-158). Pass `pageSize`, then send the `nextPageToken` of each response back as `pageToken` (or its alias `cursor`) to get the next page. An empty or absent `nextPageToken` means the list is complete. Each list operation describes this in `x-pagination`.  ## Batches and background jobs  `POST /v1/links/bulk` creates up to 250 links in one transactional request; `POST /v1/links/batch` takes the same links as a bare JSON array. `POST /v1/links/bulk/jobs` accepts the same batch and answers `202 Accepted` at once with a job and a `Location` header; poll `GET /v1/jobs/{id}` until `status` is `JOB_STATUS_SUCCEEDED` (the created link ids are in `linksBulkCreate.linkIds`) or `JOB_STATUS_FAILED` (`error` says why, and nothing was created). Jobs can be read for 24 hours after they finish.  ## Versioning and deprecation  The version is in the path: every operation lives under `/v1`. Within a version, changes are additive only: new operations, new optional request fields, new response fields and new enum values. Clients should ignore fields and enum values they do not know. Anything that would break an existing client ships under a new path version instead.  An operation is retired in two steps. First it is deprecated: it keeps working, is flagged `deprecated: true` in this document, and every response carries a `Deprecation` header field (RFC 9745) with the time it was deprecated and a `Link` with `rel=\"deprecation\"` to the policy. Then, at least 180 days later, it may be removed; that date is announced in advance in a `Sunset` header field (RFC 8594) and as `x-sunset` on the operation. The full policy: https://linkbreakers.com/help/article/api-versioning-and-deprecation-policy  ## Idempotent retries  Every POST, PUT and PATCH accepts an optional `Idempotency-Key` header (draft-ietf-httpapi-idempotency-key-header). Send a new unique value, such as a UUID, with each logical request and reuse it only to retry that request. A retry with the same key and the same request returns the first response, marked `Idempotent-Replayed: true`, instead of running again. Keys are scoped to the token and kept for 24 hours. The same key with a different request is refused with `422`, and a retry while the first request is still running gets `409` with `Retry-After`. Server errors (5xx) and refusals such as 401, 403 and 429 are not stored, so retrying them runs the request again.  ## Identifying your client  Send a `Linkbreakers-Client` request header saying which client made the call: `<client>/<version> (<details>)`, for example `my-integration/1.2.0 (python 3.12; linux)`. The official SDKs, the CLI and the MCP bridge set it for you, as `sdk-python/2.3.1 (python 3.12.4; linux)` or `cli/1.4.0 (darwin arm64)`. It is optional and changes nothing about how a request is handled; it tells us which clients and versions are in use, so we know what can be retired and what to fix first. Keep the details short and free of personal data. Browsers may send it too: it is allowed by CORS.
+The Linkbreakers REST API: links, QR codes, workflows, visitors and analytics, as JSON over HTTPS. Send a workspace API token as `Authorization: Bearer <token>`.  ## Entry points  `GET https://api.linkbreakers.com/` and `GET https://api.linkbreakers.com/v1` answer without credentials with the API's name, version and links. This document is served at `https://api.linkbreakers.com/openapi.json`.  ## Rate limits  Every response describes where the caller stands in the IETF `RateLimit-Policy` and `RateLimit` header fields (draft-ietf-httpapi-ratelimit-headers), and in `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset` and `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset` (a Unix timestamp) for clients that read those. A request past the limit gets `429 Too Many Requests` with `Retry-After` in seconds.  - Workspace API token: 720 requests per 60 seconds, per token. - Dashboard session or OAuth token: 600 requests per 60 seconds, per token. - No credentials: 300 requests per 60 seconds, per client IP.  Each plan also includes a number of API calls per billing cycle. Past it, calls answer `429` with the code `MAX_PUBLIC_API_QUERIED_REACHED` until the cycle renews or the plan changes.  ## Pagination  Every list pages with opaque cursors (AIP-158). Pass `pageSize`, then send the `nextPageToken` of each response back as `pageToken` (or its alias `cursor`) to get the next page. An empty or absent `nextPageToken` means the list is complete. Each list operation describes this in `x-pagination`.  ## Batches and background jobs  `POST /v1/links/bulk` creates up to 250 links in one transactional request; `POST /v1/links/batch` takes the same links as a bare JSON array. `POST /v1/links/bulk/jobs` accepts the same batch and answers `202 Accepted` at once with a job and a `Location` header; poll `GET /v1/jobs/{id}` until `status` is `JOB_STATUS_SUCCEEDED` (the created link ids are in `linksBulkCreate.linkIds`) or `JOB_STATUS_FAILED` (`error` says why, and nothing was created). Jobs can be read for 24 hours after they finish.  ## Versioning and deprecation  The version is in the path: every operation lives under `/v1`. Within a version, changes are additive only: new operations, new optional request fields, new response fields and new enum values. Clients should ignore fields and enum values they do not know. Anything that would break an existing client ships under a new path version instead.  An operation is retired in two steps. First it is deprecated: it keeps working, is flagged `deprecated: true` in this document, and every response carries a `Deprecation` header field (RFC 9745) with the time it was deprecated and a `Link` with `rel=\"deprecation\"` to the policy. Then, at least 180 days later, it may be removed; that date is announced in advance in a `Sunset` header field (RFC 8594) and as `x-sunset` on the operation. The full policy: https://linkbreakers.com/help/article/api-versioning-and-deprecation-policy  A renamed operation keeps answering its former path until that path's sunset. Responses on a former path carry the same `Deprecation`, `Sunset` and `Link` header fields; this document lists only the current path, and the policy lists the former ones.  ## Idempotent retries  Every POST, PUT and PATCH accepts an optional `Idempotency-Key` header (draft-ietf-httpapi-idempotency-key-header). Send a new unique value, such as a UUID, with each logical request and reuse it only to retry that request. A retry with the same key and the same request returns the first response, marked `Idempotent-Replayed: true`, instead of running again. Keys are scoped to the token and kept for 24 hours. The same key with a different request is refused with `422`, and a retry while the first request is still running gets `409` with `Retry-After`. Server errors (5xx) and refusals such as 401, 403 and 429 are not stored, so retrying them runs the request again.  ## Identifying your client  Send a `Linkbreakers-Client` request header saying which client made the call: `<client>/<version> (<details>)`, for example `my-integration/1.2.0 (python 3.12; linux)`. The official SDKs, the CLI and the MCP bridge set it for you, as `sdk-python/2.3.1 (python 3.12.4; linux)` or `cli/1.4.0 (darwin arm64)`. It is optional and changes nothing about how a request is handled; it tells us which clients and versions are in use, so we know what can be retired and what to fix first. Keep the details short and free of personal data. Browsers may send it too: it is allowed by CORS.
 
-API version: 1.198.0
+API version: 1.198.1
 */
 
 // Code generated by OpenAPI Generator (https://openapi-generator.tech); DO NOT EDIT.
@@ -42,7 +42,7 @@ var (
 	queryDescape    = strings.NewReplacer( "%5B", "[", "%5D", "]" )
 )
 
-// APIClient manages communication with the Linkbreakers API API v1.198.0
+// APIClient manages communication with the Linkbreakers API API v1.198.1
 // In most cases there should be only one, shared, APIClient.
 type APIClient struct {
 	cfg    *Configuration
@@ -52,21 +52,13 @@ type APIClient struct {
 
 	APIScopesAPI *APIScopesAPIService
 
-	AgentIdentityAPI *AgentIdentityAPIService
-
 	AgentsAPI *AgentsAPIService
 
-	AllowancesAPI *AllowancesAPIService
+	AnalyticsAPI *AnalyticsAPIService
 
-	AnalyticsDashboardAPI *AnalyticsDashboardAPIService
-
-	AnalyticsDataAPI *AnalyticsDataAPIService
-
-	AssistantAPI *AssistantAPIService
+	AnalyticsDashboardsAPI *AnalyticsDashboardsAPIService
 
 	AuthAPI *AuthAPIService
-
-	ContactIntegrationsAPI *ContactIntegrationsAPIService
 
 	CustomDomainsAPI *CustomDomainsAPIService
 
@@ -74,15 +66,19 @@ type APIClient struct {
 
 	EventsAPI *EventsAPIService
 
-	FormIntegrationsAPI *FormIntegrationsAPIService
-
-	GoogleAnalyticsIntegrationsAPI *GoogleAnalyticsIntegrationsAPIService
-
-	GoogleFormsIntegrationsAPI *GoogleFormsIntegrationsAPIService
-
 	IntegrationsAPI *IntegrationsAPIService
 
-	IntegrationsServiceAPI *IntegrationsServiceAPIService
+	IntegrationsContactToolsAPI *IntegrationsContactToolsAPIService
+
+	IntegrationsFormsAPI *IntegrationsFormsAPIService
+
+	IntegrationsGoogleAnalyticsAPI *IntegrationsGoogleAnalyticsAPIService
+
+	IntegrationsGoogleFormsAPI *IntegrationsGoogleFormsAPIService
+
+	IntegrationsRetargetingPixelsAPI *IntegrationsRetargetingPixelsAPIService
+
+	IntegrationsSlackAPI *IntegrationsSlackAPIService
 
 	JobsAPI *JobsAPIService
 
@@ -98,29 +94,21 @@ type APIClient struct {
 
 	PageThemesAPI *PageThemesAPIService
 
+	PlanUsageAPI *PlanUsageAPIService
+
 	PricingAPI *PricingAPIService
 
 	QRCodeDesignsAPI *QRCodeDesignsAPIService
 
 	QRCodeTemplatesAPI *QRCodeTemplatesAPIService
 
-	RetargetingPixelsAPI *RetargetingPixelsAPIService
-
-	ReviewRewardsAPI *ReviewRewardsAPIService
-
-	SlackIntegrationsAPI *SlackIntegrationsAPIService
-
 	TagsAPI *TagsAPIService
-
-	TimeSeriesAPI *TimeSeriesAPIService
 
 	VisitorsAPI *VisitorsAPIService
 
 	WebhooksAPI *WebhooksAPIService
 
 	WorkflowStepsAPI *WorkflowStepsAPIService
-
-	WorkspaceMetricsAPI *WorkspaceMetricsAPIService
 
 	WorkspaceTokensAPI *WorkspaceTokensAPIService
 
@@ -144,22 +132,20 @@ func NewAPIClient(cfg *Configuration) *APIClient {
 
 	// API Services
 	c.APIScopesAPI = (*APIScopesAPIService)(&c.common)
-	c.AgentIdentityAPI = (*AgentIdentityAPIService)(&c.common)
 	c.AgentsAPI = (*AgentsAPIService)(&c.common)
-	c.AllowancesAPI = (*AllowancesAPIService)(&c.common)
-	c.AnalyticsDashboardAPI = (*AnalyticsDashboardAPIService)(&c.common)
-	c.AnalyticsDataAPI = (*AnalyticsDataAPIService)(&c.common)
-	c.AssistantAPI = (*AssistantAPIService)(&c.common)
+	c.AnalyticsAPI = (*AnalyticsAPIService)(&c.common)
+	c.AnalyticsDashboardsAPI = (*AnalyticsDashboardsAPIService)(&c.common)
 	c.AuthAPI = (*AuthAPIService)(&c.common)
-	c.ContactIntegrationsAPI = (*ContactIntegrationsAPIService)(&c.common)
 	c.CustomDomainsAPI = (*CustomDomainsAPIService)(&c.common)
 	c.DirectoriesAPI = (*DirectoriesAPIService)(&c.common)
 	c.EventsAPI = (*EventsAPIService)(&c.common)
-	c.FormIntegrationsAPI = (*FormIntegrationsAPIService)(&c.common)
-	c.GoogleAnalyticsIntegrationsAPI = (*GoogleAnalyticsIntegrationsAPIService)(&c.common)
-	c.GoogleFormsIntegrationsAPI = (*GoogleFormsIntegrationsAPIService)(&c.common)
 	c.IntegrationsAPI = (*IntegrationsAPIService)(&c.common)
-	c.IntegrationsServiceAPI = (*IntegrationsServiceAPIService)(&c.common)
+	c.IntegrationsContactToolsAPI = (*IntegrationsContactToolsAPIService)(&c.common)
+	c.IntegrationsFormsAPI = (*IntegrationsFormsAPIService)(&c.common)
+	c.IntegrationsGoogleAnalyticsAPI = (*IntegrationsGoogleAnalyticsAPIService)(&c.common)
+	c.IntegrationsGoogleFormsAPI = (*IntegrationsGoogleFormsAPIService)(&c.common)
+	c.IntegrationsRetargetingPixelsAPI = (*IntegrationsRetargetingPixelsAPIService)(&c.common)
+	c.IntegrationsSlackAPI = (*IntegrationsSlackAPIService)(&c.common)
 	c.JobsAPI = (*JobsAPIService)(&c.common)
 	c.LinkSettingsAPI = (*LinkSettingsAPIService)(&c.common)
 	c.LinksAPI = (*LinksAPIService)(&c.common)
@@ -167,18 +153,14 @@ func NewAPIClient(cfg *Configuration) *APIClient {
 	c.MembersAPI = (*MembersAPIService)(&c.common)
 	c.PageThemeTemplatesAPI = (*PageThemeTemplatesAPIService)(&c.common)
 	c.PageThemesAPI = (*PageThemesAPIService)(&c.common)
+	c.PlanUsageAPI = (*PlanUsageAPIService)(&c.common)
 	c.PricingAPI = (*PricingAPIService)(&c.common)
 	c.QRCodeDesignsAPI = (*QRCodeDesignsAPIService)(&c.common)
 	c.QRCodeTemplatesAPI = (*QRCodeTemplatesAPIService)(&c.common)
-	c.RetargetingPixelsAPI = (*RetargetingPixelsAPIService)(&c.common)
-	c.ReviewRewardsAPI = (*ReviewRewardsAPIService)(&c.common)
-	c.SlackIntegrationsAPI = (*SlackIntegrationsAPIService)(&c.common)
 	c.TagsAPI = (*TagsAPIService)(&c.common)
-	c.TimeSeriesAPI = (*TimeSeriesAPIService)(&c.common)
 	c.VisitorsAPI = (*VisitorsAPIService)(&c.common)
 	c.WebhooksAPI = (*WebhooksAPIService)(&c.common)
 	c.WorkflowStepsAPI = (*WorkflowStepsAPIService)(&c.common)
-	c.WorkspaceMetricsAPI = (*WorkspaceMetricsAPIService)(&c.common)
 	c.WorkspaceTokensAPI = (*WorkspaceTokensAPIService)(&c.common)
 	c.WorkspacesAPI = (*WorkspacesAPIService)(&c.common)
 

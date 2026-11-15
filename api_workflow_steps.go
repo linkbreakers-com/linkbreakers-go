@@ -1,9 +1,9 @@
 /*
 Linkbreakers API
 
-This is a documentation of all the APIs of Linkbreakers  ## Entry points  `GET https://api.linkbreakers.com/` and `GET https://api.linkbreakers.com/v1` answer without credentials with the API's name, version and links. This document is served at `https://api.linkbreakers.com/openapi.json`.  ## Rate limits  Every response describes where the caller stands in the IETF `RateLimit-Policy` and `RateLimit` header fields (draft-ietf-httpapi-ratelimit-headers), and in `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset` and `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset` (a Unix timestamp) for clients that read those. A request past the limit gets `429 Too Many Requests` with `Retry-After` in seconds.  - Workspace API token: 720 requests per 60 seconds, per token. - Dashboard session or OAuth token: 600 requests per 60 seconds, per token. - No credentials: 300 requests per 60 seconds, per client IP.  Each plan also includes a number of API calls per billing cycle. Past it, calls answer `429` with the code `MAX_PUBLIC_API_QUERIED_REACHED` until the cycle renews or the plan changes.  ## Pagination  Every list pages with opaque cursors (AIP-158). Pass `pageSize`, then send the `nextPageToken` of each response back as `pageToken` (or its alias `cursor`) to get the next page. An empty or absent `nextPageToken` means the list is complete. Each list operation describes this in `x-pagination`.  ## Batches and background jobs  `POST /v1/links/bulk` creates up to 250 links in one transactional request; `POST /v1/links/batch` takes the same links as a bare JSON array. `POST /v1/links/bulk/jobs` accepts the same batch and answers `202 Accepted` at once with a job and a `Location` header; poll `GET /v1/jobs/{id}` until `status` is `JOB_STATUS_SUCCEEDED` (the created link ids are in `linksBulkCreate.linkIds`) or `JOB_STATUS_FAILED` (`error` says why, and nothing was created). Jobs can be read for 24 hours after they finish.  ## Versioning and deprecation  The version is in the path: every operation lives under `/v1`. Within a version, changes are additive only: new operations, new optional request fields, new response fields and new enum values. Clients should ignore fields and enum values they do not know. Anything that would break an existing client ships under a new path version instead.  An operation is retired in two steps. First it is deprecated: it keeps working, is flagged `deprecated: true` in this document, and every response carries a `Deprecation` header field (RFC 9745) with the time it was deprecated and a `Link` with `rel=\"deprecation\"` to the policy. Then, at least 180 days later, it may be removed; that date is announced in advance in a `Sunset` header field (RFC 8594) and as `x-sunset` on the operation. The full policy: https://linkbreakers.com/help/article/api-versioning-and-deprecation-policy  ## Idempotent retries  Every POST, PUT and PATCH accepts an optional `Idempotency-Key` header (draft-ietf-httpapi-idempotency-key-header). Send a new unique value, such as a UUID, with each logical request and reuse it only to retry that request. A retry with the same key and the same request returns the first response, marked `Idempotent-Replayed: true`, instead of running again. Keys are scoped to the token and kept for 24 hours. The same key with a different request is refused with `422`, and a retry while the first request is still running gets `409` with `Retry-After`. Server errors (5xx) and refusals such as 401, 403 and 429 are not stored, so retrying them runs the request again.  ## Identifying your client  Send a `Linkbreakers-Client` request header saying which client made the call: `<client>/<version> (<details>)`, for example `my-integration/1.2.0 (python 3.12; linux)`. The official SDKs, the CLI and the MCP bridge set it for you, as `sdk-python/2.3.1 (python 3.12.4; linux)` or `cli/1.4.0 (darwin arm64)`. It is optional and changes nothing about how a request is handled; it tells us which clients and versions are in use, so we know what can be retired and what to fix first. Keep the details short and free of personal data. Browsers may send it too: it is allowed by CORS.
+The Linkbreakers REST API: links, QR codes, workflows, visitors and analytics, as JSON over HTTPS. Send a workspace API token as `Authorization: Bearer <token>`.  ## Entry points  `GET https://api.linkbreakers.com/` and `GET https://api.linkbreakers.com/v1` answer without credentials with the API's name, version and links. This document is served at `https://api.linkbreakers.com/openapi.json`.  ## Rate limits  Every response describes where the caller stands in the IETF `RateLimit-Policy` and `RateLimit` header fields (draft-ietf-httpapi-ratelimit-headers), and in `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset` and `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset` (a Unix timestamp) for clients that read those. A request past the limit gets `429 Too Many Requests` with `Retry-After` in seconds.  - Workspace API token: 720 requests per 60 seconds, per token. - Dashboard session or OAuth token: 600 requests per 60 seconds, per token. - No credentials: 300 requests per 60 seconds, per client IP.  Each plan also includes a number of API calls per billing cycle. Past it, calls answer `429` with the code `MAX_PUBLIC_API_QUERIED_REACHED` until the cycle renews or the plan changes.  ## Pagination  Every list pages with opaque cursors (AIP-158). Pass `pageSize`, then send the `nextPageToken` of each response back as `pageToken` (or its alias `cursor`) to get the next page. An empty or absent `nextPageToken` means the list is complete. Each list operation describes this in `x-pagination`.  ## Batches and background jobs  `POST /v1/links/bulk` creates up to 250 links in one transactional request; `POST /v1/links/batch` takes the same links as a bare JSON array. `POST /v1/links/bulk/jobs` accepts the same batch and answers `202 Accepted` at once with a job and a `Location` header; poll `GET /v1/jobs/{id}` until `status` is `JOB_STATUS_SUCCEEDED` (the created link ids are in `linksBulkCreate.linkIds`) or `JOB_STATUS_FAILED` (`error` says why, and nothing was created). Jobs can be read for 24 hours after they finish.  ## Versioning and deprecation  The version is in the path: every operation lives under `/v1`. Within a version, changes are additive only: new operations, new optional request fields, new response fields and new enum values. Clients should ignore fields and enum values they do not know. Anything that would break an existing client ships under a new path version instead.  An operation is retired in two steps. First it is deprecated: it keeps working, is flagged `deprecated: true` in this document, and every response carries a `Deprecation` header field (RFC 9745) with the time it was deprecated and a `Link` with `rel=\"deprecation\"` to the policy. Then, at least 180 days later, it may be removed; that date is announced in advance in a `Sunset` header field (RFC 8594) and as `x-sunset` on the operation. The full policy: https://linkbreakers.com/help/article/api-versioning-and-deprecation-policy  A renamed operation keeps answering its former path until that path's sunset. Responses on a former path carry the same `Deprecation`, `Sunset` and `Link` header fields; this document lists only the current path, and the policy lists the former ones.  ## Idempotent retries  Every POST, PUT and PATCH accepts an optional `Idempotency-Key` header (draft-ietf-httpapi-idempotency-key-header). Send a new unique value, such as a UUID, with each logical request and reuse it only to retry that request. A retry with the same key and the same request returns the first response, marked `Idempotent-Replayed: true`, instead of running again. Keys are scoped to the token and kept for 24 hours. The same key with a different request is refused with `422`, and a retry while the first request is still running gets `409` with `Retry-After`. Server errors (5xx) and refusals such as 401, 403 and 429 are not stored, so retrying them runs the request again.  ## Identifying your client  Send a `Linkbreakers-Client` request header saying which client made the call: `<client>/<version> (<details>)`, for example `my-integration/1.2.0 (python 3.12; linux)`. The official SDKs, the CLI and the MCP bridge set it for you, as `sdk-python/2.3.1 (python 3.12.4; linux)` or `cli/1.4.0 (darwin arm64)`. It is optional and changes nothing about how a request is handled; it tells us which clients and versions are in use, so we know what can be retired and what to fix first. Keep the details short and free of personal data. Browsers may send it too: it is allowed by CORS.
 
-API version: 1.198.0
+API version: 1.198.1
 */
 
 // Code generated by OpenAPI Generator (https://openapi-generator.tech); DO NOT EDIT.
@@ -36,7 +36,7 @@ func (r ApiWorkflowStepsServiceAutoLayoutWorkflowRequest) Body(body map[string]i
 	return r
 }
 
-// Makes retrying this request safe. See components.parameters.IdempotencyKey.
+// A unique value per request, such as a UUID, that makes retrying it safe: a retry with the same key and body returns the first response instead of acting twice.
 func (r ApiWorkflowStepsServiceAutoLayoutWorkflowRequest) IdempotencyKey(idempotencyKey string) ApiWorkflowStepsServiceAutoLayoutWorkflowRequest {
 	r.idempotencyKey = &idempotencyKey
 	return r
@@ -169,30 +169,30 @@ func (a *WorkflowStepsAPIService) WorkflowStepsServiceAutoLayoutWorkflowExecute(
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiWorkflowStepsServiceBulkInsertWorkflowStepRequest struct {
+type ApiWorkflowStepsServiceBulkInsertRequest struct {
 	ctx context.Context
 	ApiService *WorkflowStepsAPIService
 	bulkInsertWorkflowStepRequest *BulkInsertWorkflowStepRequest
 	idempotencyKey *string
 }
 
-func (r ApiWorkflowStepsServiceBulkInsertWorkflowStepRequest) BulkInsertWorkflowStepRequest(bulkInsertWorkflowStepRequest BulkInsertWorkflowStepRequest) ApiWorkflowStepsServiceBulkInsertWorkflowStepRequest {
+func (r ApiWorkflowStepsServiceBulkInsertRequest) BulkInsertWorkflowStepRequest(bulkInsertWorkflowStepRequest BulkInsertWorkflowStepRequest) ApiWorkflowStepsServiceBulkInsertRequest {
 	r.bulkInsertWorkflowStepRequest = &bulkInsertWorkflowStepRequest
 	return r
 }
 
-// Makes retrying this request safe. See components.parameters.IdempotencyKey.
-func (r ApiWorkflowStepsServiceBulkInsertWorkflowStepRequest) IdempotencyKey(idempotencyKey string) ApiWorkflowStepsServiceBulkInsertWorkflowStepRequest {
+// A unique value per request, such as a UUID, that makes retrying it safe: a retry with the same key and body returns the first response instead of acting twice.
+func (r ApiWorkflowStepsServiceBulkInsertRequest) IdempotencyKey(idempotencyKey string) ApiWorkflowStepsServiceBulkInsertRequest {
 	r.idempotencyKey = &idempotencyKey
 	return r
 }
 
-func (r ApiWorkflowStepsServiceBulkInsertWorkflowStepRequest) Execute() (*BulkInsertWorkflowStepResponse, *http.Response, error) {
-	return r.ApiService.WorkflowStepsServiceBulkInsertWorkflowStepExecute(r)
+func (r ApiWorkflowStepsServiceBulkInsertRequest) Execute() (*BulkInsertWorkflowStepResponse, *http.Response, error) {
+	return r.ApiService.WorkflowStepsServiceBulkInsertExecute(r)
 }
 
 /*
-WorkflowStepsServiceBulkInsertWorkflowStep Insert one step into many links' workflows
+WorkflowStepsServiceBulkInsert Insert one step into many links' workflows
 
 Inserts the same step, usually a condition, into the workflow of up to 50
 links, named by id or short link. Each link succeeds or fails on its own:
@@ -203,10 +203,10 @@ call ran out of time: send those again in a new call.
 Requires the `workflows:write` scope.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiWorkflowStepsServiceBulkInsertWorkflowStepRequest
+ @return ApiWorkflowStepsServiceBulkInsertRequest
 */
-func (a *WorkflowStepsAPIService) WorkflowStepsServiceBulkInsertWorkflowStep(ctx context.Context) ApiWorkflowStepsServiceBulkInsertWorkflowStepRequest {
-	return ApiWorkflowStepsServiceBulkInsertWorkflowStepRequest{
+func (a *WorkflowStepsAPIService) WorkflowStepsServiceBulkInsert(ctx context.Context) ApiWorkflowStepsServiceBulkInsertRequest {
+	return ApiWorkflowStepsServiceBulkInsertRequest{
 		ApiService: a,
 		ctx: ctx,
 	}
@@ -214,7 +214,7 @@ func (a *WorkflowStepsAPIService) WorkflowStepsServiceBulkInsertWorkflowStep(ctx
 
 // Execute executes the request
 //  @return BulkInsertWorkflowStepResponse
-func (a *WorkflowStepsAPIService) WorkflowStepsServiceBulkInsertWorkflowStepExecute(r ApiWorkflowStepsServiceBulkInsertWorkflowStepRequest) (*BulkInsertWorkflowStepResponse, *http.Response, error) {
+func (a *WorkflowStepsAPIService) WorkflowStepsServiceBulkInsertExecute(r ApiWorkflowStepsServiceBulkInsertRequest) (*BulkInsertWorkflowStepResponse, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
@@ -222,7 +222,7 @@ func (a *WorkflowStepsAPIService) WorkflowStepsServiceBulkInsertWorkflowStepExec
 		localVarReturnValue  *BulkInsertWorkflowStepResponse
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "WorkflowStepsAPIService.WorkflowStepsServiceBulkInsertWorkflowStep")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "WorkflowStepsAPIService.WorkflowStepsServiceBulkInsert")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
@@ -314,33 +314,33 @@ func (a *WorkflowStepsAPIService) WorkflowStepsServiceBulkInsertWorkflowStepExec
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiWorkflowStepsServiceConnectStepRequest struct {
+type ApiWorkflowStepsServiceConnectRequest struct {
 	ctx context.Context
 	ApiService *WorkflowStepsAPIService
 	linkId string
 	stepId string
 	branchId string
-	workflowStepsServiceConnectStepBody *WorkflowStepsServiceConnectStepBody
+	workflowStepsServiceConnectBody *WorkflowStepsServiceConnectBody
 	idempotencyKey *string
 }
 
-func (r ApiWorkflowStepsServiceConnectStepRequest) WorkflowStepsServiceConnectStepBody(workflowStepsServiceConnectStepBody WorkflowStepsServiceConnectStepBody) ApiWorkflowStepsServiceConnectStepRequest {
-	r.workflowStepsServiceConnectStepBody = &workflowStepsServiceConnectStepBody
+func (r ApiWorkflowStepsServiceConnectRequest) WorkflowStepsServiceConnectBody(workflowStepsServiceConnectBody WorkflowStepsServiceConnectBody) ApiWorkflowStepsServiceConnectRequest {
+	r.workflowStepsServiceConnectBody = &workflowStepsServiceConnectBody
 	return r
 }
 
-// Makes retrying this request safe. See components.parameters.IdempotencyKey.
-func (r ApiWorkflowStepsServiceConnectStepRequest) IdempotencyKey(idempotencyKey string) ApiWorkflowStepsServiceConnectStepRequest {
+// A unique value per request, such as a UUID, that makes retrying it safe: a retry with the same key and body returns the first response instead of acting twice.
+func (r ApiWorkflowStepsServiceConnectRequest) IdempotencyKey(idempotencyKey string) ApiWorkflowStepsServiceConnectRequest {
 	r.idempotencyKey = &idempotencyKey
 	return r
 }
 
-func (r ApiWorkflowStepsServiceConnectStepRequest) Execute() (*ConnectWorkflowStepResponse, *http.Response, error) {
-	return r.ApiService.WorkflowStepsServiceConnectStepExecute(r)
+func (r ApiWorkflowStepsServiceConnectRequest) Execute() (*ConnectWorkflowStepResponse, *http.Response, error) {
+	return r.ApiService.WorkflowStepsServiceConnectExecute(r)
 }
 
 /*
-WorkflowStepsServiceConnectStep Connect one exit of a workflow step to another step
+WorkflowStepsServiceConnect Connect one exit of a workflow step to another step
 
 Every workflow step is connected the same way: name the branch it leaves
 from, and the step it leads to.
@@ -359,10 +359,10 @@ Requires the `workflows:write` scope.
  @param linkId The ID of the link (UUID)
  @param stepId The ID of the step the connection leaves from (UUID)
  @param branchId Which exit of that step to connect. \"next\" for atomic steps, or a button id, option id, range id, country code, or \"else\" for composite steps.
- @return ApiWorkflowStepsServiceConnectStepRequest
+ @return ApiWorkflowStepsServiceConnectRequest
 */
-func (a *WorkflowStepsAPIService) WorkflowStepsServiceConnectStep(ctx context.Context, linkId string, stepId string, branchId string) ApiWorkflowStepsServiceConnectStepRequest {
-	return ApiWorkflowStepsServiceConnectStepRequest{
+func (a *WorkflowStepsAPIService) WorkflowStepsServiceConnect(ctx context.Context, linkId string, stepId string, branchId string) ApiWorkflowStepsServiceConnectRequest {
+	return ApiWorkflowStepsServiceConnectRequest{
 		ApiService: a,
 		ctx: ctx,
 		linkId: linkId,
@@ -373,7 +373,7 @@ func (a *WorkflowStepsAPIService) WorkflowStepsServiceConnectStep(ctx context.Co
 
 // Execute executes the request
 //  @return ConnectWorkflowStepResponse
-func (a *WorkflowStepsAPIService) WorkflowStepsServiceConnectStepExecute(r ApiWorkflowStepsServiceConnectStepRequest) (*ConnectWorkflowStepResponse, *http.Response, error) {
+func (a *WorkflowStepsAPIService) WorkflowStepsServiceConnectExecute(r ApiWorkflowStepsServiceConnectRequest) (*ConnectWorkflowStepResponse, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPut
 		localVarPostBody     interface{}
@@ -381,7 +381,7 @@ func (a *WorkflowStepsAPIService) WorkflowStepsServiceConnectStepExecute(r ApiWo
 		localVarReturnValue  *ConnectWorkflowStepResponse
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "WorkflowStepsAPIService.WorkflowStepsServiceConnectStep")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "WorkflowStepsAPIService.WorkflowStepsServiceConnect")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
@@ -394,8 +394,8 @@ func (a *WorkflowStepsAPIService) WorkflowStepsServiceConnectStepExecute(r ApiWo
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
-	if r.workflowStepsServiceConnectStepBody == nil {
-		return localVarReturnValue, nil, reportError("workflowStepsServiceConnectStepBody is required and must be specified")
+	if r.workflowStepsServiceConnectBody == nil {
+		return localVarReturnValue, nil, reportError("workflowStepsServiceConnectBody is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -419,7 +419,7 @@ func (a *WorkflowStepsAPIService) WorkflowStepsServiceConnectStepExecute(r ApiWo
 		parameterAddToHeaderOrQuery(localVarHeaderParams, "Idempotency-Key", r.idempotencyKey, "simple", "")
 	}
 	// body params
-	localVarPostBody = r.workflowStepsServiceConnectStepBody
+	localVarPostBody = r.workflowStepsServiceConnectBody
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
 		return localVarReturnValue, nil, err
@@ -489,7 +489,7 @@ func (r ApiWorkflowStepsServiceCreateRequest) WorkflowStepsServiceCreateBody(wor
 	return r
 }
 
-// Makes retrying this request safe. See components.parameters.IdempotencyKey.
+// A unique value per request, such as a UUID, that makes retrying it safe: a retry with the same key and body returns the first response instead of acting twice.
 func (r ApiWorkflowStepsServiceCreateRequest) IdempotencyKey(idempotencyKey string) ApiWorkflowStepsServiceCreateRequest {
 	r.idempotencyKey = &idempotencyKey
 	return r
@@ -750,7 +750,7 @@ func (a *WorkflowStepsAPIService) WorkflowStepsServiceDeleteExecute(r ApiWorkflo
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiWorkflowStepsServiceDisconnectStepRequest struct {
+type ApiWorkflowStepsServiceDisconnectRequest struct {
 	ctx context.Context
 	ApiService *WorkflowStepsAPIService
 	linkId string
@@ -758,15 +758,15 @@ type ApiWorkflowStepsServiceDisconnectStepRequest struct {
 	branchId string
 }
 
-func (r ApiWorkflowStepsServiceDisconnectStepRequest) Execute() (*DisconnectWorkflowStepResponse, *http.Response, error) {
-	return r.ApiService.WorkflowStepsServiceDisconnectStepExecute(r)
+func (r ApiWorkflowStepsServiceDisconnectRequest) Execute() (*DisconnectWorkflowStepResponse, *http.Response, error) {
+	return r.ApiService.WorkflowStepsServiceDisconnectExecute(r)
 }
 
 /*
-WorkflowStepsServiceDisconnectStep Clear one exit of a workflow step
+WorkflowStepsServiceDisconnect Clear one exit of a workflow step
 
 Leaves the branch with no destination. Clearing a branch that is already
-clear succeeds. See ConnectStep for what a branch id is.
+clear succeeds. See Connect for what a branch id is.
 
 Requires the `workflows:write` scope.
 
@@ -774,10 +774,10 @@ Requires the `workflows:write` scope.
  @param linkId The ID of the link (UUID)
  @param stepId The ID of the step the connection leaves from (UUID)
  @param branchId Which exit of that step to clear. See ConnectWorkflowStepRequest.branch_id.
- @return ApiWorkflowStepsServiceDisconnectStepRequest
+ @return ApiWorkflowStepsServiceDisconnectRequest
 */
-func (a *WorkflowStepsAPIService) WorkflowStepsServiceDisconnectStep(ctx context.Context, linkId string, stepId string, branchId string) ApiWorkflowStepsServiceDisconnectStepRequest {
-	return ApiWorkflowStepsServiceDisconnectStepRequest{
+func (a *WorkflowStepsAPIService) WorkflowStepsServiceDisconnect(ctx context.Context, linkId string, stepId string, branchId string) ApiWorkflowStepsServiceDisconnectRequest {
+	return ApiWorkflowStepsServiceDisconnectRequest{
 		ApiService: a,
 		ctx: ctx,
 		linkId: linkId,
@@ -788,7 +788,7 @@ func (a *WorkflowStepsAPIService) WorkflowStepsServiceDisconnectStep(ctx context
 
 // Execute executes the request
 //  @return DisconnectWorkflowStepResponse
-func (a *WorkflowStepsAPIService) WorkflowStepsServiceDisconnectStepExecute(r ApiWorkflowStepsServiceDisconnectStepRequest) (*DisconnectWorkflowStepResponse, *http.Response, error) {
+func (a *WorkflowStepsAPIService) WorkflowStepsServiceDisconnectExecute(r ApiWorkflowStepsServiceDisconnectRequest) (*DisconnectWorkflowStepResponse, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodDelete
 		localVarPostBody     interface{}
@@ -796,7 +796,7 @@ func (a *WorkflowStepsAPIService) WorkflowStepsServiceDisconnectStepExecute(r Ap
 		localVarReturnValue  *DisconnectWorkflowStepResponse
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "WorkflowStepsAPIService.WorkflowStepsServiceDisconnectStep")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "WorkflowStepsAPIService.WorkflowStepsServiceDisconnect")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
@@ -1023,7 +1023,7 @@ func (r ApiWorkflowStepsServiceGetWalletPassSupportRequest) Execute() (*GetWalle
 /*
 WorkflowStepsServiceGetWalletPassSupport Get wallet pass support
 
-Tells which wallets a contact card's wallet pass option (wallet_pass_enabled) can
+Tells which wallets a contact card's wallet pass option (walletPassEnabled) can
 currently add the card to. A wallet that is not available shows no button to visitors.
 
 Requires the `workflows:read` scope.
@@ -1286,7 +1286,7 @@ func (a *WorkflowStepsAPIService) WorkflowStepsServiceListExecute(r ApiWorkflowS
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiWorkflowStepsServiceResolveStepCollisionsRequest struct {
+type ApiWorkflowStepsServiceResolveCollisionsRequest struct {
 	ctx context.Context
 	ApiService *WorkflowStepsAPIService
 	linkId string
@@ -1295,23 +1295,23 @@ type ApiWorkflowStepsServiceResolveStepCollisionsRequest struct {
 	idempotencyKey *string
 }
 
-func (r ApiWorkflowStepsServiceResolveStepCollisionsRequest) Body(body map[string]interface{}) ApiWorkflowStepsServiceResolveStepCollisionsRequest {
+func (r ApiWorkflowStepsServiceResolveCollisionsRequest) Body(body map[string]interface{}) ApiWorkflowStepsServiceResolveCollisionsRequest {
 	r.body = &body
 	return r
 }
 
-// Makes retrying this request safe. See components.parameters.IdempotencyKey.
-func (r ApiWorkflowStepsServiceResolveStepCollisionsRequest) IdempotencyKey(idempotencyKey string) ApiWorkflowStepsServiceResolveStepCollisionsRequest {
+// A unique value per request, such as a UUID, that makes retrying it safe: a retry with the same key and body returns the first response instead of acting twice.
+func (r ApiWorkflowStepsServiceResolveCollisionsRequest) IdempotencyKey(idempotencyKey string) ApiWorkflowStepsServiceResolveCollisionsRequest {
 	r.idempotencyKey = &idempotencyKey
 	return r
 }
 
-func (r ApiWorkflowStepsServiceResolveStepCollisionsRequest) Execute() (*ResolveStepCollisionsResponse, *http.Response, error) {
-	return r.ApiService.WorkflowStepsServiceResolveStepCollisionsExecute(r)
+func (r ApiWorkflowStepsServiceResolveCollisionsRequest) Execute() (*ResolveStepCollisionsResponse, *http.Response, error) {
+	return r.ApiService.WorkflowStepsServiceResolveCollisionsExecute(r)
 }
 
 /*
-WorkflowStepsServiceResolveStepCollisions Resolve step collisions
+WorkflowStepsServiceResolveCollisions Resolve step collisions
 
 Pushes overlapping steps away from a given anchor step using iterative
 radial repulsion. The anchor step stays fixed. Use after adding or moving
@@ -1322,10 +1322,10 @@ Requires the `workflows:write` scope.
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param linkId
  @param stepId
- @return ApiWorkflowStepsServiceResolveStepCollisionsRequest
+ @return ApiWorkflowStepsServiceResolveCollisionsRequest
 */
-func (a *WorkflowStepsAPIService) WorkflowStepsServiceResolveStepCollisions(ctx context.Context, linkId string, stepId string) ApiWorkflowStepsServiceResolveStepCollisionsRequest {
-	return ApiWorkflowStepsServiceResolveStepCollisionsRequest{
+func (a *WorkflowStepsAPIService) WorkflowStepsServiceResolveCollisions(ctx context.Context, linkId string, stepId string) ApiWorkflowStepsServiceResolveCollisionsRequest {
+	return ApiWorkflowStepsServiceResolveCollisionsRequest{
 		ApiService: a,
 		ctx: ctx,
 		linkId: linkId,
@@ -1335,7 +1335,7 @@ func (a *WorkflowStepsAPIService) WorkflowStepsServiceResolveStepCollisions(ctx 
 
 // Execute executes the request
 //  @return ResolveStepCollisionsResponse
-func (a *WorkflowStepsAPIService) WorkflowStepsServiceResolveStepCollisionsExecute(r ApiWorkflowStepsServiceResolveStepCollisionsRequest) (*ResolveStepCollisionsResponse, *http.Response, error) {
+func (a *WorkflowStepsAPIService) WorkflowStepsServiceResolveCollisionsExecute(r ApiWorkflowStepsServiceResolveCollisionsRequest) (*ResolveStepCollisionsResponse, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
@@ -1343,7 +1343,7 @@ func (a *WorkflowStepsAPIService) WorkflowStepsServiceResolveStepCollisionsExecu
 		localVarReturnValue  *ResolveStepCollisionsResponse
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "WorkflowStepsAPIService.WorkflowStepsServiceResolveStepCollisions")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "WorkflowStepsAPIService.WorkflowStepsServiceResolveCollisions")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
@@ -1451,7 +1451,7 @@ func (r ApiWorkflowStepsServiceUpdateRequest) WorkflowStepsServiceUpdateBody(wor
 	return r
 }
 
-// Makes retrying this request safe. See components.parameters.IdempotencyKey.
+// A unique value per request, such as a UUID, that makes retrying it safe: a retry with the same key and body returns the first response instead of acting twice.
 func (r ApiWorkflowStepsServiceUpdateRequest) IdempotencyKey(idempotencyKey string) ApiWorkflowStepsServiceUpdateRequest {
 	r.idempotencyKey = &idempotencyKey
 	return r
@@ -1597,7 +1597,9 @@ func (r ApiWorkflowStepsServiceValidateWorkflowRequest) Execute() (*ValidateWork
 }
 
 /*
-WorkflowStepsServiceValidateWorkflow Method for WorkflowStepsServiceValidateWorkflow
+WorkflowStepsServiceValidateWorkflow Validate a link's workflow
+
+Check the link's workflow for problems before visitors meet them: a start (Link Visit) that leads nowhere, steps no path from the start reaches, and steps other than exits that lead nowhere. An empty list of issues means the workflow is sound.
 
 Requires the `workflows:read` scope.
 

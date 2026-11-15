@@ -1,9 +1,9 @@
 /*
 Linkbreakers API
 
-This is a documentation of all the APIs of Linkbreakers  ## Entry points  `GET https://api.linkbreakers.com/` and `GET https://api.linkbreakers.com/v1` answer without credentials with the API's name, version and links. This document is served at `https://api.linkbreakers.com/openapi.json`.  ## Rate limits  Every response describes where the caller stands in the IETF `RateLimit-Policy` and `RateLimit` header fields (draft-ietf-httpapi-ratelimit-headers), and in `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset` and `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset` (a Unix timestamp) for clients that read those. A request past the limit gets `429 Too Many Requests` with `Retry-After` in seconds.  - Workspace API token: 720 requests per 60 seconds, per token. - Dashboard session or OAuth token: 600 requests per 60 seconds, per token. - No credentials: 300 requests per 60 seconds, per client IP.  Each plan also includes a number of API calls per billing cycle. Past it, calls answer `429` with the code `MAX_PUBLIC_API_QUERIED_REACHED` until the cycle renews or the plan changes.  ## Pagination  Every list pages with opaque cursors (AIP-158). Pass `pageSize`, then send the `nextPageToken` of each response back as `pageToken` (or its alias `cursor`) to get the next page. An empty or absent `nextPageToken` means the list is complete. Each list operation describes this in `x-pagination`.  ## Batches and background jobs  `POST /v1/links/bulk` creates up to 250 links in one transactional request; `POST /v1/links/batch` takes the same links as a bare JSON array. `POST /v1/links/bulk/jobs` accepts the same batch and answers `202 Accepted` at once with a job and a `Location` header; poll `GET /v1/jobs/{id}` until `status` is `JOB_STATUS_SUCCEEDED` (the created link ids are in `linksBulkCreate.linkIds`) or `JOB_STATUS_FAILED` (`error` says why, and nothing was created). Jobs can be read for 24 hours after they finish.  ## Versioning and deprecation  The version is in the path: every operation lives under `/v1`. Within a version, changes are additive only: new operations, new optional request fields, new response fields and new enum values. Clients should ignore fields and enum values they do not know. Anything that would break an existing client ships under a new path version instead.  An operation is retired in two steps. First it is deprecated: it keeps working, is flagged `deprecated: true` in this document, and every response carries a `Deprecation` header field (RFC 9745) with the time it was deprecated and a `Link` with `rel=\"deprecation\"` to the policy. Then, at least 180 days later, it may be removed; that date is announced in advance in a `Sunset` header field (RFC 8594) and as `x-sunset` on the operation. The full policy: https://linkbreakers.com/help/article/api-versioning-and-deprecation-policy  ## Idempotent retries  Every POST, PUT and PATCH accepts an optional `Idempotency-Key` header (draft-ietf-httpapi-idempotency-key-header). Send a new unique value, such as a UUID, with each logical request and reuse it only to retry that request. A retry with the same key and the same request returns the first response, marked `Idempotent-Replayed: true`, instead of running again. Keys are scoped to the token and kept for 24 hours. The same key with a different request is refused with `422`, and a retry while the first request is still running gets `409` with `Retry-After`. Server errors (5xx) and refusals such as 401, 403 and 429 are not stored, so retrying them runs the request again.  ## Identifying your client  Send a `Linkbreakers-Client` request header saying which client made the call: `<client>/<version> (<details>)`, for example `my-integration/1.2.0 (python 3.12; linux)`. The official SDKs, the CLI and the MCP bridge set it for you, as `sdk-python/2.3.1 (python 3.12.4; linux)` or `cli/1.4.0 (darwin arm64)`. It is optional and changes nothing about how a request is handled; it tells us which clients and versions are in use, so we know what can be retired and what to fix first. Keep the details short and free of personal data. Browsers may send it too: it is allowed by CORS.
+The Linkbreakers REST API: links, QR codes, workflows, visitors and analytics, as JSON over HTTPS. Send a workspace API token as `Authorization: Bearer <token>`.  ## Entry points  `GET https://api.linkbreakers.com/` and `GET https://api.linkbreakers.com/v1` answer without credentials with the API's name, version and links. This document is served at `https://api.linkbreakers.com/openapi.json`.  ## Rate limits  Every response describes where the caller stands in the IETF `RateLimit-Policy` and `RateLimit` header fields (draft-ietf-httpapi-ratelimit-headers), and in `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset` and `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset` (a Unix timestamp) for clients that read those. A request past the limit gets `429 Too Many Requests` with `Retry-After` in seconds.  - Workspace API token: 720 requests per 60 seconds, per token. - Dashboard session or OAuth token: 600 requests per 60 seconds, per token. - No credentials: 300 requests per 60 seconds, per client IP.  Each plan also includes a number of API calls per billing cycle. Past it, calls answer `429` with the code `MAX_PUBLIC_API_QUERIED_REACHED` until the cycle renews or the plan changes.  ## Pagination  Every list pages with opaque cursors (AIP-158). Pass `pageSize`, then send the `nextPageToken` of each response back as `pageToken` (or its alias `cursor`) to get the next page. An empty or absent `nextPageToken` means the list is complete. Each list operation describes this in `x-pagination`.  ## Batches and background jobs  `POST /v1/links/bulk` creates up to 250 links in one transactional request; `POST /v1/links/batch` takes the same links as a bare JSON array. `POST /v1/links/bulk/jobs` accepts the same batch and answers `202 Accepted` at once with a job and a `Location` header; poll `GET /v1/jobs/{id}` until `status` is `JOB_STATUS_SUCCEEDED` (the created link ids are in `linksBulkCreate.linkIds`) or `JOB_STATUS_FAILED` (`error` says why, and nothing was created). Jobs can be read for 24 hours after they finish.  ## Versioning and deprecation  The version is in the path: every operation lives under `/v1`. Within a version, changes are additive only: new operations, new optional request fields, new response fields and new enum values. Clients should ignore fields and enum values they do not know. Anything that would break an existing client ships under a new path version instead.  An operation is retired in two steps. First it is deprecated: it keeps working, is flagged `deprecated: true` in this document, and every response carries a `Deprecation` header field (RFC 9745) with the time it was deprecated and a `Link` with `rel=\"deprecation\"` to the policy. Then, at least 180 days later, it may be removed; that date is announced in advance in a `Sunset` header field (RFC 8594) and as `x-sunset` on the operation. The full policy: https://linkbreakers.com/help/article/api-versioning-and-deprecation-policy  A renamed operation keeps answering its former path until that path's sunset. Responses on a former path carry the same `Deprecation`, `Sunset` and `Link` header fields; this document lists only the current path, and the policy lists the former ones.  ## Idempotent retries  Every POST, PUT and PATCH accepts an optional `Idempotency-Key` header (draft-ietf-httpapi-idempotency-key-header). Send a new unique value, such as a UUID, with each logical request and reuse it only to retry that request. A retry with the same key and the same request returns the first response, marked `Idempotent-Replayed: true`, instead of running again. Keys are scoped to the token and kept for 24 hours. The same key with a different request is refused with `422`, and a retry while the first request is still running gets `409` with `Retry-After`. Server errors (5xx) and refusals such as 401, 403 and 429 are not stored, so retrying them runs the request again.  ## Identifying your client  Send a `Linkbreakers-Client` request header saying which client made the call: `<client>/<version> (<details>)`, for example `my-integration/1.2.0 (python 3.12; linux)`. The official SDKs, the CLI and the MCP bridge set it for you, as `sdk-python/2.3.1 (python 3.12.4; linux)` or `cli/1.4.0 (darwin arm64)`. It is optional and changes nothing about how a request is handled; it tells us which clients and versions are in use, so we know what can be retired and what to fix first. Keep the details short and free of personal data. Browsers may send it too: it is allowed by CORS.
 
-API version: 1.198.0
+API version: 1.198.1
 */
 
 // Code generated by OpenAPI Generator (https://openapi-generator.tech); DO NOT EDIT.
@@ -37,7 +37,7 @@ func (r ApiMediaServiceCompleteReplaceRequest) Body(body map[string]interface{})
 	return r
 }
 
-// Makes retrying this request safe. See components.parameters.IdempotencyKey.
+// A unique value per request, such as a UUID, that makes retrying it safe: a retry with the same key and body returns the first response instead of acting twice.
 func (r ApiMediaServiceCompleteReplaceRequest) IdempotencyKey(idempotencyKey string) ApiMediaServiceCompleteReplaceRequest {
 	r.idempotencyKey = &idempotencyKey
 	return r
@@ -50,12 +50,12 @@ func (r ApiMediaServiceCompleteReplaceRequest) Execute() (*CompleteMediaReplaceR
 /*
 MediaServiceCompleteReplace Complete replacing a media file
 
-Checks the new file PUT to the replacement's upload_url like CompleteUpload does (its size, its real
+Checks the new file PUT to the replacement's uploadUrl like CompleteUpload does (its size, its real
 format read from its first bytes, its SHA-256 established by the server), checks again that every
 use rendered from the media accepts it and that it fits the storage allowance, then swaps it in. The
 media keeps its id and takes the new file's name, MIME type, kind, size and sha256; its old file is
 deleted. QR code designs that used the media as their logo keep their current logo and are detached
-from it; they are returned in detached_references. On any refusal the new file is discarded and the
+from it; they are returned in detachedReferences. On any refusal the new file is discarded and the
 media keeps its current file. A new file identical to the media's own changes nothing and returns
 unchanged true.
 
@@ -192,7 +192,7 @@ func (r ApiMediaServiceCompleteUploadRequest) Body(body map[string]interface{}) 
 	return r
 }
 
-// Makes retrying this request safe. See components.parameters.IdempotencyKey.
+// A unique value per request, such as a UUID, that makes retrying it safe: a retry with the same key and body returns the first response instead of acting twice.
 func (r ApiMediaServiceCompleteUploadRequest) IdempotencyKey(idempotencyKey string) ApiMediaServiceCompleteUploadRequest {
 	r.idempotencyKey = &idempotencyKey
 	return r
@@ -205,7 +205,7 @@ func (r ApiMediaServiceCompleteUploadRequest) Execute() (*CompleteMediaUploadRes
 /*
 MediaServiceCompleteUpload Complete a direct media upload
 
-Checks the file PUT to the upload_url: its size, its real format read from its first bytes,
+Checks the file PUT to the uploadUrl: its size, its real format read from its first bytes,
 and the storage allowance. When it matches what CreateUpload declared, the media becomes READY
 and is returned with a signed URL. When it does not, the file and the media are discarded and
 the error says why; start a new upload. Completing a media item that is already READY returns it.
@@ -344,7 +344,7 @@ func (r ApiMediaServiceCreateRequest) CreateMediaRequest(createMediaRequest Crea
 	return r
 }
 
-// Makes retrying this request safe. See components.parameters.IdempotencyKey.
+// A unique value per request, such as a UUID, that makes retrying it safe: a retry with the same key and body returns the first response instead of acting twice.
 func (r ApiMediaServiceCreateRequest) IdempotencyKey(idempotencyKey string) ApiMediaServiceCreateRequest {
 	r.idempotencyKey = &idempotencyKey
 	return r
@@ -359,7 +359,7 @@ MediaServiceCreate Upload a media file
 
 Uploads a file sent in the request itself, base64 encoded over HTTP, up to 3 MB.
 Larger files (a PDF brochure, a video) are uploaded straight to storage instead:
-CreateUpload, a PUT of the file to the returned upload_url, then CompleteUpload.
+CreateUpload, a PUT of the file to the returned uploadUrl, then CompleteUpload.
 A media item only has a kind, read from its bytes: images (PNG, JPEG, WebP, SVG) up to 10 MB,
 PDF documents up to 25 MB and MP4 videos up to 50 MB. Nothing about where it will be used is
 needed at upload: any image can then be a QR code logo, a background cover, a badge or a footer
@@ -496,7 +496,7 @@ func (r ApiMediaServiceCreateReplaceUploadRequest) MediaServiceCreateReplaceUplo
 	return r
 }
 
-// Makes retrying this request safe. See components.parameters.IdempotencyKey.
+// A unique value per request, such as a UUID, that makes retrying it safe: a retry with the same key and body returns the first response instead of acting twice.
 func (r ApiMediaServiceCreateReplaceUploadRequest) IdempotencyKey(idempotencyKey string) ApiMediaServiceCreateReplaceUploadRequest {
 	r.idempotencyKey = &idempotencyKey
 	return r
@@ -513,8 +513,8 @@ Starts replacing the file of an existing media item with a new one uploaded stra
 The media keeps its id, so everything using it follows: Open media steps hand out the new file and
 page themes show it as their background cover, badge or footer logo from the next visit. Declare the
 new file's name, MIME type and exact size in bytes, and optionally its sha256. Then PUT its bytes to
-upload_url with the upload_headers before upload_expires_at, and call CompleteReplace with the
-replacement_id. Until then the media is unchanged; a replacement not completed within an hour is
+uploadUrl with the uploadHeaders before uploadExpiresAt, and call CompleteReplace with the
+replacementId. Until then the media is unchanged; a replacement not completed within an hour is
 discarded.
 
 The new file must be acceptable to every use rendered from the media's file: a page theme cover,
@@ -527,7 +527,7 @@ media when the replacement completes.
 
 A file another media item of the workspace holds is refused with 409 MEDIA_ALREADY_EXISTS (metadata
 existingMediaId and existingFileName). Declaring the media's own file returns unchanged true and no
-upload_url: there is nothing to replace. Only the difference in size counts against the workspace's
+uploadUrl: there is nothing to replace. Only the difference in size counts against the workspace's
 storage allowance.
 
 Requires the `media:write` scope.
@@ -659,7 +659,7 @@ func (r ApiMediaServiceCreateUploadRequest) CreateMediaUploadRequest(createMedia
 	return r
 }
 
-// Makes retrying this request safe. See components.parameters.IdempotencyKey.
+// A unique value per request, such as a UUID, that makes retrying it safe: a retry with the same key and body returns the first response instead of acting twice.
 func (r ApiMediaServiceCreateUploadRequest) IdempotencyKey(idempotencyKey string) ApiMediaServiceCreateUploadRequest {
 	r.idempotencyKey = &idempotencyKey
 	return r
@@ -676,8 +676,8 @@ Reserves a media item for a file uploaded straight to storage, so large files ne
 through the API. Declare the file's name, MIME type and exact size in bytes; they are checked
 against the limit for the file's kind (images up to 10 MB, PDF documents up to 25 MB, MP4
 videos up to 50 MB) and against the workspace's storage allowance now, and against the
-uploaded bytes on completion. Then PUT the file's bytes to upload_url with the
-upload_headers (and a Content-Length equal to size) before upload_expires_at, and call
+uploaded bytes on completion. Then PUT the file's bytes to uploadUrl with the
+uploadHeaders (and a Content-Length equal to size) before uploadExpiresAt, and call
 CompleteUpload. Until completed the media is PENDING: it is not listed and cannot be used.
 An upload not completed within an hour is discarded.
 
@@ -685,7 +685,7 @@ A workspace holds each file once. Optionally declare sha256, the file's SHA-256 
 workspace already holds is then refused here, before any upload, with 409 MEDIA_ALREADY_EXISTS,
 whose metadata names that media in existingMediaId and existingFileName (use it instead), and
 storage refuses bytes that do not match the hash, so the PUT must send the x-amz-checksum-sha256
-header from upload_headers. Without sha256 the duplicate is caught on completion instead.
+header from uploadHeaders. Without sha256 the duplicate is caught on completion instead.
 
 Requires the `media:write` scope.
 
@@ -1067,7 +1067,7 @@ func (r ApiMediaServiceImportRequest) ImportMediaRequest(importMediaRequest Impo
 	return r
 }
 
-// Makes retrying this request safe. See components.parameters.IdempotencyKey.
+// A unique value per request, such as a UUID, that makes retrying it safe: a retry with the same key and body returns the first response instead of acting twice.
 func (r ApiMediaServiceImportRequest) IdempotencyKey(idempotencyKey string) ApiMediaServiceImportRequest {
 	r.idempotencyKey = &idempotencyKey
 	return r
@@ -1083,7 +1083,7 @@ MediaServiceImport Import a media file from a URL
 Fetches a file server-side and stores it as a READY media item, so a file that is already
 online, or one attached to an Assistant conversation, never has to be downloaded and uploaded
 again. Give exactly one source: url, a public https address the file is downloaded from, or
-assistant_attachment_id, a file the caller attached to their own Assistant conversation. The
+assistantAttachmentId, a file the caller attached to their own Assistant conversation. The
 kind is read from the file's bytes, never from its name or a Content-Type header, and the same
 limits as every upload apply: images (PNG, JPEG, WebP, SVG) up to 10 MB, PDF documents up to
 25 MB and MP4 videos up to 50 MB, within the workspace's media storage allowance. A URL must
@@ -1231,7 +1231,7 @@ func (r ApiMediaServiceListRequest) PageToken(pageToken string) ApiMediaServiceL
 	return r
 }
 
-// Deprecated: filter by uploaded_from instead. Still matches the value recorded at upload, which says nothing about where the media is used.   - USAGE_UNSPECIFIED: Not set  - USAGE_CENTRAL_QRCODE_IMAGE: The logo in the center of a QR code  - USAGE_BACKGROUND_COVER: A page theme&#39;s background cover  - USAGE_BADGE: A page theme&#39;s badge image  - USAGE_FOOTER_LOGO: A page theme&#39;s footer logo  - USAGE_OPEN_MEDIA: Media an Open media workflow step hands to visitors: a PDF menu or brochure, an image or an MP4 video
+// Deprecated: filter by uploadedFrom instead. Still matches the value recorded at upload, which says nothing about where the media is used.   - USAGE_UNSPECIFIED: Not set  - USAGE_CENTRAL_QRCODE_IMAGE: The logo in the center of a QR code  - USAGE_BACKGROUND_COVER: A page theme&#39;s background cover  - USAGE_BADGE: A page theme&#39;s badge image  - USAGE_FOOTER_LOGO: A page theme&#39;s footer logo  - USAGE_OPEN_MEDIA: Media an Open media workflow step hands to visitors: a PDF menu or brochure, an image or an MP4 video
 func (r ApiMediaServiceListRequest) Usage(usage string) ApiMediaServiceListRequest {
 	r.usage = &usage
 	return r
@@ -1263,7 +1263,7 @@ func (r ApiMediaServiceListRequest) Execute() (*ListMediaResponse, *http.Respons
 MediaServiceList List media files
 
 Retrieves the workspace's ready media files, newest first, optionally narrowed to one kind or
-to where they were uploaded from. total_count is every item matching the filters across all
+to where they were uploaded from. totalCount is every item matching the filters across all
 pages. Each item lists its references: where it is used.
 
 Requires the `media:read` scope.
@@ -1404,7 +1404,7 @@ func (r ApiMediaServiceReplaceImportRequest) MediaServiceReplaceImportBody(media
 	return r
 }
 
-// Makes retrying this request safe. See components.parameters.IdempotencyKey.
+// A unique value per request, such as a UUID, that makes retrying it safe: a retry with the same key and body returns the first response instead of acting twice.
 func (r ApiMediaServiceReplaceImportRequest) IdempotencyKey(idempotencyKey string) ApiMediaServiceReplaceImportRequest {
 	r.idempotencyKey = &idempotencyKey
 	return r

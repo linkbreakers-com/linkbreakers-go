@@ -1,9 +1,9 @@
 /*
 Linkbreakers API
 
-This is a documentation of all the APIs of Linkbreakers  ## Entry points  `GET https://api.linkbreakers.com/` and `GET https://api.linkbreakers.com/v1` answer without credentials with the API's name, version and links. This document is served at `https://api.linkbreakers.com/openapi.json`.  ## Rate limits  Every response describes where the caller stands in the IETF `RateLimit-Policy` and `RateLimit` header fields (draft-ietf-httpapi-ratelimit-headers), and in `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset` and `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset` (a Unix timestamp) for clients that read those. A request past the limit gets `429 Too Many Requests` with `Retry-After` in seconds.  - Workspace API token: 720 requests per 60 seconds, per token. - Dashboard session or OAuth token: 600 requests per 60 seconds, per token. - No credentials: 300 requests per 60 seconds, per client IP.  Each plan also includes a number of API calls per billing cycle. Past it, calls answer `429` with the code `MAX_PUBLIC_API_QUERIED_REACHED` until the cycle renews or the plan changes.  ## Pagination  Every list pages with opaque cursors (AIP-158). Pass `pageSize`, then send the `nextPageToken` of each response back as `pageToken` (or its alias `cursor`) to get the next page. An empty or absent `nextPageToken` means the list is complete. Each list operation describes this in `x-pagination`.  ## Batches and background jobs  `POST /v1/links/bulk` creates up to 250 links in one transactional request; `POST /v1/links/batch` takes the same links as a bare JSON array. `POST /v1/links/bulk/jobs` accepts the same batch and answers `202 Accepted` at once with a job and a `Location` header; poll `GET /v1/jobs/{id}` until `status` is `JOB_STATUS_SUCCEEDED` (the created link ids are in `linksBulkCreate.linkIds`) or `JOB_STATUS_FAILED` (`error` says why, and nothing was created). Jobs can be read for 24 hours after they finish.  ## Versioning and deprecation  The version is in the path: every operation lives under `/v1`. Within a version, changes are additive only: new operations, new optional request fields, new response fields and new enum values. Clients should ignore fields and enum values they do not know. Anything that would break an existing client ships under a new path version instead.  An operation is retired in two steps. First it is deprecated: it keeps working, is flagged `deprecated: true` in this document, and every response carries a `Deprecation` header field (RFC 9745) with the time it was deprecated and a `Link` with `rel=\"deprecation\"` to the policy. Then, at least 180 days later, it may be removed; that date is announced in advance in a `Sunset` header field (RFC 8594) and as `x-sunset` on the operation. The full policy: https://linkbreakers.com/help/article/api-versioning-and-deprecation-policy  ## Idempotent retries  Every POST, PUT and PATCH accepts an optional `Idempotency-Key` header (draft-ietf-httpapi-idempotency-key-header). Send a new unique value, such as a UUID, with each logical request and reuse it only to retry that request. A retry with the same key and the same request returns the first response, marked `Idempotent-Replayed: true`, instead of running again. Keys are scoped to the token and kept for 24 hours. The same key with a different request is refused with `422`, and a retry while the first request is still running gets `409` with `Retry-After`. Server errors (5xx) and refusals such as 401, 403 and 429 are not stored, so retrying them runs the request again.  ## Identifying your client  Send a `Linkbreakers-Client` request header saying which client made the call: `<client>/<version> (<details>)`, for example `my-integration/1.2.0 (python 3.12; linux)`. The official SDKs, the CLI and the MCP bridge set it for you, as `sdk-python/2.3.1 (python 3.12.4; linux)` or `cli/1.4.0 (darwin arm64)`. It is optional and changes nothing about how a request is handled; it tells us which clients and versions are in use, so we know what can be retired and what to fix first. Keep the details short and free of personal data. Browsers may send it too: it is allowed by CORS.
+The Linkbreakers REST API: links, QR codes, workflows, visitors and analytics, as JSON over HTTPS. Send a workspace API token as `Authorization: Bearer <token>`.  ## Entry points  `GET https://api.linkbreakers.com/` and `GET https://api.linkbreakers.com/v1` answer without credentials with the API's name, version and links. This document is served at `https://api.linkbreakers.com/openapi.json`.  ## Rate limits  Every response describes where the caller stands in the IETF `RateLimit-Policy` and `RateLimit` header fields (draft-ietf-httpapi-ratelimit-headers), and in `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset` and `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset` (a Unix timestamp) for clients that read those. A request past the limit gets `429 Too Many Requests` with `Retry-After` in seconds.  - Workspace API token: 720 requests per 60 seconds, per token. - Dashboard session or OAuth token: 600 requests per 60 seconds, per token. - No credentials: 300 requests per 60 seconds, per client IP.  Each plan also includes a number of API calls per billing cycle. Past it, calls answer `429` with the code `MAX_PUBLIC_API_QUERIED_REACHED` until the cycle renews or the plan changes.  ## Pagination  Every list pages with opaque cursors (AIP-158). Pass `pageSize`, then send the `nextPageToken` of each response back as `pageToken` (or its alias `cursor`) to get the next page. An empty or absent `nextPageToken` means the list is complete. Each list operation describes this in `x-pagination`.  ## Batches and background jobs  `POST /v1/links/bulk` creates up to 250 links in one transactional request; `POST /v1/links/batch` takes the same links as a bare JSON array. `POST /v1/links/bulk/jobs` accepts the same batch and answers `202 Accepted` at once with a job and a `Location` header; poll `GET /v1/jobs/{id}` until `status` is `JOB_STATUS_SUCCEEDED` (the created link ids are in `linksBulkCreate.linkIds`) or `JOB_STATUS_FAILED` (`error` says why, and nothing was created). Jobs can be read for 24 hours after they finish.  ## Versioning and deprecation  The version is in the path: every operation lives under `/v1`. Within a version, changes are additive only: new operations, new optional request fields, new response fields and new enum values. Clients should ignore fields and enum values they do not know. Anything that would break an existing client ships under a new path version instead.  An operation is retired in two steps. First it is deprecated: it keeps working, is flagged `deprecated: true` in this document, and every response carries a `Deprecation` header field (RFC 9745) with the time it was deprecated and a `Link` with `rel=\"deprecation\"` to the policy. Then, at least 180 days later, it may be removed; that date is announced in advance in a `Sunset` header field (RFC 8594) and as `x-sunset` on the operation. The full policy: https://linkbreakers.com/help/article/api-versioning-and-deprecation-policy  A renamed operation keeps answering its former path until that path's sunset. Responses on a former path carry the same `Deprecation`, `Sunset` and `Link` header fields; this document lists only the current path, and the policy lists the former ones.  ## Idempotent retries  Every POST, PUT and PATCH accepts an optional `Idempotency-Key` header (draft-ietf-httpapi-idempotency-key-header). Send a new unique value, such as a UUID, with each logical request and reuse it only to retry that request. A retry with the same key and the same request returns the first response, marked `Idempotent-Replayed: true`, instead of running again. Keys are scoped to the token and kept for 24 hours. The same key with a different request is refused with `422`, and a retry while the first request is still running gets `409` with `Retry-After`. Server errors (5xx) and refusals such as 401, 403 and 429 are not stored, so retrying them runs the request again.  ## Identifying your client  Send a `Linkbreakers-Client` request header saying which client made the call: `<client>/<version> (<details>)`, for example `my-integration/1.2.0 (python 3.12; linux)`. The official SDKs, the CLI and the MCP bridge set it for you, as `sdk-python/2.3.1 (python 3.12.4; linux)` or `cli/1.4.0 (darwin arm64)`. It is optional and changes nothing about how a request is handled; it tells us which clients and versions are in use, so we know what can be retired and what to fix first. Keep the details short and free of personal data. Browsers may send it too: it is allowed by CORS.
 
-API version: 1.198.0
+API version: 1.198.1
 */
 
 // Code generated by OpenAPI Generator (https://openapi-generator.tech); DO NOT EDIT.
@@ -25,57 +25,189 @@ import (
 // EventsAPIService EventsAPI service
 type EventsAPIService service
 
-type ApiEventsServiceListEventTracesRequest struct {
+type ApiEventsServiceListRequest struct {
 	ctx context.Context
 	ApiService *EventsAPIService
-	eventId string
+	linkId *string
+	startDate *time.Time
+	endDate *time.Time
+	responseFormat *string
+	pageSize *int64
+	pageToken *string
+	include *[]string
+	visitorId *string
+	directoryId *string
+	tagId *string
+	countries *[]string
+	cursor *string
 }
 
-func (r ApiEventsServiceListEventTracesRequest) Execute() (*ListEventTracesResponse, *http.Response, error) {
-	return r.ApiService.EventsServiceListEventTracesExecute(r)
+// Filter events to a specific link (optional, UUID)  Optional
+func (r ApiEventsServiceListRequest) LinkId(linkId string) ApiEventsServiceListRequest {
+	r.linkId = &linkId
+	return r
+}
+
+// Inclusive start timestamp for the query window (workspace timezone aware). Note: For free plan workspaces, this will be automatically adjusted to not go back more than 2 weeks. For light plan workspaces, this will be automatically adjusted to not go back more than 3 months.
+func (r ApiEventsServiceListRequest) StartDate(startDate time.Time) ApiEventsServiceListRequest {
+	r.startDate = &startDate
+	return r
+}
+
+// Inclusive end timestamp for the query window
+func (r ApiEventsServiceListRequest) EndDate(endDate time.Time) ApiEventsServiceListRequest {
+	r.endDate = &endDate
+	return r
+}
+
+// Desired response format (defaults to RESPONSE_FORMAT_JSON; use RESPONSE_FORMAT_CSV for exports)   - RESPONSE_FORMAT_UNSPECIFIED: Response format not specified  - RESPONSE_FORMAT_JSON: Response format JSON  - RESPONSE_FORMAT_CSV: Response format CSV
+func (r ApiEventsServiceListRequest) ResponseFormat(responseFormat string) ApiEventsServiceListRequest {
+	r.responseFormat = &responseFormat
+	return r
+}
+
+// Maximum number of events to return (default: 100, max: 1000)  Maximum number of events to return (default: 100, max: 1000)
+func (r ApiEventsServiceListRequest) PageSize(pageSize int64) ApiEventsServiceListRequest {
+	r.pageSize = &pageSize
+	return r
+}
+
+// Cursor token to retrieve the next page of results  Cursor token to retrieve the next page of results
+func (r ApiEventsServiceListRequest) PageToken(pageToken string) ApiEventsServiceListRequest {
+	r.pageToken = &pageToken
+	return r
+}
+
+// Optional list of relationships to include: visitor, device, link, workspace, journey  Optional list of relationships to include: visitor, device, link, workspace, journey
+func (r ApiEventsServiceListRequest) Include(include []string) ApiEventsServiceListRequest {
+	r.include = &include
+	return r
+}
+
+// Filter events to a specific visitor (optional, UUID)  Optional
+func (r ApiEventsServiceListRequest) VisitorId(visitorId string) ApiEventsServiceListRequest {
+	r.visitorId = &visitorId
+	return r
+}
+
+// Optional directory filter (UUID): the links of this directory and of every directory below it. Send linkId or directoryId, not both
+func (r ApiEventsServiceListRequest) DirectoryId(directoryId string) ApiEventsServiceListRequest {
+	r.directoryId = &directoryId
+	return r
+}
+
+// Optional tag filter (UUID): every link carrying this tag. Send at most one of linkId, directoryId and tagId
+func (r ApiEventsServiceListRequest) TagId(tagId string) ApiEventsServiceListRequest {
+	r.tagId = &tagId
+	return r
+}
+
+// Optional country filter: visits from any of these countries (ISO 3166-1 alpha-2 codes, e.g. \&quot;FR\&quot;). Combines with the link, directory or tag filter
+func (r ApiEventsServiceListRequest) Countries(countries []string) ApiEventsServiceListRequest {
+	r.countries = &countries
+	return r
+}
+
+// Opaque cursor from the previous page&#39;s nextPageToken. Same as pageToken; when both are sent, pageToken wins.
+func (r ApiEventsServiceListRequest) Cursor(cursor string) ApiEventsServiceListRequest {
+	r.cursor = &cursor
+	return r
+}
+
+func (r ApiEventsServiceListRequest) Execute() (*ListEventsResponse, *http.Response, error) {
+	return r.ApiService.EventsServiceListExecute(r)
 }
 
 /*
-EventsServiceListEventTraces List event traces
+EventsServiceList List events
 
-Retrieves all workflow step traces for an event, ordered by completion time. Useful for analyzing user engagement and workflow progression.
+Retrieves the workspace's event timeline, returning paginated JSON by default or CSV payloads for reporting exports. For workspaces on the free plan, events older than 2 weeks are restricted, and for light plan workspaces, events older than 3 months are restricted.
 
 Requires the `analytics:read` scope.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param eventId Event ID to get traces for (UUID)
- @return ApiEventsServiceListEventTracesRequest
+ @return ApiEventsServiceListRequest
 */
-func (a *EventsAPIService) EventsServiceListEventTraces(ctx context.Context, eventId string) ApiEventsServiceListEventTracesRequest {
-	return ApiEventsServiceListEventTracesRequest{
+func (a *EventsAPIService) EventsServiceList(ctx context.Context) ApiEventsServiceListRequest {
+	return ApiEventsServiceListRequest{
 		ApiService: a,
 		ctx: ctx,
-		eventId: eventId,
 	}
 }
 
 // Execute executes the request
-//  @return ListEventTracesResponse
-func (a *EventsAPIService) EventsServiceListEventTracesExecute(r ApiEventsServiceListEventTracesRequest) (*ListEventTracesResponse, *http.Response, error) {
+//  @return ListEventsResponse
+func (a *EventsAPIService) EventsServiceListExecute(r ApiEventsServiceListRequest) (*ListEventsResponse, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
-		localVarReturnValue  *ListEventTracesResponse
+		localVarReturnValue  *ListEventsResponse
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "EventsAPIService.EventsServiceListEventTraces")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "EventsAPIService.EventsServiceList")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v1/events/{eventId}/traces"
-	localVarPath = strings.Replace(localVarPath, "{"+"eventId"+"}", url.PathEscape(parameterValueToString(r.eventId, "eventId")), -1)
+	localVarPath := localBasePath + "/v1/events"
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 
+	if r.linkId != nil {
+		parameterAddToHeaderOrQuery(localVarQueryParams, "linkId", r.linkId, "form", "")
+	}
+	if r.startDate != nil {
+		parameterAddToHeaderOrQuery(localVarQueryParams, "startDate", r.startDate, "form", "")
+	}
+	if r.endDate != nil {
+		parameterAddToHeaderOrQuery(localVarQueryParams, "endDate", r.endDate, "form", "")
+	}
+	if r.responseFormat != nil {
+		parameterAddToHeaderOrQuery(localVarQueryParams, "responseFormat", r.responseFormat, "form", "")
+	}
+	if r.pageSize != nil {
+		parameterAddToHeaderOrQuery(localVarQueryParams, "pageSize", r.pageSize, "form", "")
+	}
+	if r.pageToken != nil {
+		parameterAddToHeaderOrQuery(localVarQueryParams, "pageToken", r.pageToken, "form", "")
+	}
+	if r.include != nil {
+		t := *r.include
+		if reflect.TypeOf(t).Kind() == reflect.Slice {
+			s := reflect.ValueOf(t)
+			for i := 0; i < s.Len(); i++ {
+				parameterAddToHeaderOrQuery(localVarQueryParams, "include", s.Index(i).Interface(), "form", "multi")
+			}
+		} else {
+			parameterAddToHeaderOrQuery(localVarQueryParams, "include", t, "form", "multi")
+		}
+	}
+	if r.visitorId != nil {
+		parameterAddToHeaderOrQuery(localVarQueryParams, "visitorId", r.visitorId, "form", "")
+	}
+	if r.directoryId != nil {
+		parameterAddToHeaderOrQuery(localVarQueryParams, "directoryId", r.directoryId, "form", "")
+	}
+	if r.tagId != nil {
+		parameterAddToHeaderOrQuery(localVarQueryParams, "tagId", r.tagId, "form", "")
+	}
+	if r.countries != nil {
+		t := *r.countries
+		if reflect.TypeOf(t).Kind() == reflect.Slice {
+			s := reflect.ValueOf(t)
+			for i := 0; i < s.Len(); i++ {
+				parameterAddToHeaderOrQuery(localVarQueryParams, "countries", s.Index(i).Interface(), "form", "multi")
+			}
+		} else {
+			parameterAddToHeaderOrQuery(localVarQueryParams, "countries", t, "form", "multi")
+		}
+	}
+	if r.cursor != nil {
+		parameterAddToHeaderOrQuery(localVarQueryParams, "cursor", r.cursor, "form", "")
+	}
 	// to determine the Content-Type header
 	localVarHTTPContentTypes := []string{}
 
@@ -149,189 +281,57 @@ func (a *EventsAPIService) EventsServiceListEventTracesExecute(r ApiEventsServic
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiEventsServiceListEventsRequest struct {
+type ApiEventsServiceListTracesRequest struct {
 	ctx context.Context
 	ApiService *EventsAPIService
-	linkId *string
-	startDate *time.Time
-	endDate *time.Time
-	responseFormat *string
-	pageSize *int64
-	pageToken *string
-	include *[]string
-	visitorId *string
-	directoryId *string
-	tagId *string
-	countries *[]string
-	cursor *string
+	eventId string
 }
 
-// Filter events to a specific link (optional, UUID)  Optional
-func (r ApiEventsServiceListEventsRequest) LinkId(linkId string) ApiEventsServiceListEventsRequest {
-	r.linkId = &linkId
-	return r
-}
-
-// Inclusive start timestamp for the query window (workspace timezone aware). Note: For free plan workspaces, this will be automatically adjusted to not go back more than 2 weeks. For light plan workspaces, this will be automatically adjusted to not go back more than 3 months.
-func (r ApiEventsServiceListEventsRequest) StartDate(startDate time.Time) ApiEventsServiceListEventsRequest {
-	r.startDate = &startDate
-	return r
-}
-
-// Inclusive end timestamp for the query window
-func (r ApiEventsServiceListEventsRequest) EndDate(endDate time.Time) ApiEventsServiceListEventsRequest {
-	r.endDate = &endDate
-	return r
-}
-
-// Desired response format (defaults to RESPONSE_FORMAT_JSON; use RESPONSE_FORMAT_CSV for exports)   - RESPONSE_FORMAT_UNSPECIFIED: Response format not specified  - RESPONSE_FORMAT_JSON: Response format JSON  - RESPONSE_FORMAT_CSV: Response format CSV
-func (r ApiEventsServiceListEventsRequest) ResponseFormat(responseFormat string) ApiEventsServiceListEventsRequest {
-	r.responseFormat = &responseFormat
-	return r
-}
-
-// Maximum number of events to return (default: 100, max: 1000)  Maximum number of events to return (default: 100, max: 1000)
-func (r ApiEventsServiceListEventsRequest) PageSize(pageSize int64) ApiEventsServiceListEventsRequest {
-	r.pageSize = &pageSize
-	return r
-}
-
-// Cursor token to retrieve the next page of results  Cursor token to retrieve the next page of results
-func (r ApiEventsServiceListEventsRequest) PageToken(pageToken string) ApiEventsServiceListEventsRequest {
-	r.pageToken = &pageToken
-	return r
-}
-
-// Optional list of relationships to include: visitor, device, link, workspace, journey  Optional list of relationships to include: visitor, device, link, workspace, journey
-func (r ApiEventsServiceListEventsRequest) Include(include []string) ApiEventsServiceListEventsRequest {
-	r.include = &include
-	return r
-}
-
-// Filter events to a specific visitor (optional, UUID)  Optional
-func (r ApiEventsServiceListEventsRequest) VisitorId(visitorId string) ApiEventsServiceListEventsRequest {
-	r.visitorId = &visitorId
-	return r
-}
-
-// Optional directory filter (UUID): the links of this directory and of every directory below it. Send link_id or directory_id, not both
-func (r ApiEventsServiceListEventsRequest) DirectoryId(directoryId string) ApiEventsServiceListEventsRequest {
-	r.directoryId = &directoryId
-	return r
-}
-
-// Optional tag filter (UUID): every link carrying this tag. Send at most one of link_id, directory_id and tag_id
-func (r ApiEventsServiceListEventsRequest) TagId(tagId string) ApiEventsServiceListEventsRequest {
-	r.tagId = &tagId
-	return r
-}
-
-// Optional country filter: visits from any of these countries (ISO 3166-1 alpha-2 codes, e.g. \&quot;FR\&quot;). Combines with the link, directory or tag filter
-func (r ApiEventsServiceListEventsRequest) Countries(countries []string) ApiEventsServiceListEventsRequest {
-	r.countries = &countries
-	return r
-}
-
-// Opaque cursor from the previous page&#39;s nextPageToken. Same as pageToken; when both are sent, pageToken wins.
-func (r ApiEventsServiceListEventsRequest) Cursor(cursor string) ApiEventsServiceListEventsRequest {
-	r.cursor = &cursor
-	return r
-}
-
-func (r ApiEventsServiceListEventsRequest) Execute() (*ListEventsResponse, *http.Response, error) {
-	return r.ApiService.EventsServiceListEventsExecute(r)
+func (r ApiEventsServiceListTracesRequest) Execute() (*ListEventTracesResponse, *http.Response, error) {
+	return r.ApiService.EventsServiceListTracesExecute(r)
 }
 
 /*
-EventsServiceListEvents List events
+EventsServiceListTraces List event traces
 
-Retrieves the workspace's event timeline, returning paginated JSON by default or CSV payloads for reporting exports. For workspaces on the free plan, events older than 2 weeks are restricted, and for light plan workspaces, events older than 3 months are restricted.
+Retrieves all workflow step traces for an event, ordered by completion time. Useful for analyzing user engagement and workflow progression.
 
 Requires the `analytics:read` scope.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiEventsServiceListEventsRequest
+ @param eventId Event ID to get traces for (UUID)
+ @return ApiEventsServiceListTracesRequest
 */
-func (a *EventsAPIService) EventsServiceListEvents(ctx context.Context) ApiEventsServiceListEventsRequest {
-	return ApiEventsServiceListEventsRequest{
+func (a *EventsAPIService) EventsServiceListTraces(ctx context.Context, eventId string) ApiEventsServiceListTracesRequest {
+	return ApiEventsServiceListTracesRequest{
 		ApiService: a,
 		ctx: ctx,
+		eventId: eventId,
 	}
 }
 
 // Execute executes the request
-//  @return ListEventsResponse
-func (a *EventsAPIService) EventsServiceListEventsExecute(r ApiEventsServiceListEventsRequest) (*ListEventsResponse, *http.Response, error) {
+//  @return ListEventTracesResponse
+func (a *EventsAPIService) EventsServiceListTracesExecute(r ApiEventsServiceListTracesRequest) (*ListEventTracesResponse, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
-		localVarReturnValue  *ListEventsResponse
+		localVarReturnValue  *ListEventTracesResponse
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "EventsAPIService.EventsServiceListEvents")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "EventsAPIService.EventsServiceListTraces")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v1/events"
+	localVarPath := localBasePath + "/v1/events/{eventId}/traces"
+	localVarPath = strings.Replace(localVarPath, "{"+"eventId"+"}", url.PathEscape(parameterValueToString(r.eventId, "eventId")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 
-	if r.linkId != nil {
-		parameterAddToHeaderOrQuery(localVarQueryParams, "linkId", r.linkId, "form", "")
-	}
-	if r.startDate != nil {
-		parameterAddToHeaderOrQuery(localVarQueryParams, "startDate", r.startDate, "form", "")
-	}
-	if r.endDate != nil {
-		parameterAddToHeaderOrQuery(localVarQueryParams, "endDate", r.endDate, "form", "")
-	}
-	if r.responseFormat != nil {
-		parameterAddToHeaderOrQuery(localVarQueryParams, "responseFormat", r.responseFormat, "form", "")
-	}
-	if r.pageSize != nil {
-		parameterAddToHeaderOrQuery(localVarQueryParams, "pageSize", r.pageSize, "form", "")
-	}
-	if r.pageToken != nil {
-		parameterAddToHeaderOrQuery(localVarQueryParams, "pageToken", r.pageToken, "form", "")
-	}
-	if r.include != nil {
-		t := *r.include
-		if reflect.TypeOf(t).Kind() == reflect.Slice {
-			s := reflect.ValueOf(t)
-			for i := 0; i < s.Len(); i++ {
-				parameterAddToHeaderOrQuery(localVarQueryParams, "include", s.Index(i).Interface(), "form", "multi")
-			}
-		} else {
-			parameterAddToHeaderOrQuery(localVarQueryParams, "include", t, "form", "multi")
-		}
-	}
-	if r.visitorId != nil {
-		parameterAddToHeaderOrQuery(localVarQueryParams, "visitorId", r.visitorId, "form", "")
-	}
-	if r.directoryId != nil {
-		parameterAddToHeaderOrQuery(localVarQueryParams, "directoryId", r.directoryId, "form", "")
-	}
-	if r.tagId != nil {
-		parameterAddToHeaderOrQuery(localVarQueryParams, "tagId", r.tagId, "form", "")
-	}
-	if r.countries != nil {
-		t := *r.countries
-		if reflect.TypeOf(t).Kind() == reflect.Slice {
-			s := reflect.ValueOf(t)
-			for i := 0; i < s.Len(); i++ {
-				parameterAddToHeaderOrQuery(localVarQueryParams, "countries", s.Index(i).Interface(), "form", "multi")
-			}
-		} else {
-			parameterAddToHeaderOrQuery(localVarQueryParams, "countries", t, "form", "multi")
-		}
-	}
-	if r.cursor != nil {
-		parameterAddToHeaderOrQuery(localVarQueryParams, "cursor", r.cursor, "form", "")
-	}
 	// to determine the Content-Type header
 	localVarHTTPContentTypes := []string{}
 
