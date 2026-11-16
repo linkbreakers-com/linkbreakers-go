@@ -48,7 +48,7 @@ info:
 
     Send a `Linkbreakers-Client` request header saying which client made the call: `<client>/<version> (<details>)`, for example `my-integration/1.2.0 (python 3.12; linux)`. The official SDKs, the CLI and the MCP bridge set it for you, as `sdk-python/2.3.1 (python 3.12.4; linux)` or `cli/1.4.0 (darwin arm64)`. It is optional and changes nothing about how a request is handled; it tells us which clients and versions are in use, so we know what can be retired and what to fix first. Keep the details short and free of personal data. Browsers may send it too: it is allowed by CORS.
   title: Linkbreakers API
-  version: 1.199.0
+  version: 1.200.0
   x-api-versioning:
     compatibility: additive changes only within a version
     currentVersion: v1
@@ -94,15 +94,12 @@ tags:
 - description: "Every scan and visit as a raw event, and the workflow steps each visitor\
     \ went through."
   name: Events
-- description: "Connect Tally, Typeform, Jotform or Paperform: each response is attached\
-    \ to the visitor whose visit opened the form."
+- description: "Connect Google Forms, Tally, Typeform, Jotform or Paperform: each\
+    \ response is attached to the visitor whose visit opened the form."
   name: "Integrations: Forms"
 - description: "Send every scan, visit, form submission and captured visitor detail\
     \ to your Google Analytics 4 property, server side."
   name: "Integrations: Google Analytics"
-- description: Connect a Google account so responses to Google Forms your links lead
-    to are attached to the visitors who sent them.
-  name: "Integrations: Google Forms"
 - description: "Which integrations act on a given link: Slack, Google Analytics, forms,\
     \ contact tools, automation platforms, webhooks and retargeting pixels."
   name: Integrations
@@ -3294,7 +3291,7 @@ paths:
   /v1/form-integrations:
     get:
       description: |-
-        Return the workspace's connected form tools: Tally, Typeform, Jotform and Paperform.
+        Return the workspace's connected form tools: Google Forms, Tally, Typeform, Jotform and Paperform.
 
         Requires the `integrations:read` scope.
       operationId: FormIntegrationsService_List
@@ -3339,7 +3336,7 @@ paths:
   /v1/form-integrations/{tool}:
     delete:
       description: |-
-        Remove our webhooks from its forms and forget the credential.
+        Remove our webhooks from its forms, or for Google Forms revoke our access to the Google account, and forget the credential.
 
         Requires the `integrations:write` scope.
       operationId: FormIntegrationsService_Disconnect
@@ -3517,7 +3514,7 @@ paths:
   /v1/form-integrations/{tool}/connect:
     post:
       description: |-
-        Connect Tally, Jotform or Paperform with the account's API key. The forms behind the workspace's links are prepared at once: a hidden lbid field and a webhook.
+        Connect Tally, Jotform or Paperform with the account's API key. The forms behind the workspace's links are prepared at once: a hidden lbid field and a webhook. Typeform and Google Forms connect by signing in, in the dashboard; Google Forms fails here with `FORM_TOOL_SIGN_IN_REQUIRED`.
 
         Requires the `integrations:write` scope.
       operationId: FormIntegrationsService_Connect
@@ -3643,7 +3640,7 @@ paths:
   /v1/form-integrations/{tool}/forms/prepare:
     post:
       description: |-
-        Add the hidden field and webhook to every form behind a link now, rather than at the next daily check.
+        Add the hidden field and webhook to every form behind a link now, rather than at the next daily check. For Google Forms, which does not send responses as they come, this also reads the responses that arrived since the last read, rather than at the next one a few minutes later.
 
         Requires the `integrations:write` scope.
       operationId: FormIntegrationsService_PrepareForms
@@ -3713,215 +3710,23 @@ paths:
       tags:
       - "Integrations: Forms"
       x-required-scope: integrations:write
-  /v1/google-forms-integrations:
-    delete:
-      description: |-
-        Disconnect and remove the Google Forms integration from the workspace.
-
-        Requires the `integrations:write` scope.
-      operationId: GoogleFormsIntegrationsService_Delete
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                properties: {}
-                type: object
-          description: Everything worked as expected.
-          headers:
-            RateLimit:
-              $ref: "#/components/headers/RateLimit"
-            RateLimit-Policy:
-              $ref: "#/components/headers/RateLimit-Policy"
-            RateLimit-Remaining:
-              $ref: "#/components/headers/RateLimit-Remaining"
-        "429":
-          $ref: "#/components/responses/TooManyRequests"
-        default:
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-          description: Unexpected error
-          headers:
-            RateLimit:
-              $ref: "#/components/headers/RateLimit"
-            RateLimit-Policy:
-              $ref: "#/components/headers/RateLimit-Policy"
-            RateLimit-Remaining:
-              $ref: "#/components/headers/RateLimit-Remaining"
-      security:
-      - bearerAuth:
-        - integrations:write
-      - oauth2:
-        - integrations:write
-      summary: Disconnect Google Forms integration
-      tags:
-      - "Integrations: Google Forms"
-      x-required-scope: integrations:write
-    get:
-      description: |-
-        Retrieve the Google Forms integration for the workspace.
-
-        Requires the `integrations:read` scope.
-      operationId: GoogleFormsIntegrationsService_Get
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/GetGoogleFormsIntegrationResponse"
-          description: Everything worked as expected.
-          headers:
-            RateLimit:
-              $ref: "#/components/headers/RateLimit"
-            RateLimit-Policy:
-              $ref: "#/components/headers/RateLimit-Policy"
-            RateLimit-Remaining:
-              $ref: "#/components/headers/RateLimit-Remaining"
-        "429":
-          $ref: "#/components/responses/TooManyRequests"
-        default:
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-          description: Unexpected error
-          headers:
-            RateLimit:
-              $ref: "#/components/headers/RateLimit"
-            RateLimit-Policy:
-              $ref: "#/components/headers/RateLimit-Policy"
-            RateLimit-Remaining:
-              $ref: "#/components/headers/RateLimit-Remaining"
-      security:
-      - bearerAuth:
-        - integrations:read
-      - oauth2:
-        - integrations:read
-      summary: Get Google Forms integration
-      tags:
-      - "Integrations: Google Forms"
-      x-required-scope: integrations:read
-    patch:
-      description: |-
-        Update the integration status (pause or resume syncing).
-
-        Requires the `integrations:write` scope.
-      operationId: GoogleFormsIntegrationsService_Update
-      parameters:
-      - description: "A unique value per request, such as a UUID, that makes retrying\
-          \ it safe: a retry with the same key and body returns the first response\
-          \ instead of acting twice."
-        explode: false
-        in: header
-        name: Idempotency-Key
-        required: false
-        schema:
-          maxLength: 255
-          minLength: 1
-          type: string
-        style: simple
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/UpdateGoogleFormsIntegrationRequest"
-        required: true
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/UpdateGoogleFormsIntegrationResponse"
-          description: Everything worked as expected.
-          headers:
-            Idempotent-Replayed:
-              $ref: "#/components/headers/Idempotent-Replayed"
-            RateLimit:
-              $ref: "#/components/headers/RateLimit"
-            RateLimit-Policy:
-              $ref: "#/components/headers/RateLimit-Policy"
-            RateLimit-Remaining:
-              $ref: "#/components/headers/RateLimit-Remaining"
-        "429":
-          $ref: "#/components/responses/TooManyRequests"
-        default:
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-          description: Unexpected error
-          headers:
-            RateLimit:
-              $ref: "#/components/headers/RateLimit"
-            RateLimit-Policy:
-              $ref: "#/components/headers/RateLimit-Policy"
-            RateLimit-Remaining:
-              $ref: "#/components/headers/RateLimit-Remaining"
-      security:
-      - bearerAuth:
-        - integrations:write
-      - oauth2:
-        - integrations:write
-      summary: Update Google Forms integration
-      tags:
-      - "Integrations: Google Forms"
-      x-required-scope: integrations:write
-  /v1/google-forms-integrations/detected-forms:
-    get:
-      description: |-
-        Returns Google Forms auto-detected from workspace links that have a Google Form as their redirect destination.
-
-        Requires the `integrations:read` scope.
-      operationId: GoogleFormsIntegrationsService_ListDetectedForms
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ListDetectedGoogleFormsResponse"
-          description: Everything worked as expected.
-          headers:
-            RateLimit:
-              $ref: "#/components/headers/RateLimit"
-            RateLimit-Policy:
-              $ref: "#/components/headers/RateLimit-Policy"
-            RateLimit-Remaining:
-              $ref: "#/components/headers/RateLimit-Remaining"
-        "429":
-          $ref: "#/components/responses/TooManyRequests"
-        default:
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-          description: Unexpected error
-          headers:
-            RateLimit:
-              $ref: "#/components/headers/RateLimit"
-            RateLimit-Policy:
-              $ref: "#/components/headers/RateLimit-Policy"
-            RateLimit-Remaining:
-              $ref: "#/components/headers/RateLimit-Remaining"
-      security:
-      - bearerAuth:
-        - integrations:read
-      - oauth2:
-        - integrations:read
-      summary: List detected Google Forms
-      tags:
-      - "Integrations: Google Forms"
-      x-required-scope: integrations:read
-  /v1/google-forms-integrations/forms/{formId}/link:
+  /v1/form-integrations/{tool}/forms/{formId}/link:
     post:
       description: |-
-        When the same Google Form is behind several links, timing cannot tell which link a response came from. This records the link its responses belong to.
+        When the same form is behind several links and the tool cannot always tell which link a response came from, record the link its responses belong to. Only Google Forms needs it; the other tools' responses carry the visit, and they fail with `FORM_LINK_CHOICE_NOT_NEEDED`. Fails with `GOOGLE_FORMS_LINK_NOT_BEHIND_FORM` when the link does not open the form.
 
         Requires the `integrations:write` scope.
-      operationId: GoogleFormsIntegrationsService_ChooseFormLink
+      operationId: FormIntegrationsService_ChooseFormLink
       parameters:
-      - description: The Google Form.
+      - explode: false
+        in: path
+        name: tool
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: "The form's ID at the tool, as listed in the forms found behind\
+          \ links."
         explode: false
         in: path
         name: formId
@@ -3945,7 +3750,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/GoogleFormsIntegrationsServiceChooseFormLinkBody"
+              $ref: "#/components/schemas/FormIntegrationsServiceChooseFormLinkBody"
         required: true
       responses:
         "200":
@@ -3984,75 +3789,9 @@ paths:
         - integrations:write
       - oauth2:
         - integrations:write
-      summary: Choose a Google Form's link
+      summary: Choose the link of a shared form
       tags:
-      - "Integrations: Google Forms"
-      x-required-scope: integrations:write
-  /v1/google-forms-integrations/sync:
-    post:
-      description: |-
-        Trigger an immediate sync of new Google Forms responses from all detected forms.
-
-        Requires the `integrations:write` scope.
-      operationId: GoogleFormsIntegrationsService_SyncNow
-      parameters:
-      - description: "A unique value per request, such as a UUID, that makes retrying\
-          \ it safe: a retry with the same key and body returns the first response\
-          \ instead of acting twice."
-        explode: false
-        in: header
-        name: Idempotency-Key
-        required: false
-        schema:
-          maxLength: 255
-          minLength: 1
-          type: string
-        style: simple
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/SyncGoogleFormsRequest"
-        required: true
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/SyncGoogleFormsResponse"
-          description: Everything worked as expected.
-          headers:
-            Idempotent-Replayed:
-              $ref: "#/components/headers/Idempotent-Replayed"
-            RateLimit:
-              $ref: "#/components/headers/RateLimit"
-            RateLimit-Policy:
-              $ref: "#/components/headers/RateLimit-Policy"
-            RateLimit-Remaining:
-              $ref: "#/components/headers/RateLimit-Remaining"
-        "429":
-          $ref: "#/components/responses/TooManyRequests"
-        default:
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-          description: Unexpected error
-          headers:
-            RateLimit:
-              $ref: "#/components/headers/RateLimit"
-            RateLimit-Policy:
-              $ref: "#/components/headers/RateLimit-Policy"
-            RateLimit-Remaining:
-              $ref: "#/components/headers/RateLimit-Remaining"
-      security:
-      - bearerAuth:
-        - integrations:write
-      - oauth2:
-        - integrations:write
-      summary: Sync now
-      tags:
-      - "Integrations: Google Forms"
+      - "Integrations: Forms"
       x-required-scope: integrations:write
   /v1/integrations/contacts:
     get:
@@ -15370,6 +15109,7 @@ components:
           createdAt: 2000-01-23T04:56:07.000+00:00
           delivery: ""
           lastResponseAt: 2000-01-23T04:56:07.000+00:00
+          lastSyncedAt: 2000-01-23T04:56:07.000+00:00
           responsesReceived: 0
           visitorsEnriched: 1
           region: region
@@ -15377,7 +15117,7 @@ components:
           accountLabel: accountLabel
           tool: FORM_TOOL_UNSPECIFIED
           webhookUrl: webhookUrl
-          status: FORM_CONNECTION_STATUS_UNSPECIFIED
+          status: ""
       properties:
         connection:
           $ref: "#/components/schemas/FormConnection"
@@ -15391,19 +15131,6 @@ components:
       - code
       - state
     CompleteGoogleFormsOAuthResponse:
-      example:
-        integration:
-          createdAt: 2000-01-23T04:56:07.000+00:00
-          delivery: ""
-          createdBy: createdBy
-          lastSyncedAt: 2000-01-23T04:56:07.000+00:00
-          googleEmail: googleEmail
-          id: d22f7bf1-83a9-4f3a-9b37-9a3a21b6ac11
-          visitorsEnriched: 6
-          responsesSynced: 0
-          status: GOOGLE_FORMS_INTEGRATION_STATUS_UNSPECIFIED
-          updatedAt: 2000-01-23T04:56:07.000+00:00
-          workspaceId: workspaceId
       properties:
         integration:
           $ref: "#/components/schemas/GoogleFormsIntegration"
@@ -15498,6 +15225,7 @@ components:
           createdAt: 2000-01-23T04:56:07.000+00:00
           delivery: ""
           lastResponseAt: 2000-01-23T04:56:07.000+00:00
+          lastSyncedAt: 2000-01-23T04:56:07.000+00:00
           responsesReceived: 0
           visitorsEnriched: 1
           region: region
@@ -15505,7 +15233,7 @@ components:
           accountLabel: accountLabel
           tool: FORM_TOOL_UNSPECIFIED
           webhookUrl: webhookUrl
-          status: FORM_CONNECTION_STATUS_UNSPECIFIED
+          status: ""
       properties:
         connection:
           $ref: "#/components/schemas/FormConnection"
@@ -18514,14 +18242,6 @@ components:
       title: Response for workflow step deletion
       type: object
     DetectedGoogleForm:
-      example:
-        formId: formId
-        accessible: true
-        linkId: linkId
-        formUrl: formUrl
-        linkName: linkName
-        chosen: true
-        conflict: true
       properties:
         accessible:
           title: Whether the form is accessible with the connected Google account
@@ -18551,31 +18271,52 @@ components:
       description: A form of a connected tool found behind a link.
       example:
         formId: formId
+        shared: true
         checkedAt: 2000-01-23T04:56:07.000+00:00
         customerStep: customerStep
         lastError: lastError
         linkId: linkId
         formUrl: formUrl
-        readiness: FORM_READINESS_UNSPECIFIED
+        readiness: ""
         linkName: linkName
+        chosen: true
       properties:
         checkedAt:
+          description: When the form was last checked.
           format: date-time
           type: string
+        chosen:
+          description: "Google Forms only: this link gets the responses of a shared\
+            \ form."
+          type: boolean
         customerStep:
+          description: "What the customer must still do in the tool, when something\
+            \ is missing."
           type: string
         formId:
+          description: The form's ID at the tool.
           type: string
         formUrl:
+          description: The address the link opens.
           type: string
         lastError:
+          description: The tool's answer when it refused a call.
           type: string
         linkId:
+          description: The link that opens the form.
           type: string
         linkName:
           type: string
         readiness:
-          $ref: "#/components/schemas/FormReadiness"
+          allOf:
+          - $ref: "#/components/schemas/FormReadiness"
+          description: Whether the form will match its responses to visits.
+        shared:
+          description: |-
+            Google Forms only: the same form is behind several links. Google cannot
+            always tell which link a response came from, so its responses go to the
+            chosen one.
+          type: boolean
     Device:
       description: |-
         Tracks the fingerprint of a visitor's hardware/software so Linkbreakers can de-duplicate scans, enrich analytics,
@@ -20405,6 +20146,7 @@ components:
         createdAt: 2000-01-23T04:56:07.000+00:00
         delivery: ""
         lastResponseAt: 2000-01-23T04:56:07.000+00:00
+        lastSyncedAt: 2000-01-23T04:56:07.000+00:00
         responsesReceived: 0
         visitorsEnriched: 1
         region: region
@@ -20412,12 +20154,13 @@ components:
         accountLabel: accountLabel
         tool: FORM_TOOL_UNSPECIFIED
         webhookUrl: webhookUrl
-        status: FORM_CONNECTION_STATUS_UNSPECIFIED
+        status: ""
       properties:
         accountLabel:
           description: "The account it is connected to, such as an email address."
           type: string
         createdAt:
+          description: When the tool was connected.
           format: date-time
           readOnly: true
           type: string
@@ -20427,6 +20170,14 @@ components:
           description: "Where: the links whose forms bring answers in. What: ALL answers,\
             \ or SELECTED keys."
         lastResponseAt:
+          description: When the last response came in.
+          format: date-time
+          readOnly: true
+          type: string
+        lastSyncedAt:
+          description: |-
+            Google Forms only: when its responses were last read. The other tools send
+            each response as it comes.
           format: date-time
           readOnly: true
           type: string
@@ -20434,6 +20185,7 @@ components:
           description: "Jotform only: EU or HIPAA when the account lives there."
           type: string
         responsesReceived:
+          description: Responses brought in since it was connected.
           format: int64
           readOnly: true
           type: integer
@@ -20444,10 +20196,13 @@ components:
           readOnly: true
           type: integer
         status:
-          $ref: "#/components/schemas/FormConnectionStatus"
+          allOf:
+          - $ref: "#/components/schemas/FormConnectionStatus"
+          description: Whether responses come in.
         tool:
           $ref: "#/components/schemas/FormTool"
         visitorsEnriched:
+          description: Visitors whose profile a response added answers to.
           format: int64
           readOnly: true
           type: integer
@@ -20458,11 +20213,18 @@ components:
           type: string
     FormConnectionStatus:
       default: FORM_CONNECTION_STATUS_UNSPECIFIED
-      description: Whether a connection brings answers in.
+      description: |-
+        Whether a connection brings answers in.
+
+         - FORM_CONNECTION_STATUS_ACTIVE: Responses come in.
+         - FORM_CONNECTION_STATUS_PAUSED: Paused: responses are not brought in until it is active again.
+         - FORM_CONNECTION_STATUS_ACCESS_REVOKED: The tool no longer grants access to the account (Google Forms, when access
+        was removed in the Google account): disconnect it and connect again.
       enum:
       - FORM_CONNECTION_STATUS_UNSPECIFIED
       - FORM_CONNECTION_STATUS_ACTIVE
       - FORM_CONNECTION_STATUS_PAUSED
+      - FORM_CONNECTION_STATUS_ACCESS_REVOKED
       type: string
     FormField:
       properties:
@@ -20563,6 +20325,14 @@ components:
       - FORM_FIELD_TYPE_CONSENT
       title: Form field types for FORM_SUBMIT event action
       type: string
+    FormIntegrationsServiceChooseFormLinkBody:
+      example:
+        linkId: 7c9e6679-7425-40de-944b-e07fc1f90ae7
+      properties:
+        linkId:
+          description: The link its responses belong to; it must open the form.
+          example: 7c9e6679-7425-40de-944b-e07fc1f90ae7
+          type: string
     FormIntegrationsServiceCompleteOAuthBody:
       properties:
         code:
@@ -20634,6 +20404,10 @@ components:
          - FORM_READINESS_NEEDS_WEBHOOK: The customer must paste webhookUrl in the tool.
          - FORM_READINESS_FAILED: The tool refused a call; lastError says why.
          - FORM_READINESS_NOT_CHECKED: Not checked yet.
+         - FORM_READINESS_NEEDS_ACCESS: The connected account cannot read this form (Google Forms): the form must
+        be owned by or shared with that account.
+         - FORM_READINESS_OTHER_LINK_CHOSEN: The form is behind several links and its responses go to another of them
+        (Google Forms). Choose this link for the form to bring them here.
       enum:
       - FORM_READINESS_UNSPECIFIED
       - FORM_READINESS_READY
@@ -20641,16 +20415,28 @@ components:
       - FORM_READINESS_NEEDS_WEBHOOK
       - FORM_READINESS_FAILED
       - FORM_READINESS_NOT_CHECKED
+      - FORM_READINESS_NEEDS_ACCESS
+      - FORM_READINESS_OTHER_LINK_CHOSEN
       type: string
     FormTool:
       default: FORM_TOOL_UNSPECIFIED
-      description: A form builder Linkbreakers connects to.
+      description: |-
+        A form builder Linkbreakers connects to.
+
+         - FORM_TOOL_TALLY: Tally, connected with an API key.
+         - FORM_TOOL_TYPEFORM: Typeform, connected by signing in to Typeform.
+         - FORM_TOOL_JOTFORM: Jotform, connected with an API key.
+         - FORM_TOOL_PAPERFORM: Paperform, connected with an API key.
+         - FORM_TOOL_GOOGLE_FORMS: Google Forms, connected by signing in to the Google account that owns the
+        forms. Google does not send responses as they come: they are read every few
+        minutes.
       enum:
       - FORM_TOOL_UNSPECIFIED
       - FORM_TOOL_TALLY
       - FORM_TOOL_TYPEFORM
       - FORM_TOOL_JOTFORM
       - FORM_TOOL_PAPERFORM
+      - FORM_TOOL_GOOGLE_FORMS
       type: string
     FormTraceData:
       description: Stores summary data about a form interaction.
@@ -21484,19 +21270,6 @@ components:
           - $ref: "#/components/schemas/GoogleAnalyticsIntegration"
           description: Absent when Google Analytics is not connected.
     GetGoogleFormsIntegrationResponse:
-      example:
-        integration:
-          createdAt: 2000-01-23T04:56:07.000+00:00
-          delivery: ""
-          createdBy: createdBy
-          lastSyncedAt: 2000-01-23T04:56:07.000+00:00
-          googleEmail: googleEmail
-          id: d22f7bf1-83a9-4f3a-9b37-9a3a21b6ac11
-          visitorsEnriched: 6
-          responsesSynced: 0
-          status: GOOGLE_FORMS_INTEGRATION_STATUS_UNSPECIFIED
-          updatedAt: 2000-01-23T04:56:07.000+00:00
-          workspaceId: workspaceId
       properties:
         integration:
           $ref: "#/components/schemas/GoogleFormsIntegration"
@@ -22345,18 +22118,6 @@ components:
       description: |-
         A connected Google account.
         Forms are auto-detected from workflow steps — no manual configuration needed.
-      example:
-        createdAt: 2000-01-23T04:56:07.000+00:00
-        delivery: ""
-        createdBy: createdBy
-        lastSyncedAt: 2000-01-23T04:56:07.000+00:00
-        googleEmail: googleEmail
-        id: d22f7bf1-83a9-4f3a-9b37-9a3a21b6ac11
-        visitorsEnriched: 6
-        responsesSynced: 0
-        status: GOOGLE_FORMS_INTEGRATION_STATUS_UNSPECIFIED
-        updatedAt: 2000-01-23T04:56:07.000+00:00
-        workspaceId: workspaceId
       properties:
         createdAt:
           format: date-time
@@ -22404,8 +22165,6 @@ components:
       - GOOGLE_FORMS_INTEGRATION_STATUS_DISCONNECTED
       type: string
     GoogleFormsIntegrationsServiceChooseFormLinkBody:
-      example:
-        linkId: linkId
       properties:
         linkId:
           description: The link its responses belong to; it must open that form.
@@ -23952,22 +23711,6 @@ components:
           format: int64
           type: integer
     ListDetectedGoogleFormsResponse:
-      example:
-        forms:
-        - formId: formId
-          accessible: true
-          linkId: linkId
-          formUrl: formUrl
-          linkName: linkName
-          chosen: true
-          conflict: true
-        - formId: formId
-          accessible: true
-          linkId: linkId
-          formUrl: formUrl
-          linkName: linkName
-          chosen: true
-          conflict: true
       properties:
         forms:
           items:
@@ -24820,6 +24563,7 @@ components:
         - createdAt: 2000-01-23T04:56:07.000+00:00
           delivery: ""
           lastResponseAt: 2000-01-23T04:56:07.000+00:00
+          lastSyncedAt: 2000-01-23T04:56:07.000+00:00
           responsesReceived: 0
           visitorsEnriched: 1
           region: region
@@ -24827,10 +24571,11 @@ components:
           accountLabel: accountLabel
           tool: FORM_TOOL_UNSPECIFIED
           webhookUrl: webhookUrl
-          status: FORM_CONNECTION_STATUS_UNSPECIFIED
+          status: ""
         - createdAt: 2000-01-23T04:56:07.000+00:00
           delivery: ""
           lastResponseAt: 2000-01-23T04:56:07.000+00:00
+          lastSyncedAt: 2000-01-23T04:56:07.000+00:00
           responsesReceived: 0
           visitorsEnriched: 1
           region: region
@@ -24838,7 +24583,7 @@ components:
           accountLabel: accountLabel
           tool: FORM_TOOL_UNSPECIFIED
           webhookUrl: webhookUrl
-          status: FORM_CONNECTION_STATUS_UNSPECIFIED
+          status: ""
       properties:
         connections:
           items:
@@ -24848,21 +24593,25 @@ components:
       example:
         forms:
         - formId: formId
+          shared: true
           checkedAt: 2000-01-23T04:56:07.000+00:00
           customerStep: customerStep
           lastError: lastError
           linkId: linkId
           formUrl: formUrl
-          readiness: FORM_READINESS_UNSPECIFIED
+          readiness: ""
           linkName: linkName
+          chosen: true
         - formId: formId
+          shared: true
           checkedAt: 2000-01-23T04:56:07.000+00:00
           customerStep: customerStep
           lastError: lastError
           linkId: linkId
           formUrl: formUrl
-          readiness: FORM_READINESS_UNSPECIFIED
+          readiness: ""
           linkName: linkName
+          chosen: true
       properties:
         forms:
           items:
@@ -29643,9 +29392,6 @@ components:
     SyncGoogleFormsRequest:
       type: object
     SyncGoogleFormsResponse:
-      example:
-        visitorsEnriched: 6
-        responsesSynced: 0
       properties:
         responsesSynced:
           format: int64
@@ -30152,6 +29898,7 @@ components:
           createdAt: 2000-01-23T04:56:07.000+00:00
           delivery: ""
           lastResponseAt: 2000-01-23T04:56:07.000+00:00
+          lastSyncedAt: 2000-01-23T04:56:07.000+00:00
           responsesReceived: 0
           visitorsEnriched: 1
           region: region
@@ -30159,7 +29906,7 @@ components:
           accountLabel: accountLabel
           tool: FORM_TOOL_UNSPECIFIED
           webhookUrl: webhookUrl
-          status: FORM_CONNECTION_STATUS_UNSPECIFIED
+          status: ""
       properties:
         connection:
           $ref: "#/components/schemas/FormConnection"
@@ -30218,9 +29965,6 @@ components:
         integration:
           $ref: "#/components/schemas/GoogleAnalyticsIntegration"
     UpdateGoogleFormsIntegrationRequest:
-      example:
-        delivery: ""
-        status: ""
       properties:
         delivery:
           allOf:
@@ -30233,19 +29977,6 @@ components:
           - $ref: "#/components/schemas/GoogleFormsIntegrationStatus"
           title: Only status can be updated (ACTIVE or PAUSED)
     UpdateGoogleFormsIntegrationResponse:
-      example:
-        integration:
-          createdAt: 2000-01-23T04:56:07.000+00:00
-          delivery: ""
-          createdBy: createdBy
-          lastSyncedAt: 2000-01-23T04:56:07.000+00:00
-          googleEmail: googleEmail
-          id: d22f7bf1-83a9-4f3a-9b37-9a3a21b6ac11
-          visitorsEnriched: 6
-          responsesSynced: 0
-          status: GOOGLE_FORMS_INTEGRATION_STATUS_UNSPECIFIED
-          updatedAt: 2000-01-23T04:56:07.000+00:00
-          workspaceId: workspaceId
       properties:
         integration:
           $ref: "#/components/schemas/GoogleFormsIntegration"

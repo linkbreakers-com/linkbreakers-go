@@ -13,7 +13,6 @@ api_integrations.go
 api_integrations_contact_tools.go
 api_integrations_forms.go
 api_integrations_google_analytics.go
-api_integrations_google_forms.go
 api_integrations_retargeting_pixels.go
 api_integrations_slack.go
 api_jobs.go
@@ -276,6 +275,7 @@ model_form_connection_status.go
 model_form_field.go
 model_form_field_option.go
 model_form_field_type.go
+model_form_integrations_service_choose_form_link_body.go
 model_form_integrations_service_complete_o_auth_body.go
 model_form_integrations_service_connect_body.go
 model_form_integrations_service_update_body.go
