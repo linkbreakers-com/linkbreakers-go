@@ -3,7 +3,7 @@ Linkbreakers API
 
 The Linkbreakers REST API: links, QR codes, workflows, visitors and analytics, as JSON over HTTPS. Send a workspace API token as `Authorization: Bearer <token>`.  ## Entry points  `GET https://api.linkbreakers.com/` and `GET https://api.linkbreakers.com/v1` answer without credentials with the API's name, version and links. This document is served at `https://api.linkbreakers.com/openapi.json`.  ## Rate limits  Every response describes where the caller stands in the IETF `RateLimit-Policy` and `RateLimit` header fields (draft-ietf-httpapi-ratelimit-headers), and in `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset` and `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset` (a Unix timestamp) for clients that read those. A request past the limit gets `429 Too Many Requests` with `Retry-After` in seconds.  - Workspace API token: 720 requests per 60 seconds, per token. - Dashboard session or OAuth token: 600 requests per 60 seconds, per token. - No credentials: 300 requests per 60 seconds, per client IP.  Each plan also includes a number of API calls per billing cycle. Past it, calls answer `429` with the code `MAX_PUBLIC_API_QUERIED_REACHED` until the cycle renews or the plan changes.  ## Pagination  Every list pages with opaque cursors (AIP-158). Pass `pageSize`, then send the `nextPageToken` of each response back as `pageToken` (or its alias `cursor`) to get the next page. An empty or absent `nextPageToken` means the list is complete. Each list operation describes this in `x-pagination`.  ## Batches and background jobs  `POST /v1/links/bulk` creates up to 250 links in one transactional request; `POST /v1/links/batch` takes the same links as a bare JSON array. `POST /v1/links/bulk/jobs` accepts the same batch and answers `202 Accepted` at once with a job and a `Location` header; poll `GET /v1/jobs/{id}` until `status` is `JOB_STATUS_SUCCEEDED` (the created link ids are in `linksBulkCreate.linkIds`) or `JOB_STATUS_FAILED` (`error` says why, and nothing was created). Jobs can be read for 24 hours after they finish.  ## Paused workspaces  A free workspace whose members have not verified any email address is paused 7 days after sign-up. Its calls then answer `403` with the code `WORKSPACE_UNVERIFIED` and change nothing; QR codes and links keep working for visitors. To lift the pause, ask the workspace owner to verify their email: `POST /v1/members/email-verification` sends the verification email again, and works while the workspace is paused. `unverifiedPauseAt` on the workspace says when the pause starts.  ## Versioning and deprecation  The version is in the path: every operation lives under `/v1`. Within a version, changes are additive only: new operations, new optional request fields, new response fields and new enum values. Clients should ignore fields and enum values they do not know. Anything that would break an existing client ships under a new path version instead.  An operation is retired in two steps. First it is deprecated: it keeps working, is flagged `deprecated: true` in this document, and every response carries a `Deprecation` header field (RFC 9745) with the time it was deprecated and a `Link` with `rel=\"deprecation\"` to the policy. Then, at least 180 days later, it may be removed; that date is announced in advance in a `Sunset` header field (RFC 8594) and as `x-sunset` on the operation. The full policy: https://linkbreakers.com/help/article/api-versioning-and-deprecation-policy  A renamed operation keeps answering its former path while clients still call it, until that path's sunset at the latest: a former path no client calls for 14 days is removed. Responses on a former path carry the same `Deprecation`, `Sunset` and `Link` header fields; this document lists only the current path, and the policy lists the former paths that still answer.  ## Idempotent retries  Every POST, PUT and PATCH accepts an optional `Idempotency-Key` header (draft-ietf-httpapi-idempotency-key-header). Send a new unique value, such as a UUID, with each logical request and reuse it only to retry that request. A retry with the same key and the same request returns the first response, marked `Idempotent-Replayed: true`, instead of running again. Keys are scoped to the token and kept for 24 hours. The same key with a different request is refused with `422`, and a retry while the first request is still running gets `409` with `Retry-After`. Server errors (5xx) and refusals such as 401, 403 and 429 are not stored, so retrying them runs the request again.  ## Identifying your client  Send a `Linkbreakers-Client` request header saying which client made the call: `<client>/<version> (<details>)`, for example `my-integration/1.2.0 (python 3.12; linux)`. The official SDKs, the CLI and the MCP bridge set it for you, as `sdk-python/2.3.1 (python 3.12.4; linux)` or `cli/1.4.0 (darwin arm64)`. It is optional and changes nothing about how a request is handled; it tells us which clients and versions are in use, so we know what can be retired and what to fix first. Keep the details short and free of personal data. Browsers may send it too: it is allowed by CORS.
 
-API version: 1.200.1
+API version: 1.200.2
 */
 
 // Code generated by OpenAPI Generator (https://openapi-generator.tech); DO NOT EDIT.
@@ -12,35 +12,43 @@ package linkbreakers
 
 import (
 	"encoding/json"
+	"time"
 )
 
-// checks if the CreateMediaResponse type satisfies the MappedNullable interface at compile time
-var _ MappedNullable = &CreateMediaResponse{}
+// checks if the CreatePublicMediaUploadResponse type satisfies the MappedNullable interface at compile time
+var _ MappedNullable = &CreatePublicMediaUploadResponse{}
 
-// CreateMediaResponse struct for CreateMediaResponse
-type CreateMediaResponse struct {
+// CreatePublicMediaUploadResponse struct for CreatePublicMediaUploadResponse
+type CreatePublicMediaUploadResponse struct {
+	// The pending upload. Its id is what CompletePublicUpload and a QR code design's centralImageMediaId take.
 	Media *Media `json:"media,omitempty"`
+	UploadExpiresAt *time.Time `json:"uploadExpiresAt,omitempty"`
+	// Headers the upload must carry, exactly as given. The Content-Length must equal the declared size.
+	UploadHeaders map[string]string `json:"uploadHeaders,omitempty"`
+	UploadMethod *string `json:"uploadMethod,omitempty"`
+	// Where to send the image's bytes, directly to storage. Short-lived.
+	UploadUrl *string `json:"uploadUrl,omitempty"`
 }
 
-// NewCreateMediaResponse instantiates a new CreateMediaResponse object
+// NewCreatePublicMediaUploadResponse instantiates a new CreatePublicMediaUploadResponse object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewCreateMediaResponse() *CreateMediaResponse {
-	this := CreateMediaResponse{}
+func NewCreatePublicMediaUploadResponse() *CreatePublicMediaUploadResponse {
+	this := CreatePublicMediaUploadResponse{}
 	return &this
 }
 
-// NewCreateMediaResponseWithDefaults instantiates a new CreateMediaResponse object
+// NewCreatePublicMediaUploadResponseWithDefaults instantiates a new CreatePublicMediaUploadResponse object
 // This constructor will only assign default values to properties that have it defined,
 // but it doesn't guarantee that properties required by API are set
-func NewCreateMediaResponseWithDefaults() *CreateMediaResponse {
-	this := CreateMediaResponse{}
+func NewCreatePublicMediaUploadResponseWithDefaults() *CreatePublicMediaUploadResponse {
+	this := CreatePublicMediaUploadResponse{}
 	return &this
 }
 
 // GetMedia returns the Media field value if set, zero value otherwise.
-func (o *CreateMediaResponse) GetMedia() Media {
+func (o *CreatePublicMediaUploadResponse) GetMedia() Media {
 	if o == nil || IsNil(o.Media) {
 		var ret Media
 		return ret
@@ -50,7 +58,7 @@ func (o *CreateMediaResponse) GetMedia() Media {
 
 // GetMediaOk returns a tuple with the Media field value if set, nil otherwise
 // and a boolean to check if the value has been set.
-func (o *CreateMediaResponse) GetMediaOk() (*Media, bool) {
+func (o *CreatePublicMediaUploadResponse) GetMediaOk() (*Media, bool) {
 	if o == nil || IsNil(o.Media) {
 		return nil, false
 	}
@@ -58,7 +66,7 @@ func (o *CreateMediaResponse) GetMediaOk() (*Media, bool) {
 }
 
 // HasMedia returns a boolean if a field has been set.
-func (o *CreateMediaResponse) HasMedia() bool {
+func (o *CreatePublicMediaUploadResponse) HasMedia() bool {
 	if o != nil && !IsNil(o.Media) {
 		return true
 	}
@@ -67,11 +75,139 @@ func (o *CreateMediaResponse) HasMedia() bool {
 }
 
 // SetMedia gets a reference to the given Media and assigns it to the Media field.
-func (o *CreateMediaResponse) SetMedia(v Media) {
+func (o *CreatePublicMediaUploadResponse) SetMedia(v Media) {
 	o.Media = &v
 }
 
-func (o CreateMediaResponse) MarshalJSON() ([]byte, error) {
+// GetUploadExpiresAt returns the UploadExpiresAt field value if set, zero value otherwise.
+func (o *CreatePublicMediaUploadResponse) GetUploadExpiresAt() time.Time {
+	if o == nil || IsNil(o.UploadExpiresAt) {
+		var ret time.Time
+		return ret
+	}
+	return *o.UploadExpiresAt
+}
+
+// GetUploadExpiresAtOk returns a tuple with the UploadExpiresAt field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *CreatePublicMediaUploadResponse) GetUploadExpiresAtOk() (*time.Time, bool) {
+	if o == nil || IsNil(o.UploadExpiresAt) {
+		return nil, false
+	}
+	return o.UploadExpiresAt, true
+}
+
+// HasUploadExpiresAt returns a boolean if a field has been set.
+func (o *CreatePublicMediaUploadResponse) HasUploadExpiresAt() bool {
+	if o != nil && !IsNil(o.UploadExpiresAt) {
+		return true
+	}
+
+	return false
+}
+
+// SetUploadExpiresAt gets a reference to the given time.Time and assigns it to the UploadExpiresAt field.
+func (o *CreatePublicMediaUploadResponse) SetUploadExpiresAt(v time.Time) {
+	o.UploadExpiresAt = &v
+}
+
+// GetUploadHeaders returns the UploadHeaders field value if set, zero value otherwise.
+func (o *CreatePublicMediaUploadResponse) GetUploadHeaders() map[string]string {
+	if o == nil || IsNil(o.UploadHeaders) {
+		var ret map[string]string
+		return ret
+	}
+	return o.UploadHeaders
+}
+
+// GetUploadHeadersOk returns a tuple with the UploadHeaders field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *CreatePublicMediaUploadResponse) GetUploadHeadersOk() (map[string]string, bool) {
+	if o == nil || IsNil(o.UploadHeaders) {
+		return map[string]string{}, false
+	}
+	return o.UploadHeaders, true
+}
+
+// HasUploadHeaders returns a boolean if a field has been set.
+func (o *CreatePublicMediaUploadResponse) HasUploadHeaders() bool {
+	if o != nil && !IsNil(o.UploadHeaders) {
+		return true
+	}
+
+	return false
+}
+
+// SetUploadHeaders gets a reference to the given map[string]string and assigns it to the UploadHeaders field.
+func (o *CreatePublicMediaUploadResponse) SetUploadHeaders(v map[string]string) {
+	o.UploadHeaders = v
+}
+
+// GetUploadMethod returns the UploadMethod field value if set, zero value otherwise.
+func (o *CreatePublicMediaUploadResponse) GetUploadMethod() string {
+	if o == nil || IsNil(o.UploadMethod) {
+		var ret string
+		return ret
+	}
+	return *o.UploadMethod
+}
+
+// GetUploadMethodOk returns a tuple with the UploadMethod field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *CreatePublicMediaUploadResponse) GetUploadMethodOk() (*string, bool) {
+	if o == nil || IsNil(o.UploadMethod) {
+		return nil, false
+	}
+	return o.UploadMethod, true
+}
+
+// HasUploadMethod returns a boolean if a field has been set.
+func (o *CreatePublicMediaUploadResponse) HasUploadMethod() bool {
+	if o != nil && !IsNil(o.UploadMethod) {
+		return true
+	}
+
+	return false
+}
+
+// SetUploadMethod gets a reference to the given string and assigns it to the UploadMethod field.
+func (o *CreatePublicMediaUploadResponse) SetUploadMethod(v string) {
+	o.UploadMethod = &v
+}
+
+// GetUploadUrl returns the UploadUrl field value if set, zero value otherwise.
+func (o *CreatePublicMediaUploadResponse) GetUploadUrl() string {
+	if o == nil || IsNil(o.UploadUrl) {
+		var ret string
+		return ret
+	}
+	return *o.UploadUrl
+}
+
+// GetUploadUrlOk returns a tuple with the UploadUrl field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *CreatePublicMediaUploadResponse) GetUploadUrlOk() (*string, bool) {
+	if o == nil || IsNil(o.UploadUrl) {
+		return nil, false
+	}
+	return o.UploadUrl, true
+}
+
+// HasUploadUrl returns a boolean if a field has been set.
+func (o *CreatePublicMediaUploadResponse) HasUploadUrl() bool {
+	if o != nil && !IsNil(o.UploadUrl) {
+		return true
+	}
+
+	return false
+}
+
+// SetUploadUrl gets a reference to the given string and assigns it to the UploadUrl field.
+func (o *CreatePublicMediaUploadResponse) SetUploadUrl(v string) {
+	o.UploadUrl = &v
+}
+
+func (o CreatePublicMediaUploadResponse) MarshalJSON() ([]byte, error) {
 	toSerialize,err := o.ToMap()
 	if err != nil {
 		return []byte{}, err
@@ -79,46 +215,58 @@ func (o CreateMediaResponse) MarshalJSON() ([]byte, error) {
 	return json.Marshal(toSerialize)
 }
 
-func (o CreateMediaResponse) ToMap() (map[string]interface{}, error) {
+func (o CreatePublicMediaUploadResponse) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	if !IsNil(o.Media) {
 		toSerialize["media"] = o.Media
 	}
+	if !IsNil(o.UploadExpiresAt) {
+		toSerialize["uploadExpiresAt"] = o.UploadExpiresAt
+	}
+	if !IsNil(o.UploadHeaders) {
+		toSerialize["uploadHeaders"] = o.UploadHeaders
+	}
+	if !IsNil(o.UploadMethod) {
+		toSerialize["uploadMethod"] = o.UploadMethod
+	}
+	if !IsNil(o.UploadUrl) {
+		toSerialize["uploadUrl"] = o.UploadUrl
+	}
 	return toSerialize, nil
 }
 
-type NullableCreateMediaResponse struct {
-	value *CreateMediaResponse
+type NullableCreatePublicMediaUploadResponse struct {
+	value *CreatePublicMediaUploadResponse
 	isSet bool
 }
 
-func (v NullableCreateMediaResponse) Get() *CreateMediaResponse {
+func (v NullableCreatePublicMediaUploadResponse) Get() *CreatePublicMediaUploadResponse {
 	return v.value
 }
 
-func (v *NullableCreateMediaResponse) Set(val *CreateMediaResponse) {
+func (v *NullableCreatePublicMediaUploadResponse) Set(val *CreatePublicMediaUploadResponse) {
 	v.value = val
 	v.isSet = true
 }
 
-func (v NullableCreateMediaResponse) IsSet() bool {
+func (v NullableCreatePublicMediaUploadResponse) IsSet() bool {
 	return v.isSet
 }
 
-func (v *NullableCreateMediaResponse) Unset() {
+func (v *NullableCreatePublicMediaUploadResponse) Unset() {
 	v.value = nil
 	v.isSet = false
 }
 
-func NewNullableCreateMediaResponse(val *CreateMediaResponse) *NullableCreateMediaResponse {
-	return &NullableCreateMediaResponse{value: val, isSet: true}
+func NewNullableCreatePublicMediaUploadResponse(val *CreatePublicMediaUploadResponse) *NullableCreatePublicMediaUploadResponse {
+	return &NullableCreatePublicMediaUploadResponse{value: val, isSet: true}
 }
 
-func (v NullableCreateMediaResponse) MarshalJSON() ([]byte, error) {
+func (v NullableCreatePublicMediaUploadResponse) MarshalJSON() ([]byte, error) {
 	return json.Marshal(v.value)
 }
 
-func (v *NullableCreateMediaResponse) UnmarshalJSON(src []byte) error {
+func (v *NullableCreatePublicMediaUploadResponse) UnmarshalJSON(src []byte) error {
 	v.isSet = true
 	return json.Unmarshal(src, &v.value)
 }

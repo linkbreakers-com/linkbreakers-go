@@ -48,7 +48,7 @@ info:
 
     Send a `Linkbreakers-Client` request header saying which client made the call: `<client>/<version> (<details>)`, for example `my-integration/1.2.0 (python 3.12; linux)`. The official SDKs, the CLI and the MCP bridge set it for you, as `sdk-python/2.3.1 (python 3.12.4; linux)` or `cli/1.4.0 (darwin arm64)`. It is optional and changes nothing about how a request is handled; it tells us which clients and versions are in use, so we know what can be retired and what to fix first. Keep the details short and free of personal data. Browsers may send it too: it is allowed by CORS.
   title: Linkbreakers API
-  version: 1.200.1
+  version: 1.200.2
   x-api-versioning:
     compatibility: additive changes only within a version
     currentVersion: v1
@@ -67,10 +67,6 @@ tags:
 - description: "AI chat personas you build (a role, a tone, guardrails and knowledge\
     \ documents) and plug into a link's Chat Bot step, where they talk to your visitors."
   name: Agents
-- description: "How much of each limit of your plan the workspace has used (tracked\
-    \ visits, API calls, platform credits, team members, custom domains, webhooks),\
-    \ read from the counters that enforce them."
-  name: Plan Usage
 - description: "Scan and visit numbers: rolling workspace totals, time series, and\
     \ breakdowns by country, device, hour, link or workflow step, with funnels, A/B\
     \ splits and visitor attributes."
@@ -151,7 +147,8 @@ tags:
 - description: "The API tokens that authenticate these endpoints: create, list, update\
     \ and revoke them."
   name: Workspace Tokens
-- description: "Your workspace: read and update its settings, or delete it."
+- description: "Your workspace: read and update its settings, see how much of its\
+    \ plan it has used, or delete it."
   name: Workspaces
 paths:
   /v1/agent-presets:
@@ -5161,7 +5158,7 @@ paths:
       description: |-
         Creates a link, and its QR code, that hands visitors one piece of media from the media
         library: a PDF (a menu or brochure), an image (PNG, JPEG, WebP, SVG) or an MP4 video. Upload
-        the media first (POST /v1/media, or a direct upload for media over 3 MB; no usage is needed),
+        the media first (POST /v1/media/uploads, a PUT of the file, then its complete call; no usage is needed),
         then pass its mediaId. Any media of the library can be opened. The Open media step is the exit step. Swap the media later by
         pointing the step at another media item.
 
@@ -6605,22 +6602,20 @@ paths:
         pageSizeParam: pageSize
         type: cursor
       x-required-scope: media:read
+  /v1/media/public-uploads:
     post:
       description: |-
-        Uploads a file sent in the request itself, base64 encoded over HTTP, up to 3 MB.
-        Larger files (a PDF brochure, a video) are uploaded straight to storage instead:
-        CreateUpload, a PUT of the file to the returned uploadUrl, then CompleteUpload.
-        A media item only has a kind, read from its bytes: images (PNG, JPEG, WebP, SVG) up to 10 MB,
-        PDF documents up to 25 MB and MP4 videos up to 50 MB. Nothing about where it will be used is
-        needed at upload: any image can then be a QR code logo, a background cover, a badge or a footer
-        logo (up to 3 MB for those), and any media can be opened by an Open media step.
+        Uploads a QR code logo without an API token, for a QR code design created without one
+        (POST /v1/qrcode-designs). It is the same flow as CreateUpload, outside any workspace: declare
+        the image's name, MIME type (image/png, image/jpeg, image/webp or image/svg+xml) and exact size
+        in bytes, at most 3 MB; PUT its bytes to uploadUrl with the uploadHeaders before
+        uploadExpiresAt; then call CompletePublicUpload and pass the media id as the design's
+        centralImageMediaId. Anything but an image of at most 3 MB is refused with MEDIA_NOT_ALLOWED_HERE.
 
-        A workspace holds each file once. A file whose bytes (SHA-256) match media the workspace already
-        has is refused with 409 MEDIA_ALREADY_EXISTS; the error's metadata names that media in
-        existingMediaId and existingFileName. Use that media instead of uploading the file again.
-
-        Requires the `media:write` scope.
-      operationId: MediaService_Create
+        A public upload belongs to no workspace, is never listed and can only be a design's logo. The
+        design keeps its own copy of the image, and the upload itself is deleted an hour after it
+        started, used or not. With an API token, upload with CreateUpload instead.
+      operationId: MediaService_CreatePublicUpload
       parameters:
       - description: "A unique value per request, such as a UUID, that makes retrying\
           \ it safe: a retry with the same key and body returns the first response\
@@ -6638,14 +6633,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateMediaRequest"
+              $ref: "#/components/schemas/CreatePublicMediaUploadRequest"
         required: true
       responses:
         "200":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/CreateMediaResponse"
+                $ref: "#/components/schemas/CreatePublicMediaUploadResponse"
           description: Everything worked as expected.
           headers:
             Idempotent-Replayed:
@@ -6671,26 +6666,97 @@ paths:
               $ref: "#/components/headers/RateLimit-Policy"
             RateLimit-Remaining:
               $ref: "#/components/headers/RateLimit-Remaining"
-      security:
-      - bearerAuth:
-        - media:write
-      - oauth2:
-        - media:write
-      summary: Upload a media file
+      security: []
+      summary: Start a public QR code logo upload
       tags:
       - Media
-      x-required-scope: media:write
+  /v1/media/public-uploads/{id}:complete:
+    post:
+      description: |-
+        Checks the image PUT to the uploadUrl of a public upload: its size, and its real format read
+        from its first bytes. When it matches what CreatePublicUpload declared, the upload is ready to be
+        a QR code design's centralImageMediaId within the hour. When it does not, it is discarded and the
+        error says why; start a new upload. Completing an upload that is already ready returns it.
+      operationId: MediaService_CompletePublicUpload
+      parameters:
+      - description: "The id of the pending public upload (UUID), from CreatePublicUpload"
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: "A unique value per request, such as a UUID, that makes retrying\
+          \ it safe: a retry with the same key and body returns the first response\
+          \ instead of acting twice."
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MediaServiceCompletePublicUploadBody"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompletePublicMediaUploadResponse"
+          description: Everything worked as expected.
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security: []
+      summary: Complete a public QR code logo upload
+      tags:
+      - Media
   /v1/media/uploads:
     post:
       description: |-
-        Reserves a media item for a file uploaded straight to storage, so large files never pass
-        through the API. Declare the file's name, MIME type and exact size in bytes; they are checked
-        against the limit for the file's kind (images up to 10 MB, PDF documents up to 25 MB, MP4
-        videos up to 50 MB) and against the workspace's storage allowance now, and against the
-        uploaded bytes on completion. Then PUT the file's bytes to uploadUrl with the
-        uploadHeaders (and a Content-Length equal to size) before uploadExpiresAt, and call
-        CompleteUpload. Until completed the media is PENDING: it is not listed and cannot be used.
-        An upload not completed within an hour is discarded.
+        The one way to put a file into Linkbreakers: every field that takes a file (an Open media step,
+        a QR code logo, a page theme's background cover, badge or footer logo) takes the id of media
+        uploaded this way, never the file itself. The file goes straight to storage and never passes
+        through the API.
+
+        Declare the file's name, MIME type and exact size in bytes; they are checked against the limit
+        for the file's kind (images up to 10 MB, PDF documents up to 25 MB, MP4 videos up to 50 MB) and
+        against the workspace's storage allowance now, and against the uploaded bytes on completion.
+        Then PUT the file's bytes to uploadUrl with the uploadHeaders (and a Content-Length equal to
+        size) before uploadExpiresAt, and call CompleteUpload. Until completed the media is PENDING:
+        it is not listed and cannot be used. An upload not completed within an hour is discarded. A
+        media item only has a kind, read from its bytes: nothing about where it will be used is needed
+        at upload, and any image of at most 3 MB can then be a QR code logo, a background cover, a badge
+        or a footer logo.
 
         A workspace holds each file once. Optionally declare sha256, the file's SHA-256 as hex: a file the
         workspace already holds is then refused here, before any upload, with 409 MEDIA_ALREADY_EXISTS,
@@ -6755,7 +6821,7 @@ paths:
         - media:write
       - oauth2:
         - media:write
-      summary: Start a direct media upload
+      summary: Start a media upload
       tags:
       - Media
       x-required-scope: media:write
@@ -7224,7 +7290,7 @@ paths:
         - media:write
       - oauth2:
         - media:write
-      summary: Complete a direct media upload
+      summary: Complete a media upload
       tags:
       - Media
       x-required-scope: media:write
@@ -7660,7 +7726,9 @@ paths:
       x-required-scope: members:read
     put:
       description: |-
-        Modify profile details or role assignments for an existing member.
+        Change a teammate's name, role, display language or email. Only the fields you send are changed: a field left out keeps its value, so `{"role": "ROLE_ADMIN"}` promotes a teammate and leaves the rest of their profile as it is.
+
+        A role other than `ROLE_ADMIN` or `ROLE_VIEWER` fails with `MEMBER_ROLE_NOT_ALLOWED`; a language not offered fails with `MEMBER_LANGUAGE_NOT_ALLOWED`.
 
         Requires the `members:write` scope.
       operationId: MembersService_Update
@@ -9087,51 +9155,6 @@ paths:
       tags:
       - Page Themes
       x-required-scope: page_themes:write
-  /v1/plan-usage:
-    get:
-      description: |-
-        Return every limit the workspace's plan sets with what has been used in the current cycle, when it resets and whether it has been reached.
-
-        Requires the `workspace:read` scope.
-      operationId: PlanUsageService_List
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ListAllowancesResponse"
-          description: Everything worked as expected.
-          headers:
-            RateLimit:
-              $ref: "#/components/headers/RateLimit"
-            RateLimit-Policy:
-              $ref: "#/components/headers/RateLimit-Policy"
-            RateLimit-Remaining:
-              $ref: "#/components/headers/RateLimit-Remaining"
-        "429":
-          $ref: "#/components/responses/TooManyRequests"
-        default:
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-          description: Unexpected error
-          headers:
-            RateLimit:
-              $ref: "#/components/headers/RateLimit"
-            RateLimit-Policy:
-              $ref: "#/components/headers/RateLimit-Policy"
-            RateLimit-Remaining:
-              $ref: "#/components/headers/RateLimit-Remaining"
-      security:
-      - bearerAuth:
-        - workspace:read
-      - oauth2:
-        - workspace:read
-      summary: List allowances
-      tags:
-      - Plan Usage
-      x-required-scope: workspace:read
   /v1/pricing/plans:
     get:
       description: "Retrieve every plan with its prices, limits and features. Public,\
@@ -9544,8 +9567,9 @@ paths:
       - Workspaces
   /v1/qrcode-designs:
     post:
-      description: Provision a QR code styling preset that can be reused across links
-        or templates.
+      description: "Provision a QR code styling preset that can be reused across links\
+        \ or templates. No API token is needed; the logo, if any, is a public upload\
+        \ passed by its media id."
       operationId: QrcodeDesignsService_Create
       parameters:
       - description: "A unique value per request, such as a UUID, that makes retrying\
@@ -12855,6 +12879,53 @@ paths:
       tags:
       - Workspace Tokens
       x-required-scope: tokens:write
+  /v1/workspace/usage:
+    get:
+      description: |-
+        Returns every limit the workspace's plan sets (tracked visits, API calls, platform credits, team members, custom domains, webhooks, media storage) with what the workspace has used of it in the current cycle, when it resets and whether it has been reached. The numbers come from the counters that enforce the limits.
+
+        The plans themselves, with their prices and limits, are listed by [Pricing](https://linkbreakers.com/help/api/pricing).
+
+        Requires the `workspace:read` scope.
+      operationId: WorkspacesService_GetUsage
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkspaceUsage"
+          description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - workspace:read
+      - oauth2:
+        - workspace:read
+      summary: Get the workspace's plan usage
+      tags:
+      - Workspaces
+      x-required-scope: workspace:read
 components:
   headers:
     Deprecation:
@@ -13952,9 +14023,7 @@ components:
           type: string
         scope:
           description: |-
-            One permission an API token or OAuth grant can hold.
-
-            A write scope also grants the read scope of the same resource.
+            The scope.
 
              - API_SCOPE_UNSPECIFIED: Not a scope. Rejected wherever a scope is expected.
              - API_SCOPE_LINKS_READ: Read links, their QR code images, tags, folders and link settings.
@@ -14248,30 +14317,6 @@ components:
     AssistantServiceCompleteAttachmentUploadBody:
       title: Request to complete a direct attachment upload
       type: object
-    AssistantUploadFileRequest:
-      properties:
-        content:
-          title: File content (base64-encoded in JSON)
-          type: string
-        mimeType:
-          title: "MIME type (e.g. \"image/png\", \"application/pdf\")"
-          type: string
-        name:
-          title: Original filename
-          type: string
-      title: Uploads a file for assistant chat attachment
-    AssistantUploadFileResponse:
-      properties:
-        fileId:
-          title: Temporary file ID to include in assistant message attachments
-          type: string
-        mimeType:
-          title: MIME type (echoed back)
-          type: string
-        name:
-          title: Original filename (echoed back)
-          type: string
-      title: Returns the temporary file reference
     AttributeCapture:
       description: |-
         A step's opt-in to save values to the visitor's profile, so a workflow can
@@ -14335,7 +14380,9 @@ components:
           example: looking_for
           type: string
         mode:
-          description: |2-
+          description: |-
+            SET (default) keeps the latest value; SET_ONCE keeps the first.
+
              - ATTRIBUTE_WRITE_MODE_SET: Overwrite, so the profile holds the latest value.
              - ATTRIBUTE_WRITE_MODE_SET_ONCE: Keep the first value, for first-touch facts.
           enum:
@@ -14346,10 +14393,8 @@ components:
           type: string
         type:
           description: |-
-            What a value was captured as. It decides how the
-            value is parsed and which analytics the key can support, which the value
-            alone cannot tell you: "8" from a rating field and "8" typed into a text box
-            are different facts.
+            How the value is stored, so it can be compared and filtered. Defaults to
+            STRING. Use DATE with {{now}} for milestones and ENUM for choices.
           enum:
           - VISITOR_ATTRIBUTE_TYPE_UNSPECIFIED
           - VISITOR_ATTRIBUTE_TYPE_STRING
@@ -14536,6 +14581,9 @@ components:
           type: array
         eventAction:
           description: |-
+            The step to insert. Conditions and interaction steps only: an exit step
+            would strand what comes after it.
+
             - EVENT_ACTION_UNSPECIFIED: Event action not specified
              - EVENT_ACTION_CLIENT_REDIRECT: Redirect visitors to a destination URL
              - EVENT_ACTION_LINK_VISIT: Entry step triggered when the link is visited.
@@ -15051,6 +15099,11 @@ components:
           type: boolean
         type:
           description: |-
+            Kind of value, which decides how the answer is checked and stored.
+            FORM_FIELD_TYPE_CONSENT asks for marketing consent: key $marketingConsent,
+            granted or denied as the agent judges the visitor's reply, whatever their
+            words, and each answer kept as proof with the question asked and the reply.
+
             - FORM_FIELD_TYPE_UNSPECIFIED: Form field type not specified
              - FORM_FIELD_TYPE_CONSENT: A checkbox where the visitor agrees to the workspace's marketing, in the
             workspace's own words (the label), never pre-ticked. Its key is always
@@ -15352,6 +15405,16 @@ components:
           - $ref: "#/components/schemas/Media"
           title: "The media item, now READY, with a signed URL"
       title: The completed media item
+    CompletePublicMediaUploadResponse:
+      example:
+        media: ""
+      properties:
+        media:
+          allOf:
+          - $ref: "#/components/schemas/Media"
+          description: "The upload, now READY, with a signed URL to preview it. Pass\
+            \ its id as a QR code design's centralImageMediaId within the hour."
+      title: The completed public upload
     CompleteSlackOAuthRequest:
       properties:
         code:
@@ -16949,67 +17012,6 @@ components:
           example: https://storage.example.com/media/5f1c2d3e/menu-autumn.pdf?X-Amz-Expires=900&X-Amz-Signature=3f2a9c7e
           type: string
       title: A reserved replacement and where to upload the new file
-    CreateMediaRequest:
-      example:
-        fileName: example.jpg
-        visibility: VISIBILITY_PRIVATE
-        fileData: iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==
-        usage: USAGE_CENTRAL_QRCODE_IMAGE
-        uploadedFrom: UPLOAD_ORIGIN_QR_CODE_LOGO
-        mediaType: TYPE_CENTRAL_QRCODE_IMAGE
-      properties:
-        fileData:
-          description: "The file data to upload, at most 3 MB. It must be transmitted\
-            \ in a base64 string format when sending it through HTTP. Accepted formats\
-            \ are PNG, JPEG, WebP and SVG images, PDF documents and MP4 videos. Larger\
-            \ files go through CreateUpload."
-          example: iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==
-          type: string
-        fileName:
-          example: example.jpg
-          title: The name of the file
-          type: string
-        mediaType:
-          allOf:
-          - $ref: "#/components/schemas/MediaType"
-          description: |-
-            Deprecated: an upload no longer needs to say what the media is for. Optional, accepted for
-            compatibility and recorded as uploadedFrom when uploadedFrom is not set; never validated against.
-          example: TYPE_CENTRAL_QRCODE_IMAGE
-        uploadedFrom:
-          allOf:
-          - $ref: "#/components/schemas/MediaUploadOrigin"
-          description: |-
-            Where the media was uploaded from, so pickers can show a section's own uploads first. It does not
-            limit where the media can be used; see references for where it is used. Unset means
-            UPLOAD_ORIGIN_MEDIA_LIBRARY.
-          example: UPLOAD_ORIGIN_QR_CODE_LOGO
-        usage:
-          allOf:
-          - $ref: "#/components/schemas/MediaUsage"
-          description: |-
-            Deprecated: an upload no longer needs to say what the media is for, and this no longer limits the
-            kinds or sizes accepted. Optional, accepted for compatibility and recorded as uploadedFrom when
-            uploadedFrom is not set.
-          example: USAGE_CENTRAL_QRCODE_IMAGE
-        visibility:
-          allOf:
-          - $ref: "#/components/schemas/MediaVisibility"
-          description: |-
-            The visibility of the media.
-
-            If not provided, the media file will be private.
-          example: VISIBILITY_PRIVATE
-      title: Request to create a new media file
-    CreateMediaResponse:
-      example:
-        media: ""
-      properties:
-        media:
-          allOf:
-          - $ref: "#/components/schemas/Media"
-          title: Newly stored media record with signed download URL
-      title: Response containing the created media file
     CreateMediaUploadRequest:
       example:
         fileName: menu.pdf
@@ -17071,7 +17073,7 @@ components:
       - fileName
       - mimeType
       - size
-      title: Request to start a direct upload
+      title: Request to start a media upload
     CreateMediaUploadResponse:
       example:
         uploadMethod: PUT
@@ -17127,7 +17129,7 @@ components:
         member:
           allOf:
           - $ref: "#/components/schemas/Member"
-          title: "The member record in the new workspace, with accessToken set"
+          title: The member record in the new workspace
         memberId:
           title: The person's member record in the new workspace (UUID)
           type: string
@@ -17434,6 +17436,67 @@ components:
           - $ref: "#/components/schemas/PageThemeTemplate"
           title: The created page theme template
       title: The response for creating a page theme template
+    CreatePublicMediaUploadRequest:
+      example:
+        fileName: cafe-logo.png
+        size: 48213
+        mimeType: image/png
+      properties:
+        fileName:
+          example: cafe-logo.png
+          title: The image's file name
+          type: string
+        mimeType:
+          description: "The image's MIME type: image/png, image/jpeg, image/webp or\
+            \ image/svg+xml. The uploaded bytes must be this format."
+          example: image/png
+          type: string
+        size:
+          description: "The image's exact size in bytes, at most 3 MB (3145728). The\
+            \ PUT must send exactly this many bytes."
+          example: 48213
+          format: int64
+          type: integer
+      required:
+      - fileName
+      - mimeType
+      - size
+      title: Request to start a public QR code logo upload
+    CreatePublicMediaUploadResponse:
+      example:
+        uploadMethod: PUT
+        uploadHeaders:
+          Content-Type: image/png
+        uploadUrl: https://storage.example.com/media/public/0e5b7c2d.png?X-Amz-Expires=900&X-Amz-Signature=5c1e7a9d
+        uploadExpiresAt: 2026-03-14T09:45:00Z
+        media: ""
+      properties:
+        media:
+          allOf:
+          - $ref: "#/components/schemas/Media"
+          description: The pending upload. Its id is what CompletePublicUpload and
+            a QR code design's centralImageMediaId take.
+        uploadExpiresAt:
+          example: 2026-03-14T09:45:00Z
+          format: date-time
+          title: When uploadUrl stops accepting the image
+          type: string
+        uploadHeaders:
+          additionalProperties:
+            type: string
+          description: "Headers the upload must carry, exactly as given. The Content-Length\
+            \ must equal the declared size."
+          example:
+            Content-Type: image/png
+        uploadMethod:
+          example: PUT
+          title: "The HTTP method to send them with: always PUT"
+          type: string
+        uploadUrl:
+          description: "Where to send the image's bytes, directly to storage. Short-lived."
+          example: https://storage.example.com/media/public/0e5b7c2d.png?X-Amz-Expires=900&X-Amz-Signature=5c1e7a9d
+          type: string
+      title: A reserved public upload and where to upload its image
     CreateQrcodeDesignRequest:
       description: Provisions a new reusable QR code styling preset.
       example:
@@ -17441,8 +17504,8 @@ components:
         cornersDotOptions: ""
         dotsOptions: ""
         shape: SHAPE_SQUARE
-        centralImageData: iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==
         hideBackgroundDots: true
+        centralImageMediaId: 0e5b7c2d-8a41-4f6e-9b3c-2d7f1a6e4c58
         backgroundOptions: ""
         cornersSquareOptions: ""
         width: 1024
@@ -17455,18 +17518,21 @@ components:
           allOf:
           - $ref: "#/components/schemas/BackgroundOptions"
           title: The styling options for the background
-        centralImageData:
-          description: |-
-            The image to use as the central image of the QR Code. The file size limit is 3MB. It must be transmitted in a base64 string format when sending it through HTTP.
-            This endpoint has no workspace, so it cannot take an image from the media library: to use one, create the
-            design, then set centralImageMediaId with Update.
-          example: iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==
-          type: string
         centralImageMargin:
           example: 8
           format: int32
           title: The margin around the central image in pixels
           type: integer
+        centralImageMediaId:
+          description: |-
+            The central image (the logo): the media id of a public upload (UUID), made without an API token with
+            POST /v1/media/public-uploads, a PUT of the image, and its complete call. The image itself is never
+            sent here. Only a completed public upload of the last hour is accepted, an image of at most 3 MB;
+            anything else is refused with QRCODE_DESIGN_INVALID_LOGO_MEDIA. The design keeps its own copy of the
+            image. To use an image of your media library, create the design, then set centralImageMediaId with
+            Update.
+          example: 0e5b7c2d-8a41-4f6e-9b3c-2d7f1a6e4c58
+          type: string
         centralImageSize:
           example: 0.3
           format: double
@@ -18133,7 +18199,9 @@ components:
           type: string
         status:
           description: |-
-            The status of a custom domain
+            Verify the status of the domain.
+
+            Whether the domain is verified, certified and fully active
 
              - STATUS_UNSPECIFIED: The status is not specified
              - STATUS_INACTIVE: The domain is inactive. It was created but not checked yet.
@@ -18791,10 +18859,8 @@ components:
           type: string
         deviceActor:
           description: |-
-            WHO or WHAT is operating the device.
-            This distinguishes between a real human visitor, an automated crawler/scraper bot
-            (e.g. Googlebot, BingBot), and an AI/LLM agent acting on behalf of a user
-            (e.g. GPTBot, ClaudeBot, Gemini, Grok).
+            Who or what is operating this device: HUMAN (real visitor), BOT (crawler like Googlebot),
+            AGENT (AI/LLM like GPTBot, ClaudeBot), or UNKNOWN.
 
              - DEVICE_ACTOR_UNSPECIFIED: Actor not specified or not yet detected
              - DEVICE_ACTOR_HUMAN: Human visitor using a browser (covers MOBILE, TABLET, DESKTOP device types)
@@ -18849,9 +18915,8 @@ components:
           type: string
         deviceType:
           description: |-
-            The physical form factor of the device.
-            This describes the hardware category (phone, tablet, laptop, etc.),
-            NOT who or what is operating it — see DeviceActor for that.
+            Physical form factor of the device (MOBILE, TABLET, DESKTOP, NATIVE, UNKNOWN).
+            Does NOT indicate whether the visitor is human or a bot — see deviceActor for that.
 
              - DEVICE_TYPE_UNSPECIFIED: Device type not specified or not yet detected
              - DEVICE_TYPE_NATIVE: Native QR scanner (no browser capabilities reported)
@@ -19051,7 +19116,7 @@ components:
           example: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
           type: string
         value:
-          description: Allowed values for device actor routing conditions.
+          description: Actor to match.
           enum:
           - DEVICE_ACTOR_CONDITION_VALUE_UNSPECIFIED
           - DEVICE_ACTOR_CONDITION_VALUE_HUMAN
@@ -19128,7 +19193,7 @@ components:
           example: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
           type: string
         value:
-          description: Allowed values for device brand routing conditions.
+          description: Hardware brand to match.
           enum:
           - DEVICE_BRAND_CONDITION_VALUE_UNSPECIFIED
           - DEVICE_BRAND_CONDITION_VALUE_APPLE
@@ -19210,10 +19275,7 @@ components:
           type: string
         value:
           description: |-
-            Allowed values for device browser routing conditions. Browser families
-            match visits in a regular browser only. In-app browser values match visits
-            inside an app's in-app browser only: an Instagram in-app browser on an
-            iPhone is Instagram, never Safari.
+            Browser family or in-app browser to match.
 
              - DEVICE_BROWSER_CONDITION_VALUE_CHROME: Chrome, in a regular browser
              - DEVICE_BROWSER_CONDITION_VALUE_SAFARI: Safari, in a regular browser
@@ -19490,7 +19552,7 @@ components:
           example: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
           type: string
         value:
-          description: Allowed values for device platform routing conditions.
+          description: Platform / operating system to match.
           enum:
           - DEVICE_PLATFORM_CONDITION_VALUE_UNSPECIFIED
           - DEVICE_PLATFORM_CONDITION_VALUE_IOS
@@ -19583,7 +19645,7 @@ components:
           example: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
           type: string
         value:
-          description: Allowed values for device type routing conditions.
+          description: Device type to match.
           enum:
           - DEVICE_TYPE_CONDITION_VALUE_UNSPECIFIED
           - DEVICE_TYPE_CONDITION_VALUE_MOBILE
@@ -19757,12 +19819,33 @@ components:
           - $ref: "#/components/schemas/WorkflowStep"
           title: "The step the connection left from, as it now stands"
       title: Response for clearing a workflow step branch
-    DismissAllowanceNoticeRequest:
+    DismissWorkspaceUsageNoticeRequest:
       properties:
         key:
-          allOf:
-          - $ref: "#/components/schemas/PlanLimitKey"
+          description: |-
+            - PLAN_LIMIT_KEY_UNSPECIFIED: Not set
+             - PLAN_LIMIT_KEY_CUSTOM_DOMAINS: Custom domains connected to the workspace
+             - PLAN_LIMIT_KEY_TEAM_MEMBERS: Members of the workspace
+             - PLAN_LIMIT_KEY_PLATFORM_CREDITS: Platform credits, spent by creating links and by AI features
+             - PLAN_LIMIT_KEY_TRACKED_VISITS: Tracked visits (scans and clicks)
+             - PLAN_LIMIT_KEY_PUBLIC_API_CALLS: Public API calls
+             - PLAN_LIMIT_KEY_WEBHOOKS: Webhooks configured in the workspace
+             - PLAN_LIMIT_KEY_ASSISTANT_MESSAGES_PER_MINUTE: Assistant messages per minute
+             - PLAN_LIMIT_KEY_LINKS_INCLUDED: Links the monthly platform credits pay for. Links are not capped on their own: each one spends credits.
+             - PLAN_LIMIT_KEY_MEDIA_STORAGE_MB: Megabytes of uploaded media (media for Open media steps, QR code logos, page theme images) the workspace may hold at once. A standing total: deleting media frees it.
+          enum:
+          - PLAN_LIMIT_KEY_UNSPECIFIED
+          - PLAN_LIMIT_KEY_CUSTOM_DOMAINS
+          - PLAN_LIMIT_KEY_TEAM_MEMBERS
+          - PLAN_LIMIT_KEY_PLATFORM_CREDITS
+          - PLAN_LIMIT_KEY_TRACKED_VISITS
+          - PLAN_LIMIT_KEY_PUBLIC_API_CALLS
+          - PLAN_LIMIT_KEY_WEBHOOKS
+          - PLAN_LIMIT_KEY_ASSISTANT_MESSAGES_PER_MINUTE
+          - PLAN_LIMIT_KEY_LINKS_INCLUDED
+          - PLAN_LIMIT_KEY_MEDIA_STORAGE_MB
           title: The limit whose notice to dismiss
+          type: string
       title: Request to stop showing the over-limit notice for one limit until its
         next cycle
     DnsProvider:
@@ -20581,8 +20664,15 @@ components:
           - $ref: "#/components/schemas/ThemeColor"
           title: Text color (ThemeColor)
         family:
-          description: " - PAGE_THEME_FONT_FAMILY_UNSPECIFIED: Maps to the default\
-            \ system sans-serif stack."
+          description: |-
+            Font family (strict enum mapped to native font stacks).
+
+            The enum names the seven families the editor offers. Themes can carry a
+            stack outside that set, which has no enum value and reads back as DEFAULT,
+            so familyStack carries the exact one and is what a client should write
+            back when it did not change the font.
+
+             - PAGE_THEME_FONT_FAMILY_UNSPECIFIED: Maps to the default system sans-serif stack.
           enum:
           - PAGE_THEME_FONT_FAMILY_UNSPECIFIED
           - PAGE_THEME_FONT_FAMILY_DEFAULT
@@ -23084,8 +23174,7 @@ components:
           type: array
         visitorData:
           description: |-
-            How much of what is known about the visitor an
-            integration sends.
+            What: how much of what is known about the visitor it sends.
 
              - INTEGRATION_VISITOR_DATA_NONE: Only the visit: the link, the step, the device and the place.
              - INTEGRATION_VISITOR_DATA_ALL: The visit, and every attribute known about the visitor.
@@ -23184,7 +23273,7 @@ components:
           description: Set when a JOB_TYPE_LINKS_BULK_CREATE job succeeded.
         status:
           description: |-
-            Where a job stands.
+            Where the job stands. Poll until JOB_STATUS_SUCCEEDED or JOB_STATUS_FAILED.
 
              - JOB_STATUS_UNSPECIFIED: Not set.
              - JOB_STATUS_PENDING: Accepted and waiting to run.
@@ -23205,7 +23294,7 @@ components:
           type: string
         type:
           description: |-
-            What a job does.
+            What the job does.
 
              - JOB_TYPE_UNSPECIFIED: Not set.
              - JOB_TYPE_LINKS_BULK_CREATE: Creates a batch of links (POST /v1/links/bulk/jobs).
@@ -24062,70 +24151,6 @@ components:
           example: 3
           format: int64
           type: integer
-    ListAllowancesResponse:
-      example:
-        allowances:
-        - lockedCount: 128
-          cycleStartAt: 2026-03-01T00:00:00Z
-          cycleEndAt: 2026-03-31T23:59:59Z
-          kind: PLAN_LIMIT_KIND_MONTHLY
-          used: 5000
-          usedBytes: 48234496
-          lockedTotalCount: 128
-          remaining: 0
-          cheapestActionCost: 1
-          reached: true
-          limit: 5000
-          limitBytes: 524288000
-          recordedCount: 5128
-          noticeDismissed: false
-          resetsOn: ""
-          key: PLAN_LIMIT_KEY_TRACKED_VISITS
-        - lockedCount: 128
-          cycleStartAt: 2026-03-01T00:00:00Z
-          cycleEndAt: 2026-03-31T23:59:59Z
-          kind: PLAN_LIMIT_KIND_MONTHLY
-          used: 5000
-          usedBytes: 48234496
-          lockedTotalCount: 128
-          remaining: 0
-          cheapestActionCost: 1
-          reached: true
-          limit: 5000
-          limitBytes: 524288000
-          recordedCount: 5128
-          noticeDismissed: false
-          resetsOn: ""
-          key: PLAN_LIMIT_KEY_TRACKED_VISITS
-        plan: PRICING_PLAN_ID_PRO
-        limits:
-        - kind: PLAN_LIMIT_KIND_MONTHLY
-          value: 5000
-          key: PLAN_LIMIT_KEY_TRACKED_VISITS
-        - kind: PLAN_LIMIT_KIND_MONTHLY
-          value: 5000
-          key: PLAN_LIMIT_KEY_TRACKED_VISITS
-      properties:
-        allowances:
-          items:
-            $ref: "#/components/schemas/WorkspaceAllowance"
-          title: One entry per limit the plan sets
-          type: array
-        limits:
-          description: "Every limit this workspace is allowed, as enforced for its\
-            \ subscription, including the ones not counted per cycle such as webhooks\
-            \ and the Assistant rate. A trial or sponsored workspace can be allowed\
-            \ less than the plan it reports, and these are what it gets."
-          items:
-            $ref: "#/components/schemas/PlanLimit"
-          type: array
-        plan:
-          allOf:
-          - $ref: "#/components/schemas/PricingPlanId"
-          description: The plan the limits come from. A trial or sponsored workspace
-            reports the plan it is allowed what of.
-          example: PRICING_PLAN_ID_PRO
-      title: The workspace's allowances
     ListApiScopesResponse:
       description: Lists every scope a token can hold.
       example:
@@ -25916,7 +25941,6 @@ components:
           role: ROLE_ADMIN
           lastKnownIp: 203.0.113.42
           lastSigninAt: 2026-03-20T08:15:00Z
-          accessToken: lbw_1w8jp9longjwtvalue
           displayLanguage: en-US
           accessRevokedAt: 2026-03-25T10:00:00Z
           createdAt: 2026-03-14T09:30:00Z
@@ -25933,7 +25957,6 @@ components:
           role: ROLE_ADMIN
           lastKnownIp: 203.0.113.42
           lastSigninAt: 2026-03-20T08:15:00Z
-          accessToken: lbw_1w8jp9longjwtvalue
           displayLanguage: en-US
           accessRevokedAt: 2026-03-25T10:00:00Z
           createdAt: 2026-03-14T09:30:00Z
@@ -26211,8 +26234,7 @@ components:
           type: string
         sortDirection:
           description: |-
-            The ordering applied to any sortable list endpoint.
-            Shared across resources so a caller learns it once.
+            Sort direction. Defaults to descending.
 
              - SORT_DIRECTION_UNSPECIFIED: Sort direction not specified (defaults to descending)
              - SORT_DIRECTION_ASC: Sort in ascending order
@@ -26677,8 +26699,9 @@ components:
           example: VISIBILITY_PRIVATE
           title: The visibility of the media
         workspaceId:
+          description: "The workspace ID the media file belongs to (UUID). Empty for\
+            \ a public QR code logo upload, which belongs to no workspace."
           example: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
-          title: The workspace ID the media file belongs to (UUID)
           type: string
     MediaKind:
       default: KIND_UNSPECIFIED
@@ -26794,11 +26817,14 @@ components:
         id:
           example: 5f1c2d3e-4b5a-6c7d-8e9f-0a1b2c3d4e5f
           type: string
+    MediaServiceCompletePublicUploadBody:
+      title: Request to complete a public QR code logo upload
+      type: object
     MediaServiceCompleteReplaceBody:
       title: Request to complete replacing a media item's file
       type: object
     MediaServiceCompleteUploadBody:
-      title: Request to complete a direct upload
+      title: Request to complete a media upload
       type: object
     MediaServiceCreateReplaceUploadBody:
       example:
@@ -26985,7 +27011,6 @@ components:
         role: ROLE_ADMIN
         lastKnownIp: 203.0.113.42
         lastSigninAt: 2026-03-20T08:15:00Z
-        accessToken: lbw_1w8jp9longjwtvalue
         displayLanguage: en-US
         accessRevokedAt: 2026-03-25T10:00:00Z
         createdAt: 2026-03-14T09:30:00Z
@@ -27002,11 +27027,6 @@ components:
           example: 2026-03-25T10:00:00Z
           format: date-time
           title: When the member's access was revoked (null means active)
-          type: string
-        accessToken:
-          example: lbw_1w8jp9longjwtvalue
-          title: Access token issued during sign-in; returned to clients but not persisted
-            on the member record
           type: string
         createdAt:
           example: 2026-03-14T09:30:00Z
@@ -27063,9 +27083,12 @@ components:
           type: string
         role:
           description: |-
-            Enumerates the built-in permission tiers that control what teammates can manage inside a workspace.
+            What a teammate can do in a workspace.
 
-             - ROLE_UNSPECIFIED: Role not specified (defaults to viewer permissions)
+             - ROLE_UNSPECIFIED: Not set.
+             - ROLE_VIEWER: Reads links, analytics and settings, and changes nothing.
+             - ROLE_ADMIN: Manages links, members, settings and billing.
+             - ROLE_TECH: Reserved for Linkbreakers staff. It cannot be given through the API.
           enum:
           - ROLE_UNSPECIFIED
           - ROLE_VIEWER
@@ -27083,6 +27106,20 @@ components:
           example: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
           title: Workspace the member belongs to (UUID)
           type: string
+    MemberSession:
+      description: "A sign-in: the access token it issued and the member it signs\
+        \ in as."
+      properties:
+        accessToken:
+          description: |-
+            Access token for the session. Send it as a bearer token; it keeps working
+            until it is signed out or the member's access is revoked.
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJtaWQiOiJiN2UzZDFhOSJ9.U2lnbmVkSW4
+          type: string
+        member:
+          allOf:
+          - $ref: "#/components/schemas/Member"
+          title: The member signed in
     MembersServiceAllowAccessBody:
       title: The request to allow access
       type: object
@@ -27103,42 +27140,57 @@ components:
             have the code emailed (the call answers MFA_REQUIRED), then again with it.
           type: string
     MembersServiceUpdateBody:
-      description: Enables admins to update another teammate's profile and role.
+      description: |-
+        Changes a teammate's name, role, display language or sign-in email.
+
+        Only the fields you send are changed; a field left out keeps its value. To
+        promote a teammate, send `{"role": "ROLE_ADMIN"}` alone: their name,
+        language and email stay as they are.
       example:
         firstName: Ada
         lastName: Lovelace
-        role: ROLE_TECH
-        displayLanguage: fr
+        role: ROLE_ADMIN
+        displayLanguage: en
         email: ada@example.com
       properties:
         displayLanguage:
-          example: fr
-          title: Preferred language for product copy and emails
+          description: |-
+            New display language for product copy and emails: `en`, `es`, or `system`
+            to follow the browser. Left out, the language stays as it is.
+          example: en
           type: string
         email:
+          description: |-
+            New sign-in and notification email. Left out, or sent unchanged, the email
+            stays as it is.
           example: ada@example.com
-          title: Email address used for login and notifications
           type: string
         firstName:
+          description: |-
+            New first name. Left out, the first name stays as it is; sent empty, it is
+            cleared.
           example: Ada
-          title: First name to display in the product
           type: string
         lastName:
+          description: |-
+            New last name. Left out, the last name stays as it is; sent empty, it is
+            cleared.
           example: Lovelace
-          title: Last name to display in the product
           type: string
         role:
           description: |-
-            Enumerates the built-in permission tiers that control what teammates can manage inside a workspace.
+            New role: `ROLE_ADMIN` (manages links, members, settings and billing) or `ROLE_VIEWER` (reads only). Left out, the role stays as it is. Any other role fails with `MEMBER_ROLE_NOT_ALLOWED`.
 
-             - ROLE_UNSPECIFIED: Role not specified (defaults to viewer permissions)
+             - ROLE_UNSPECIFIED: Not set.
+             - ROLE_VIEWER: Reads links, analytics and settings, and changes nothing.
+             - ROLE_ADMIN: Manages links, members, settings and billing.
+             - ROLE_TECH: Reserved for Linkbreakers staff. It cannot be given through the API.
           enum:
           - ROLE_UNSPECIFIED
           - ROLE_VIEWER
           - ROLE_ADMIN
           - ROLE_TECH
-          example: ROLE_TECH
-          title: Role that defines workspace permissions
+          example: ROLE_ADMIN
           type: string
     MessagePageNavigationType:
       default: MESSAGE_PAGE_NAVIGATION_TYPE_UNSPECIFIED
@@ -27302,9 +27354,12 @@ components:
           type: string
         role:
           description: |-
-            Enumerates the built-in permission tiers that control what teammates can manage inside a workspace.
+            What a teammate can do in a workspace.
 
-             - ROLE_UNSPECIFIED: Role not specified (defaults to viewer permissions)
+             - ROLE_UNSPECIFIED: Not set.
+             - ROLE_VIEWER: Reads links, analytics and settings, and changes nothing.
+             - ROLE_ADMIN: Manages links, members, settings and billing.
+             - ROLE_TECH: Reserved for Linkbreakers staff. It cannot be given through the API.
           enum:
           - ROLE_UNSPECIFIED
           - ROLE_VIEWER
@@ -28352,21 +28407,10 @@ components:
           title: Capabilities the plan includes
           type: array
         id:
-          description: |-
-            - PRICING_PLAN_ID_UNSPECIFIED: Not set
-             - PRICING_PLAN_ID_FREE: Free plan, no payment
-             - PRICING_PLAN_ID_LIGHT: Light plan
-             - PRICING_PLAN_ID_PRO: Pro plan. Trials and sponsored workspaces are allowed what Pro allows unless a limit says otherwise.
-             - PRICING_PLAN_ID_ENTERPRISE: Enterprise plan, billed on usage and priced on request through sales
-          enum:
-          - PRICING_PLAN_ID_UNSPECIFIED
-          - PRICING_PLAN_ID_FREE
-          - PRICING_PLAN_ID_LIGHT
-          - PRICING_PLAN_ID_PRO
-          - PRICING_PLAN_ID_ENTERPRISE
+          allOf:
+          - $ref: "#/components/schemas/PricingPlanId"
           example: PRICING_PLAN_ID_PRO
           title: Plan identifier
-          type: string
         limits:
           items:
             $ref: "#/components/schemas/PlanLimit"
@@ -28800,7 +28844,7 @@ components:
         centralImageMediaId:
           description: |-
             The media library item the central image (the QR code logo) was picked from (UUID). Empty when the
-            logo was uploaded directly or there is none. The design keeps its own copy of the image, so the logo
+            logo came from a template or a public upload, or there is none. The design keeps its own copy of the image, so the logo
             survives the media being deleted; this id may then name media that no longer exists.
           example: 5f1c2d3e-4b5a-6c7d-8e9f-0a1b2c3d4e5f
           readOnly: true
@@ -28907,7 +28951,6 @@ components:
         cornersDotOptions: ""
         dotsOptions: ""
         shape: SHAPE_CIRCLE
-        centralImageData: iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==
         hideBackgroundDots: true
         centralImageMediaId: 5f1c2d3e-4b5a-6c7d-8e9f-0a1b2c3d4e5f
         backgroundOptions: ""
@@ -28923,16 +28966,9 @@ components:
           allOf:
           - $ref: "#/components/schemas/BackgroundOptions"
           title: The styling options for the background
-        centralImageData:
-          description: The image to use as the central image of the QR Code. The file
-            size limit is 3MB. It must be transmitted in a base64 string format when
-            sending it through HTTP.
-          example: iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==
-          type: string
         centralImageDelete:
-          description: |-
-            Set this to true to delete the central image. It can't be used at the same time as transmitting a central image.
-            Leave it out to keep the current central image, for example when only colors or shapes change.
+          description: Set this to true to delete the central image. It can't be used
+            at the same time as centralImageMediaId.
           example: false
           type: boolean
         centralImageMargin:
@@ -28942,12 +28978,12 @@ components:
           type: integer
         centralImageMediaId:
           description: |-
-            An image from the workspace's media library to use as the central image (UUID). Any READY image of at
-            most 3 MB can be a QR code logo; anything else is refused with MEDIA_NOT_ALLOWED_HERE. The design keeps
-            its own copy of the image: without centralImageData the server reads it from the media itself, with
-            it the bytes sent are used and the media is recorded as where they came from. The media then lists this
-            QR code among its references. Cannot be combined with centralImageDelete. Sending centralImageData
-            without it, or centralImageDelete, clears the recorded media.
+            An image from the workspace's media library to use as the central image (UUID). Upload the file
+            first (POST /v1/media/uploads, a PUT of its bytes, then its complete call) or import it from a URL,
+            and pass the media id: the image itself is never sent here. Any READY image of at most 3 MB can be
+            a QR code logo; anything else is refused with MEDIA_NOT_ALLOWED_HERE, and media of another
+            workspace or an upload not completed with QRCODE_DESIGN_INVALID_LOGO_MEDIA. The design keeps its own
+            copy of the image, and the media lists this QR code among its references.
           example: 5f1c2d3e-4b5a-6c7d-8e9f-0a1b2c3d4e5f
           type: string
         centralImageSize:
@@ -29746,9 +29782,12 @@ components:
     Role:
       default: ROLE_UNSPECIFIED
       description: |-
-        Enumerates the built-in permission tiers that control what teammates can manage inside a workspace.
+        What a teammate can do in a workspace.
 
-         - ROLE_UNSPECIFIED: Role not specified (defaults to viewer permissions)
+         - ROLE_UNSPECIFIED: Not set.
+         - ROLE_VIEWER: Reads links, analytics and settings, and changes nothing.
+         - ROLE_ADMIN: Manages links, members, settings and billing.
+         - ROLE_TECH: Reserved for Linkbreakers staff. It cannot be given through the API.
       enum:
       - ROLE_UNSPECIFIED
       - ROLE_VIEWER
@@ -30413,7 +30452,7 @@ components:
         member:
           allOf:
           - $ref: "#/components/schemas/Member"
-          title: "The member record in the new workspace, with accessToken set"
+          title: The member record in the new workspace
         memberId:
           title: The person's member record in the new workspace (UUID)
           type: string
@@ -31086,20 +31125,28 @@ components:
         linkSetting:
           $ref: "#/components/schemas/LinkSetting"
     UpdateMeRequest:
-      description: Allows the signed-in member to manage their own login and profile
-        data.
+      description: |-
+        Changes the signed-in member's own name, email or password.
+
+        Only the fields you send are changed; a field left out keeps its value.
       properties:
         email:
-          title: New email address for the signed-in member
+          description: |-
+            New sign-in and notification email. Left out, or sent unchanged, the email
+            stays as it is.
           type: string
         firstName:
-          title: First name to display in the product
+          description: |-
+            New first name. Left out, the first name stays as it is; sent empty, it is
+            cleared.
           type: string
         lastName:
-          title: Last name to display in the product
+          description: |-
+            New last name. Left out, the last name stays as it is; sent empty, it is
+            cleared.
           type: string
         password:
-          title: Optional password update for the signed-in member
+          description: "New password. Left out, the password stays as it is."
           type: string
     UpdatePageThemeResponse:
       example:
@@ -32156,11 +32203,8 @@ components:
           title: "Attribute key, for example \"budget\" or \"$email\""
           type: string
         type:
-          description: |-
-            What a value was captured as. It decides how the
-            value is parsed and which analytics the key can support, which the value
-            alone cannot tell you: "8" from a rating field and "8" typed into a text box
-            are different facts.
+          description: The type most of the key's values were captured as. Reserved
+            fields are STRING.
           enum:
           - VISITOR_ATTRIBUTE_TYPE_UNSPECIFIED
           - VISITOR_ATTRIBUTE_TYPE_STRING
@@ -33099,14 +33143,11 @@ components:
           type: boolean
         nodeType:
           description: |-
-            The node type says how many exits a step has. Whatever the answer, you
-            connect every one of them the same way, by connecting a step exit: name
-            the branch, name the step it leads to. Read a step's branches field for its
-            branch ids.
+            This tells you how many exits the step has, which the branches field then
+            lists: ATOMIC steps have one, COMPOSITE steps have one per button/option
+            plus a fallback. Connect any of them by connecting that step exit.
 
-            Example: a multi-link with 3 buttons has 3 branches, with the buttons' ids.
-            A redirect has one branch, "next". A country condition has one branch per
-            country plus "else".
+            See WorkflowStepNodeType enum for detailed documentation.
 
              - NODE_TYPE_UNSPECIFIED: Workflow step node type not specified
              - NODE_TYPE_COMPOSITE: Composite steps have one exit per button, option or range, plus "else"
@@ -33676,15 +33717,49 @@ components:
           format: date-time
           type: string
         key:
-          allOf:
-          - $ref: "#/components/schemas/PlanLimitKey"
+          description: |-
+            - PLAN_LIMIT_KEY_UNSPECIFIED: Not set
+             - PLAN_LIMIT_KEY_CUSTOM_DOMAINS: Custom domains connected to the workspace
+             - PLAN_LIMIT_KEY_TEAM_MEMBERS: Members of the workspace
+             - PLAN_LIMIT_KEY_PLATFORM_CREDITS: Platform credits, spent by creating links and by AI features
+             - PLAN_LIMIT_KEY_TRACKED_VISITS: Tracked visits (scans and clicks)
+             - PLAN_LIMIT_KEY_PUBLIC_API_CALLS: Public API calls
+             - PLAN_LIMIT_KEY_WEBHOOKS: Webhooks configured in the workspace
+             - PLAN_LIMIT_KEY_ASSISTANT_MESSAGES_PER_MINUTE: Assistant messages per minute
+             - PLAN_LIMIT_KEY_LINKS_INCLUDED: Links the monthly platform credits pay for. Links are not capped on their own: each one spends credits.
+             - PLAN_LIMIT_KEY_MEDIA_STORAGE_MB: Megabytes of uploaded media (media for Open media steps, QR code logos, page theme images) the workspace may hold at once. A standing total: deleting media frees it.
+          enum:
+          - PLAN_LIMIT_KEY_UNSPECIFIED
+          - PLAN_LIMIT_KEY_CUSTOM_DOMAINS
+          - PLAN_LIMIT_KEY_TEAM_MEMBERS
+          - PLAN_LIMIT_KEY_PLATFORM_CREDITS
+          - PLAN_LIMIT_KEY_TRACKED_VISITS
+          - PLAN_LIMIT_KEY_PUBLIC_API_CALLS
+          - PLAN_LIMIT_KEY_WEBHOOKS
+          - PLAN_LIMIT_KEY_ASSISTANT_MESSAGES_PER_MINUTE
+          - PLAN_LIMIT_KEY_LINKS_INCLUDED
+          - PLAN_LIMIT_KEY_MEDIA_STORAGE_MB
           example: PLAN_LIMIT_KEY_TRACKED_VISITS
           title: What the limit is on
+          type: string
         kind:
-          allOf:
-          - $ref: "#/components/schemas/PlanLimitKind"
+          description: |-
+            - PLAN_LIMIT_KIND_UNSPECIFIED: Not set
+             - PLAN_LIMIT_KIND_TOTAL: A standing total that does not refill, such as connected domains
+             - PLAN_LIMIT_KIND_MONTHLY: An allowance that refills every month
+             - PLAN_LIMIT_KIND_PER_MINUTE: A rate that refills every minute
+             - PLAN_LIMIT_KIND_UNLIMITED: No ceiling
+             - PLAN_LIMIT_KIND_METERED: No ceiling; every unit is billed
+          enum:
+          - PLAN_LIMIT_KIND_UNSPECIFIED
+          - PLAN_LIMIT_KIND_TOTAL
+          - PLAN_LIMIT_KIND_MONTHLY
+          - PLAN_LIMIT_KIND_PER_MINUTE
+          - PLAN_LIMIT_KIND_UNLIMITED
+          - PLAN_LIMIT_KIND_METERED
           example: PLAN_LIMIT_KIND_MONTHLY
           title: How the limit behaves
+          type: string
         limit:
           description: The ceiling. Absent when kind is PLAN_LIMIT_KIND_UNLIMITED
             or PLAN_LIMIT_KIND_METERED.
@@ -34096,6 +34171,81 @@ components:
             - API_SCOPE_AGENTS_WRITE
             type: string
           type: array
+    WorkspaceUsage:
+      description: What the workspace has used of each limit its plan sets.
+      example:
+        allowances:
+        - lockedCount: 128
+          cycleStartAt: 2026-03-01T00:00:00Z
+          cycleEndAt: 2026-03-31T23:59:59Z
+          kind: PLAN_LIMIT_KIND_MONTHLY
+          used: 5000
+          usedBytes: 48234496
+          lockedTotalCount: 128
+          remaining: 0
+          cheapestActionCost: 1
+          reached: true
+          limit: 5000
+          limitBytes: 524288000
+          recordedCount: 5128
+          noticeDismissed: false
+          resetsOn: ""
+          key: PLAN_LIMIT_KEY_TRACKED_VISITS
+        - lockedCount: 128
+          cycleStartAt: 2026-03-01T00:00:00Z
+          cycleEndAt: 2026-03-31T23:59:59Z
+          kind: PLAN_LIMIT_KIND_MONTHLY
+          used: 5000
+          usedBytes: 48234496
+          lockedTotalCount: 128
+          remaining: 0
+          cheapestActionCost: 1
+          reached: true
+          limit: 5000
+          limitBytes: 524288000
+          recordedCount: 5128
+          noticeDismissed: false
+          resetsOn: ""
+          key: PLAN_LIMIT_KEY_TRACKED_VISITS
+        plan: PRICING_PLAN_ID_PRO
+        limits:
+        - kind: PLAN_LIMIT_KIND_MONTHLY
+          value: 5000
+          key: PLAN_LIMIT_KEY_TRACKED_VISITS
+        - kind: PLAN_LIMIT_KIND_MONTHLY
+          value: 5000
+          key: PLAN_LIMIT_KEY_TRACKED_VISITS
+      properties:
+        allowances:
+          items:
+            $ref: "#/components/schemas/WorkspaceAllowance"
+          title: One entry per limit the plan sets
+          type: array
+        limits:
+          description: "Every limit this workspace is allowed, as enforced for its\
+            \ subscription, including the ones not counted per cycle such as webhooks\
+            \ and the Assistant rate. A trial or sponsored workspace can be allowed\
+            \ less than the plan it reports, and these are what it gets."
+          items:
+            $ref: "#/components/schemas/PlanLimit"
+          type: array
+        plan:
+          description: |-
+            The plan the limits come from. A trial or sponsored workspace reports the plan it is allowed what of.
+
+            - PRICING_PLAN_ID_UNSPECIFIED: Not set
+             - PRICING_PLAN_ID_FREE: Free plan, no payment
+             - PRICING_PLAN_ID_LIGHT: Light plan
+             - PRICING_PLAN_ID_PRO: Pro plan. Trials and sponsored workspaces are allowed what Pro allows unless a limit says otherwise.
+             - PRICING_PLAN_ID_ENTERPRISE: Enterprise plan, billed on usage and priced on request through sales
+          enum:
+          - PRICING_PLAN_ID_UNSPECIFIED
+          - PRICING_PLAN_ID_FREE
+          - PRICING_PLAN_ID_LIGHT
+          - PRICING_PLAN_ID_PRO
+          - PRICING_PLAN_ID_ENTERPRISE
+          example: PRICING_PLAN_ID_PRO
+          type: string
     apiTag:
       description: |-
         Provides lightweight segmentation metadata Linkbreakers attaches to links and analytics so teams can group campaigns

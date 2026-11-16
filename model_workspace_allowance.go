@@ -3,7 +3,7 @@ Linkbreakers API
 
 The Linkbreakers REST API: links, QR codes, workflows, visitors and analytics, as JSON over HTTPS. Send a workspace API token as `Authorization: Bearer <token>`.  ## Entry points  `GET https://api.linkbreakers.com/` and `GET https://api.linkbreakers.com/v1` answer without credentials with the API's name, version and links. This document is served at `https://api.linkbreakers.com/openapi.json`.  ## Rate limits  Every response describes where the caller stands in the IETF `RateLimit-Policy` and `RateLimit` header fields (draft-ietf-httpapi-ratelimit-headers), and in `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset` and `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset` (a Unix timestamp) for clients that read those. A request past the limit gets `429 Too Many Requests` with `Retry-After` in seconds.  - Workspace API token: 720 requests per 60 seconds, per token. - Dashboard session or OAuth token: 600 requests per 60 seconds, per token. - No credentials: 300 requests per 60 seconds, per client IP.  Each plan also includes a number of API calls per billing cycle. Past it, calls answer `429` with the code `MAX_PUBLIC_API_QUERIED_REACHED` until the cycle renews or the plan changes.  ## Pagination  Every list pages with opaque cursors (AIP-158). Pass `pageSize`, then send the `nextPageToken` of each response back as `pageToken` (or its alias `cursor`) to get the next page. An empty or absent `nextPageToken` means the list is complete. Each list operation describes this in `x-pagination`.  ## Batches and background jobs  `POST /v1/links/bulk` creates up to 250 links in one transactional request; `POST /v1/links/batch` takes the same links as a bare JSON array. `POST /v1/links/bulk/jobs` accepts the same batch and answers `202 Accepted` at once with a job and a `Location` header; poll `GET /v1/jobs/{id}` until `status` is `JOB_STATUS_SUCCEEDED` (the created link ids are in `linksBulkCreate.linkIds`) or `JOB_STATUS_FAILED` (`error` says why, and nothing was created). Jobs can be read for 24 hours after they finish.  ## Paused workspaces  A free workspace whose members have not verified any email address is paused 7 days after sign-up. Its calls then answer `403` with the code `WORKSPACE_UNVERIFIED` and change nothing; QR codes and links keep working for visitors. To lift the pause, ask the workspace owner to verify their email: `POST /v1/members/email-verification` sends the verification email again, and works while the workspace is paused. `unverifiedPauseAt` on the workspace says when the pause starts.  ## Versioning and deprecation  The version is in the path: every operation lives under `/v1`. Within a version, changes are additive only: new operations, new optional request fields, new response fields and new enum values. Clients should ignore fields and enum values they do not know. Anything that would break an existing client ships under a new path version instead.  An operation is retired in two steps. First it is deprecated: it keeps working, is flagged `deprecated: true` in this document, and every response carries a `Deprecation` header field (RFC 9745) with the time it was deprecated and a `Link` with `rel=\"deprecation\"` to the policy. Then, at least 180 days later, it may be removed; that date is announced in advance in a `Sunset` header field (RFC 8594) and as `x-sunset` on the operation. The full policy: https://linkbreakers.com/help/article/api-versioning-and-deprecation-policy  A renamed operation keeps answering its former path while clients still call it, until that path's sunset at the latest: a former path no client calls for 14 days is removed. Responses on a former path carry the same `Deprecation`, `Sunset` and `Link` header fields; this document lists only the current path, and the policy lists the former paths that still answer.  ## Idempotent retries  Every POST, PUT and PATCH accepts an optional `Idempotency-Key` header (draft-ietf-httpapi-idempotency-key-header). Send a new unique value, such as a UUID, with each logical request and reuse it only to retry that request. A retry with the same key and the same request returns the first response, marked `Idempotent-Replayed: true`, instead of running again. Keys are scoped to the token and kept for 24 hours. The same key with a different request is refused with `422`, and a retry while the first request is still running gets `409` with `Retry-After`. Server errors (5xx) and refusals such as 401, 403 and 429 are not stored, so retrying them runs the request again.  ## Identifying your client  Send a `Linkbreakers-Client` request header saying which client made the call: `<client>/<version> (<details>)`, for example `my-integration/1.2.0 (python 3.12; linux)`. The official SDKs, the CLI and the MCP bridge set it for you, as `sdk-python/2.3.1 (python 3.12.4; linux)` or `cli/1.4.0 (darwin arm64)`. It is optional and changes nothing about how a request is handled; it tells us which clients and versions are in use, so we know what can be retired and what to fix first. Keep the details short and free of personal data. Browsers may send it too: it is allowed by CORS.
 
-API version: 1.200.1
+API version: 1.200.2
 */
 
 // Code generated by OpenAPI Generator (https://openapi-generator.tech); DO NOT EDIT.
@@ -25,8 +25,10 @@ type WorkspaceAllowance struct {
 	CycleEndAt *time.Time `json:"cycleEndAt,omitempty"`
 	// Start of the current cycle. Absent when nothing has been counted yet.
 	CycleStartAt *time.Time `json:"cycleStartAt,omitempty"`
-	Key *PlanLimitKey `json:"key,omitempty"`
-	Kind *PlanLimitKind `json:"kind,omitempty"`
+	// - PLAN_LIMIT_KEY_UNSPECIFIED: Not set  - PLAN_LIMIT_KEY_CUSTOM_DOMAINS: Custom domains connected to the workspace  - PLAN_LIMIT_KEY_TEAM_MEMBERS: Members of the workspace  - PLAN_LIMIT_KEY_PLATFORM_CREDITS: Platform credits, spent by creating links and by AI features  - PLAN_LIMIT_KEY_TRACKED_VISITS: Tracked visits (scans and clicks)  - PLAN_LIMIT_KEY_PUBLIC_API_CALLS: Public API calls  - PLAN_LIMIT_KEY_WEBHOOKS: Webhooks configured in the workspace  - PLAN_LIMIT_KEY_ASSISTANT_MESSAGES_PER_MINUTE: Assistant messages per minute  - PLAN_LIMIT_KEY_LINKS_INCLUDED: Links the monthly platform credits pay for. Links are not capped on their own: each one spends credits.  - PLAN_LIMIT_KEY_MEDIA_STORAGE_MB: Megabytes of uploaded media (media for Open media steps, QR code logos, page theme images) the workspace may hold at once. A standing total: deleting media frees it.
+	Key *string `json:"key,omitempty"`
+	// - PLAN_LIMIT_KIND_UNSPECIFIED: Not set  - PLAN_LIMIT_KIND_TOTAL: A standing total that does not refill, such as connected domains  - PLAN_LIMIT_KIND_MONTHLY: An allowance that refills every month  - PLAN_LIMIT_KIND_PER_MINUTE: A rate that refills every minute  - PLAN_LIMIT_KIND_UNLIMITED: No ceiling  - PLAN_LIMIT_KIND_METERED: No ceiling; every unit is billed
+	Kind *string `json:"kind,omitempty"`
 	// The ceiling. Absent when kind is PLAN_LIMIT_KIND_UNLIMITED or PLAN_LIMIT_KIND_METERED.
 	Limit *int32 `json:"limit,omitempty"`
 	// Media storage only: the most media the workspace may hold, in bytes. Absent for other limits and when there is no ceiling.
@@ -164,9 +166,9 @@ func (o *WorkspaceAllowance) SetCycleStartAt(v time.Time) {
 }
 
 // GetKey returns the Key field value if set, zero value otherwise.
-func (o *WorkspaceAllowance) GetKey() PlanLimitKey {
+func (o *WorkspaceAllowance) GetKey() string {
 	if o == nil || IsNil(o.Key) {
-		var ret PlanLimitKey
+		var ret string
 		return ret
 	}
 	return *o.Key
@@ -174,7 +176,7 @@ func (o *WorkspaceAllowance) GetKey() PlanLimitKey {
 
 // GetKeyOk returns a tuple with the Key field value if set, nil otherwise
 // and a boolean to check if the value has been set.
-func (o *WorkspaceAllowance) GetKeyOk() (*PlanLimitKey, bool) {
+func (o *WorkspaceAllowance) GetKeyOk() (*string, bool) {
 	if o == nil || IsNil(o.Key) {
 		return nil, false
 	}
@@ -190,15 +192,15 @@ func (o *WorkspaceAllowance) HasKey() bool {
 	return false
 }
 
-// SetKey gets a reference to the given PlanLimitKey and assigns it to the Key field.
-func (o *WorkspaceAllowance) SetKey(v PlanLimitKey) {
+// SetKey gets a reference to the given string and assigns it to the Key field.
+func (o *WorkspaceAllowance) SetKey(v string) {
 	o.Key = &v
 }
 
 // GetKind returns the Kind field value if set, zero value otherwise.
-func (o *WorkspaceAllowance) GetKind() PlanLimitKind {
+func (o *WorkspaceAllowance) GetKind() string {
 	if o == nil || IsNil(o.Kind) {
-		var ret PlanLimitKind
+		var ret string
 		return ret
 	}
 	return *o.Kind
@@ -206,7 +208,7 @@ func (o *WorkspaceAllowance) GetKind() PlanLimitKind {
 
 // GetKindOk returns a tuple with the Kind field value if set, nil otherwise
 // and a boolean to check if the value has been set.
-func (o *WorkspaceAllowance) GetKindOk() (*PlanLimitKind, bool) {
+func (o *WorkspaceAllowance) GetKindOk() (*string, bool) {
 	if o == nil || IsNil(o.Kind) {
 		return nil, false
 	}
@@ -222,8 +224,8 @@ func (o *WorkspaceAllowance) HasKind() bool {
 	return false
 }
 
-// SetKind gets a reference to the given PlanLimitKind and assigns it to the Kind field.
-func (o *WorkspaceAllowance) SetKind(v PlanLimitKind) {
+// SetKind gets a reference to the given string and assigns it to the Kind field.
+func (o *WorkspaceAllowance) SetKind(v string) {
 	o.Kind = &v
 }
 

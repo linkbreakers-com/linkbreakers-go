@@ -3,7 +3,7 @@ Linkbreakers API
 
 The Linkbreakers REST API: links, QR codes, workflows, visitors and analytics, as JSON over HTTPS. Send a workspace API token as `Authorization: Bearer <token>`.  ## Entry points  `GET https://api.linkbreakers.com/` and `GET https://api.linkbreakers.com/v1` answer without credentials with the API's name, version and links. This document is served at `https://api.linkbreakers.com/openapi.json`.  ## Rate limits  Every response describes where the caller stands in the IETF `RateLimit-Policy` and `RateLimit` header fields (draft-ietf-httpapi-ratelimit-headers), and in `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset` and `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset` (a Unix timestamp) for clients that read those. A request past the limit gets `429 Too Many Requests` with `Retry-After` in seconds.  - Workspace API token: 720 requests per 60 seconds, per token. - Dashboard session or OAuth token: 600 requests per 60 seconds, per token. - No credentials: 300 requests per 60 seconds, per client IP.  Each plan also includes a number of API calls per billing cycle. Past it, calls answer `429` with the code `MAX_PUBLIC_API_QUERIED_REACHED` until the cycle renews or the plan changes.  ## Pagination  Every list pages with opaque cursors (AIP-158). Pass `pageSize`, then send the `nextPageToken` of each response back as `pageToken` (or its alias `cursor`) to get the next page. An empty or absent `nextPageToken` means the list is complete. Each list operation describes this in `x-pagination`.  ## Batches and background jobs  `POST /v1/links/bulk` creates up to 250 links in one transactional request; `POST /v1/links/batch` takes the same links as a bare JSON array. `POST /v1/links/bulk/jobs` accepts the same batch and answers `202 Accepted` at once with a job and a `Location` header; poll `GET /v1/jobs/{id}` until `status` is `JOB_STATUS_SUCCEEDED` (the created link ids are in `linksBulkCreate.linkIds`) or `JOB_STATUS_FAILED` (`error` says why, and nothing was created). Jobs can be read for 24 hours after they finish.  ## Paused workspaces  A free workspace whose members have not verified any email address is paused 7 days after sign-up. Its calls then answer `403` with the code `WORKSPACE_UNVERIFIED` and change nothing; QR codes and links keep working for visitors. To lift the pause, ask the workspace owner to verify their email: `POST /v1/members/email-verification` sends the verification email again, and works while the workspace is paused. `unverifiedPauseAt` on the workspace says when the pause starts.  ## Versioning and deprecation  The version is in the path: every operation lives under `/v1`. Within a version, changes are additive only: new operations, new optional request fields, new response fields and new enum values. Clients should ignore fields and enum values they do not know. Anything that would break an existing client ships under a new path version instead.  An operation is retired in two steps. First it is deprecated: it keeps working, is flagged `deprecated: true` in this document, and every response carries a `Deprecation` header field (RFC 9745) with the time it was deprecated and a `Link` with `rel=\"deprecation\"` to the policy. Then, at least 180 days later, it may be removed; that date is announced in advance in a `Sunset` header field (RFC 8594) and as `x-sunset` on the operation. The full policy: https://linkbreakers.com/help/article/api-versioning-and-deprecation-policy  A renamed operation keeps answering its former path while clients still call it, until that path's sunset at the latest: a former path no client calls for 14 days is removed. Responses on a former path carry the same `Deprecation`, `Sunset` and `Link` header fields; this document lists only the current path, and the policy lists the former paths that still answer.  ## Idempotent retries  Every POST, PUT and PATCH accepts an optional `Idempotency-Key` header (draft-ietf-httpapi-idempotency-key-header). Send a new unique value, such as a UUID, with each logical request and reuse it only to retry that request. A retry with the same key and the same request returns the first response, marked `Idempotent-Replayed: true`, instead of running again. Keys are scoped to the token and kept for 24 hours. The same key with a different request is refused with `422`, and a retry while the first request is still running gets `409` with `Retry-After`. Server errors (5xx) and refusals such as 401, 403 and 429 are not stored, so retrying them runs the request again.  ## Identifying your client  Send a `Linkbreakers-Client` request header saying which client made the call: `<client>/<version> (<details>)`, for example `my-integration/1.2.0 (python 3.12; linux)`. The official SDKs, the CLI and the MCP bridge set it for you, as `sdk-python/2.3.1 (python 3.12.4; linux)` or `cli/1.4.0 (darwin arm64)`. It is optional and changes nothing about how a request is handled; it tells us which clients and versions are in use, so we know what can be retired and what to fix first. Keep the details short and free of personal data. Browsers may send it too: it is allowed by CORS.
 
-API version: 1.200.1
+API version: 1.200.2
 */
 
 // Code generated by OpenAPI Generator (https://openapi-generator.tech); DO NOT EDIT.
@@ -22,6 +22,152 @@ import (
 
 // MediaAPIService MediaAPI service
 type MediaAPIService service
+
+type ApiMediaServiceCompletePublicUploadRequest struct {
+	ctx context.Context
+	ApiService *MediaAPIService
+	id string
+	body *map[string]interface{}
+	idempotencyKey *string
+}
+
+func (r ApiMediaServiceCompletePublicUploadRequest) Body(body map[string]interface{}) ApiMediaServiceCompletePublicUploadRequest {
+	r.body = &body
+	return r
+}
+
+// A unique value per request, such as a UUID, that makes retrying it safe: a retry with the same key and body returns the first response instead of acting twice.
+func (r ApiMediaServiceCompletePublicUploadRequest) IdempotencyKey(idempotencyKey string) ApiMediaServiceCompletePublicUploadRequest {
+	r.idempotencyKey = &idempotencyKey
+	return r
+}
+
+func (r ApiMediaServiceCompletePublicUploadRequest) Execute() (*CompletePublicMediaUploadResponse, *http.Response, error) {
+	return r.ApiService.MediaServiceCompletePublicUploadExecute(r)
+}
+
+/*
+MediaServiceCompletePublicUpload Complete a public QR code logo upload
+
+Checks the image PUT to the uploadUrl of a public upload: its size, and its real format read
+from its first bytes. When it matches what CreatePublicUpload declared, the upload is ready to be
+a QR code design's centralImageMediaId within the hour. When it does not, it is discarded and the
+error says why; start a new upload. Completing an upload that is already ready returns it.
+
+ @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+ @param id The id of the pending public upload (UUID), from CreatePublicUpload
+ @return ApiMediaServiceCompletePublicUploadRequest
+*/
+func (a *MediaAPIService) MediaServiceCompletePublicUpload(ctx context.Context, id string) ApiMediaServiceCompletePublicUploadRequest {
+	return ApiMediaServiceCompletePublicUploadRequest{
+		ApiService: a,
+		ctx: ctx,
+		id: id,
+	}
+}
+
+// Execute executes the request
+//  @return CompletePublicMediaUploadResponse
+func (a *MediaAPIService) MediaServiceCompletePublicUploadExecute(r ApiMediaServiceCompletePublicUploadRequest) (*CompletePublicMediaUploadResponse, *http.Response, error) {
+	var (
+		localVarHTTPMethod   = http.MethodPost
+		localVarPostBody     interface{}
+		formFiles            []formFile
+		localVarReturnValue  *CompletePublicMediaUploadResponse
+	)
+
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "MediaAPIService.MediaServiceCompletePublicUpload")
+	if err != nil {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
+	}
+
+	localVarPath := localBasePath + "/v1/media/public-uploads/{id}:complete"
+	localVarPath = strings.Replace(localVarPath, "{"+"id"+"}", url.PathEscape(parameterValueToString(r.id, "id")), -1)
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+	localVarFormParams := url.Values{}
+	if r.body == nil {
+		return localVarReturnValue, nil, reportError("body is required and must be specified")
+	}
+
+	// to determine the Content-Type header
+	localVarHTTPContentTypes := []string{"application/json"}
+
+	// set Content-Type header
+	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
+	if localVarHTTPContentType != "" {
+		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
+	}
+
+	// to determine the Accept header
+	localVarHTTPHeaderAccepts := []string{"application/json"}
+
+	// set Accept header
+	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
+	if localVarHTTPHeaderAccept != "" {
+		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
+	}
+	if r.idempotencyKey != nil {
+		parameterAddToHeaderOrQuery(localVarHeaderParams, "Idempotency-Key", r.idempotencyKey, "simple", "")
+	}
+	// body params
+	localVarPostBody = r.body
+	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
+	if err != nil {
+		return localVarReturnValue, nil, err
+	}
+
+	localVarHTTPResponse, err := a.client.callAPI(req)
+	if err != nil || localVarHTTPResponse == nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
+	localVarHTTPResponse.Body.Close()
+	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
+	if err != nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	if localVarHTTPResponse.StatusCode >= 300 {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: localVarHTTPResponse.Status,
+		}
+		if localVarHTTPResponse.StatusCode == 429 {
+			var v ErrorResponse
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+					newErr.model = v
+			return localVarReturnValue, localVarHTTPResponse, newErr
+		}
+			var v ErrorResponse
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+					newErr.model = v
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
+}
 
 type ApiMediaServiceCompleteReplaceRequest struct {
 	ctx context.Context
@@ -203,7 +349,7 @@ func (r ApiMediaServiceCompleteUploadRequest) Execute() (*CompleteMediaUploadRes
 }
 
 /*
-MediaServiceCompleteUpload Complete a direct media upload
+MediaServiceCompleteUpload Complete a media upload
 
 Checks the file PUT to the uploadUrl: its size, its real format read from its first bytes,
 and the storage allowance. When it matches what CreateUpload declared, the media becomes READY
@@ -332,77 +478,74 @@ func (a *MediaAPIService) MediaServiceCompleteUploadExecute(r ApiMediaServiceCom
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiMediaServiceCreateRequest struct {
+type ApiMediaServiceCreatePublicUploadRequest struct {
 	ctx context.Context
 	ApiService *MediaAPIService
-	createMediaRequest *CreateMediaRequest
+	createPublicMediaUploadRequest *CreatePublicMediaUploadRequest
 	idempotencyKey *string
 }
 
-func (r ApiMediaServiceCreateRequest) CreateMediaRequest(createMediaRequest CreateMediaRequest) ApiMediaServiceCreateRequest {
-	r.createMediaRequest = &createMediaRequest
+func (r ApiMediaServiceCreatePublicUploadRequest) CreatePublicMediaUploadRequest(createPublicMediaUploadRequest CreatePublicMediaUploadRequest) ApiMediaServiceCreatePublicUploadRequest {
+	r.createPublicMediaUploadRequest = &createPublicMediaUploadRequest
 	return r
 }
 
 // A unique value per request, such as a UUID, that makes retrying it safe: a retry with the same key and body returns the first response instead of acting twice.
-func (r ApiMediaServiceCreateRequest) IdempotencyKey(idempotencyKey string) ApiMediaServiceCreateRequest {
+func (r ApiMediaServiceCreatePublicUploadRequest) IdempotencyKey(idempotencyKey string) ApiMediaServiceCreatePublicUploadRequest {
 	r.idempotencyKey = &idempotencyKey
 	return r
 }
 
-func (r ApiMediaServiceCreateRequest) Execute() (*CreateMediaResponse, *http.Response, error) {
-	return r.ApiService.MediaServiceCreateExecute(r)
+func (r ApiMediaServiceCreatePublicUploadRequest) Execute() (*CreatePublicMediaUploadResponse, *http.Response, error) {
+	return r.ApiService.MediaServiceCreatePublicUploadExecute(r)
 }
 
 /*
-MediaServiceCreate Upload a media file
+MediaServiceCreatePublicUpload Start a public QR code logo upload
 
-Uploads a file sent in the request itself, base64 encoded over HTTP, up to 3 MB.
-Larger files (a PDF brochure, a video) are uploaded straight to storage instead:
-CreateUpload, a PUT of the file to the returned uploadUrl, then CompleteUpload.
-A media item only has a kind, read from its bytes: images (PNG, JPEG, WebP, SVG) up to 10 MB,
-PDF documents up to 25 MB and MP4 videos up to 50 MB. Nothing about where it will be used is
-needed at upload: any image can then be a QR code logo, a background cover, a badge or a footer
-logo (up to 3 MB for those), and any media can be opened by an Open media step.
+Uploads a QR code logo without an API token, for a QR code design created without one
+(POST /v1/qrcode-designs). It is the same flow as CreateUpload, outside any workspace: declare
+the image's name, MIME type (image/png, image/jpeg, image/webp or image/svg+xml) and exact size
+in bytes, at most 3 MB; PUT its bytes to uploadUrl with the uploadHeaders before
+uploadExpiresAt; then call CompletePublicUpload and pass the media id as the design's
+centralImageMediaId. Anything but an image of at most 3 MB is refused with MEDIA_NOT_ALLOWED_HERE.
 
-A workspace holds each file once. A file whose bytes (SHA-256) match media the workspace already
-has is refused with 409 MEDIA_ALREADY_EXISTS; the error's metadata names that media in
-existingMediaId and existingFileName. Use that media instead of uploading the file again.
-
-Requires the `media:write` scope.
+A public upload belongs to no workspace, is never listed and can only be a design's logo. The
+design keeps its own copy of the image, and the upload itself is deleted an hour after it
+started, used or not. With an API token, upload with CreateUpload instead.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiMediaServiceCreateRequest
+ @return ApiMediaServiceCreatePublicUploadRequest
 */
-func (a *MediaAPIService) MediaServiceCreate(ctx context.Context) ApiMediaServiceCreateRequest {
-	return ApiMediaServiceCreateRequest{
+func (a *MediaAPIService) MediaServiceCreatePublicUpload(ctx context.Context) ApiMediaServiceCreatePublicUploadRequest {
+	return ApiMediaServiceCreatePublicUploadRequest{
 		ApiService: a,
 		ctx: ctx,
 	}
 }
 
 // Execute executes the request
-//  @return CreateMediaResponse
-func (a *MediaAPIService) MediaServiceCreateExecute(r ApiMediaServiceCreateRequest) (*CreateMediaResponse, *http.Response, error) {
+//  @return CreatePublicMediaUploadResponse
+func (a *MediaAPIService) MediaServiceCreatePublicUploadExecute(r ApiMediaServiceCreatePublicUploadRequest) (*CreatePublicMediaUploadResponse, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
-		localVarReturnValue  *CreateMediaResponse
+		localVarReturnValue  *CreatePublicMediaUploadResponse
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "MediaAPIService.MediaServiceCreate")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "MediaAPIService.MediaServiceCreatePublicUpload")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v1/media"
+	localVarPath := localBasePath + "/v1/media/public-uploads"
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
-	if r.createMediaRequest == nil {
-		return localVarReturnValue, nil, reportError("createMediaRequest is required and must be specified")
+	if r.createPublicMediaUploadRequest == nil {
+		return localVarReturnValue, nil, reportError("createPublicMediaUploadRequest is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -426,7 +569,7 @@ func (a *MediaAPIService) MediaServiceCreateExecute(r ApiMediaServiceCreateReque
 		parameterAddToHeaderOrQuery(localVarHeaderParams, "Idempotency-Key", r.idempotencyKey, "simple", "")
 	}
 	// body params
-	localVarPostBody = r.createMediaRequest
+	localVarPostBody = r.createPublicMediaUploadRequest
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
 		return localVarReturnValue, nil, err
@@ -670,16 +813,22 @@ func (r ApiMediaServiceCreateUploadRequest) Execute() (*CreateMediaUploadRespons
 }
 
 /*
-MediaServiceCreateUpload Start a direct media upload
+MediaServiceCreateUpload Start a media upload
 
-Reserves a media item for a file uploaded straight to storage, so large files never pass
-through the API. Declare the file's name, MIME type and exact size in bytes; they are checked
-against the limit for the file's kind (images up to 10 MB, PDF documents up to 25 MB, MP4
-videos up to 50 MB) and against the workspace's storage allowance now, and against the
-uploaded bytes on completion. Then PUT the file's bytes to uploadUrl with the
-uploadHeaders (and a Content-Length equal to size) before uploadExpiresAt, and call
-CompleteUpload. Until completed the media is PENDING: it is not listed and cannot be used.
-An upload not completed within an hour is discarded.
+The one way to put a file into Linkbreakers: every field that takes a file (an Open media step,
+a QR code logo, a page theme's background cover, badge or footer logo) takes the id of media
+uploaded this way, never the file itself. The file goes straight to storage and never passes
+through the API.
+
+Declare the file's name, MIME type and exact size in bytes; they are checked against the limit
+for the file's kind (images up to 10 MB, PDF documents up to 25 MB, MP4 videos up to 50 MB) and
+against the workspace's storage allowance now, and against the uploaded bytes on completion.
+Then PUT the file's bytes to uploadUrl with the uploadHeaders (and a Content-Length equal to
+size) before uploadExpiresAt, and call CompleteUpload. Until completed the media is PENDING:
+it is not listed and cannot be used. An upload not completed within an hour is discarded. A
+media item only has a kind, read from its bytes: nothing about where it will be used is needed
+at upload, and any image of at most 3 MB can then be a QR code logo, a background cover, a badge
+or a footer logo.
 
 A workspace holds each file once. Optionally declare sha256, the file's SHA-256 as hex: a file the
 workspace already holds is then refused here, before any upload, with 409 MEDIA_ALREADY_EXISTS,
