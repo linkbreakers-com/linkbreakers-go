@@ -6,7 +6,6 @@ api_agents.go
 api_analytics.go
 api_analytics_dashboards.go
 api_api_scopes.go
-api_auth.go
 api_custom_domains.go
 api_directories.go
 api_events.go

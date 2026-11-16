@@ -28,6 +28,10 @@ info:
 
     `POST /v1/links/bulk` creates up to 250 links in one transactional request; `POST /v1/links/batch` takes the same links as a bare JSON array. `POST /v1/links/bulk/jobs` accepts the same batch and answers `202 Accepted` at once with a job and a `Location` header; poll `GET /v1/jobs/{id}` until `status` is `JOB_STATUS_SUCCEEDED` (the created link ids are in `linksBulkCreate.linkIds`) or `JOB_STATUS_FAILED` (`error` says why, and nothing was created). Jobs can be read for 24 hours after they finish.
 
+    ## Paused workspaces
+
+    A free workspace whose members have not verified any email address is paused 7 days after sign-up. Its calls then answer `403` with the code `WORKSPACE_UNVERIFIED` and change nothing; QR codes and links keep working for visitors. To lift the pause, ask the workspace owner to verify their email: `POST /v1/members/email-verification` sends the verification email again, and works while the workspace is paused. `unverifiedPauseAt` on the workspace says when the pause starts.
+
     ## Versioning and deprecation
 
     The version is in the path: every operation lives under `/v1`. Within a version, changes are additive only: new operations, new optional request fields, new response fields and new enum values. Clients should ignore fields and enum values they do not know. Anything that would break an existing client ships under a new path version instead.
@@ -44,7 +48,7 @@ info:
 
     Send a `Linkbreakers-Client` request header saying which client made the call: `<client>/<version> (<details>)`, for example `my-integration/1.2.0 (python 3.12; linux)`. The official SDKs, the CLI and the MCP bridge set it for you, as `sdk-python/2.3.1 (python 3.12.4; linux)` or `cli/1.4.0 (darwin arm64)`. It is optional and changes nothing about how a request is handled; it tells us which clients and versions are in use, so we know what can be retired and what to fix first. Keep the details short and free of personal data. Browsers may send it too: it is allowed by CORS.
   title: Linkbreakers API
-  version: 1.198.1
+  version: 1.199.0
   x-api-versioning:
     compatibility: additive changes only within a version
     currentVersion: v1
@@ -77,10 +81,6 @@ tags:
 - description: "The permissions an API token can hold. Every authenticated endpoint\
     \ requires exactly one scope, named on the endpoint."
   name: API Scopes
-- description: Account verification. A workspace whose owner has not verified their
-    email address is paused (WORKSPACE_UNVERIFIED) until they do; this sends the verification
-    email again.
-  name: Auth
 - description: "Send the people who scan your QR codes and fill your forms to the\
     \ tool you reach customers with (CRMs and email marketing tools), as contacts\
     \ on a list or audience."
@@ -106,12 +106,8 @@ tags:
 - description: "Which integrations act on a given link: Slack, Google Analytics, forms,\
     \ contact tools, automation platforms, webhooks and retargeting pixels."
   name: Integrations
-- description: "Background link batches. Today there is one kind of job, a bulk link\
-    \ creation: POST /v1/links/bulk/jobs answers 202 Accepted with the job's URL in\
-    \ its Location header, and GET /v1/jobs/{id} returns its status (pending, running,\
-    \ succeeded or failed) and, once it succeeded, the created link IDs; on failure,\
-    \ why, with no link created. Poll it until it is finished. Jobs can be read for\
-    \ 24 hours after they finish."
+- description: "Follow a bulk link creation that runs in the background. Start it\
+    \ with `POST /v1/links/bulk/jobs`, then check it here until it is done."
   name: Jobs
 - description: "Short links and their QR codes: create them (one at a time, in bulk\
     \ or in the background), read, update and delete them, and render their QR code\
@@ -2184,71 +2180,6 @@ paths:
       summary: List API scopes
       tags:
       - API Scopes
-  /v1/auth/email/verification/request:
-    post:
-      description: |-
-        Send a verification email to a member of the caller's workspace whose email is not verified yet. Opening the link verifies the address and the workspace, which lifts a WORKSPACE_UNVERIFIED pause. Callable while the workspace is paused. The email must belong to a member of the workspace; one email per address per minute and 5 per day.
-
-        Requires the `members:write` scope.
-      operationId: AuthService_RequestEmailVerification
-      parameters:
-      - description: "A unique value per request, such as a UUID, that makes retrying\
-          \ it safe: a retry with the same key and body returns the first response\
-          \ instead of acting twice."
-        explode: false
-        in: header
-        name: Idempotency-Key
-        required: false
-        schema:
-          maxLength: 255
-          minLength: 1
-          type: string
-        style: simple
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/RequestEmailVerificationRequest"
-        required: true
-      responses:
-        "200":
-          content:
-            application/json:
-              schema: {}
-          description: Everything worked as expected.
-          headers:
-            Idempotent-Replayed:
-              $ref: "#/components/headers/Idempotent-Replayed"
-            RateLimit:
-              $ref: "#/components/headers/RateLimit"
-            RateLimit-Policy:
-              $ref: "#/components/headers/RateLimit-Policy"
-            RateLimit-Remaining:
-              $ref: "#/components/headers/RateLimit-Remaining"
-        "429":
-          $ref: "#/components/responses/TooManyRequests"
-        default:
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-          description: Unexpected error
-          headers:
-            RateLimit:
-              $ref: "#/components/headers/RateLimit"
-            RateLimit-Policy:
-              $ref: "#/components/headers/RateLimit-Policy"
-            RateLimit-Remaining:
-              $ref: "#/components/headers/RateLimit-Remaining"
-      security:
-      - bearerAuth:
-        - members:write
-      - oauth2:
-        - members:write
-      summary: Request email verification
-      tags:
-      - Auth
-      x-required-scope: members:write
   /v1/custom-domains:
     get:
       description: |-
@@ -4937,12 +4868,21 @@ paths:
   /v1/jobs/{id}:
     get:
       description: |-
-        Returns a background job's status: JOB_STATUS_PENDING (accepted, waiting
-        to run), JOB_STATUS_RUNNING, JOB_STATUS_SUCCEEDED (linksBulkCreate holds
-        the created link IDs, in the order submitted) or JOB_STATUS_FAILED (error
-        says why; no link was created). Poll it, every few seconds, until it is
-        SUCCEEDED or FAILED. Today the only job is a bulk link creation started
-        with POST /v1/links/bulk/jobs, whose Location header is this URL.
+        Returns a background job and where it stands. Today every job is a bulk
+        link creation started with `POST /v1/links/bulk/jobs`: its 202 Accepted
+        response carries this job's URL in the `Location` header.
+
+        Read the job every few seconds until it is finished:
+
+        - `JOB_STATUS_PENDING`: accepted, waiting to run. Check again.
+        - `JOB_STATUS_RUNNING`: creating the links. Check again.
+        - `JOB_STATUS_SUCCEEDED`: done. `linksBulkCreate.linkIds` lists the created
+          links, in the order you sent them.
+        - `JOB_STATUS_FAILED`: `error` says why. No link was created: a batch is
+          all or nothing.
+
+        A job can be read for 24 hours after it finishes; after that, this
+        answers `JOB_NOT_FOUND`.
 
         Requires the `links:read` scope.
       operationId: JobsService_Get
@@ -6605,7 +6545,9 @@ paths:
         schema:
           type: string
         style: simple
-      - description: Which exit of that step to clear. See ConnectWorkflowStepRequest.branch_id.
+      - description: |-
+          Which exit of that step to clear. "next" for atomic steps, or a button
+          id, option id, range id, country code, or "else" for composite steps.
         explode: false
         in: path
         name: branchId
@@ -7762,6 +7704,75 @@ paths:
         pageSizeParam: pageSize
         type: cursor
       x-required-scope: members:read
+  /v1/members/email-verification:
+    post:
+      description: |-
+        Sends the verification email again to a member of the workspace whose email address is not verified yet. Pass the member's email address.
+
+        A free workspace with no verified address is paused 7 days after sign-up: its calls answer `WORKSPACE_UNVERIFIED` until a member opens the link in that email. Verifying one member's address, usually the owner's, lifts the pause for the whole workspace. This operation keeps working while the workspace is paused.
+
+        The address must belong to a member of the workspace. One email per address per minute, and 5 per day.
+
+        Requires the `members:write` scope.
+      operationId: AuthService_RequestEmailVerification
+      parameters:
+      - description: "A unique value per request, such as a UUID, that makes retrying\
+          \ it safe: a retry with the same key and body returns the first response\
+          \ instead of acting twice."
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RequestEmailVerificationRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: {}
+          description: Everything worked as expected.
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - members:write
+      - oauth2:
+        - members:write
+      summary: Resend a member's verification email
+      tags:
+      - Members
+      x-required-scope: members:write
   /v1/members/invite:
     post:
       description: |-
@@ -22770,13 +22781,17 @@ components:
           type: string
     Job:
       description: |-
-        A link batch created in the background. Today there is one kind of job,
-        JOB_TYPE_LINKS_BULK_CREATE: POST /v1/links/bulk/jobs answers 202 Accepted
-        with the job and its URL in the Location header. Read it with
-        GET /v1/jobs/{id} until its status is JOB_STATUS_SUCCEEDED (linksBulkCreate
-        holds the created link IDs) or JOB_STATUS_FAILED (error says why, and no
-        link was created: the batch is all or nothing). Jobs can be read for
-        24 hours after they finish.
+        A bulk link creation running in the background.
+
+        You get one back from `POST /v1/links/bulk/jobs`, and read it again with
+        `GET /v1/jobs/{id}` until it is finished. Its status says where it stands:
+
+        - pending: accepted, waiting to run.
+        - running: creating the links now.
+        - succeeded: done; `linksBulkCreate.linkIds` holds the created link IDs.
+        - failed: `error` says why. No link was created: a batch is all or nothing.
+
+        A job can be read for 24 hours after it finishes.
       example:
         createdAt: 2000-01-23T04:56:07.000+00:00
         completedAt: 2000-01-23T04:56:07.000+00:00
@@ -28665,6 +28680,7 @@ components:
           format: int32
           type: integer
     RequestEmailVerificationRequest:
+      description: Which member of the workspace gets the verification email again.
       example:
         email: you@example.com
       properties:
@@ -32677,9 +32693,10 @@ components:
             until then to verify their email. Once it has passed, every API call
             other than signing in, reading the member and workspace, switching
             workspace and requesting a verification email answers
-            WORKSPACE_UNVERIFIED, until a member verifies their email. QR codes and
-            links keep working for visitors throughout. Empty when the workspace is
-            verified or paying.
+            WORKSPACE_UNVERIFIED, until a member verifies their email. To lift it,
+            ask the owner to verify their email: POST /v1/members/email-verification
+            sends the verification email again. QR codes and links keep working for
+            visitors throughout. Empty when the workspace is verified or paying.
           format: date-time
           readOnly: true
           type: string
