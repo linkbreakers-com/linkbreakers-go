@@ -48,7 +48,7 @@ info:
 
     Send a `Linkbreakers-Client` request header saying which client made the call: `<client>/<version> (<details>)`, for example `my-integration/1.2.0 (python 3.12; linux)`. The official SDKs, the CLI and the MCP bridge set it for you, as `sdk-python/2.3.1 (python 3.12.4; linux)` or `cli/1.4.0 (darwin arm64)`. It is optional and changes nothing about how a request is handled; it tells us which clients and versions are in use, so we know what can be retired and what to fix first. Keep the details short and free of personal data. Browsers may send it too: it is allowed by CORS.
   title: Linkbreakers API
-  version: 1.202.0
+  version: 1.202.1
   x-api-versioning:
     compatibility: additive changes only within a version
     currentVersion: v1
@@ -14919,6 +14919,23 @@ components:
           - PAGE_THEME_BACKGROUND_COVER_MODE_PROGRESSIVE_BOTTOM
           example: PAGE_THEME_BACKGROUND_COVER_MODE_PROGRESSIVE_TOP
           type: string
+        canvasTexture:
+          enum:
+          - PAGE_THEME_CANVAS_TEXTURE_UNSPECIFIED
+          - PAGE_THEME_CANVAS_TEXTURE_NONE
+          - PAGE_THEME_CANVAS_TEXTURE_BRUSHED
+          - PAGE_THEME_CANVAS_TEXTURE_GRAIN
+          example: PAGE_THEME_CANVAS_TEXTURE_BRUSHED
+          title: "NONE, BRUSHED or GRAIN over the page background"
+          type: string
+        choiceLayout:
+          enum:
+          - PAGE_THEME_CHOICE_LAYOUT_UNSPECIFIED
+          - PAGE_THEME_CHOICE_LAYOUT_AUTO
+          - PAGE_THEME_CHOICE_LAYOUT_ROWS
+          example: PAGE_THEME_CHOICE_LAYOUT_ROWS
+          title: AUTO or ROWS answers
+          type: string
         containerConfig:
           $ref: "#/components/schemas/ContainerConfig"
         containerEnabled:
@@ -14937,6 +14954,19 @@ components:
           example: true
           title: A small logo at the bottom of every page using this theme
           type: boolean
+        questionStyle:
+          enum:
+          - PAGE_THEME_QUESTION_STYLE_UNSPECIFIED
+          - PAGE_THEME_QUESTION_STYLE_LABEL
+          - PAGE_THEME_QUESTION_STYLE_HEADLINE
+          example: PAGE_THEME_QUESTION_STYLE_HEADLINE
+          title: LABEL or HEADLINE questions
+          type: string
+        roles:
+          items:
+            $ref: "#/components/schemas/PageThemeRoleOverride"
+          title: "Role styles: each role sent replaces that role"
+          type: array
         titleFont:
           $ref: "#/components/schemas/FontConfig"
         visitorExperience:
@@ -25559,8 +25589,16 @@ components:
             badgeId: 8e4a1c7d-2b9f-4d3e-a5c6-9f0b1e7d3a52
             footerLogoId: c3f7a9e1-6d2b-4a8c-b1e5-7d0f3a9c2e64
             canvasCoverMode: PAGE_THEME_BACKGROUND_COVER_MODE_PROGRESSIVE_TOP
+            choiceLayout: PAGE_THEME_CHOICE_LAYOUT_ROWS
+            canvasTexture: PAGE_THEME_CANVAS_TEXTURE_BRUSHED
+            questionStyle: PAGE_THEME_QUESTION_STYLE_HEADLINE
             visitorExperience: PAGE_THEME_VISITOR_EXPERIENCE_CLASSIC
             bodyFont: ""
+            roles:
+            - role: PAGE_THEME_ROLE_CHOICES
+              style: ""
+            - role: PAGE_THEME_ROLE_CHOICES
+              style: ""
             titleFont: ""
             elementColor: ""
             elementFont: ""
@@ -25606,8 +25644,16 @@ components:
             badgeId: 8e4a1c7d-2b9f-4d3e-a5c6-9f0b1e7d3a52
             footerLogoId: c3f7a9e1-6d2b-4a8c-b1e5-7d0f3a9c2e64
             canvasCoverMode: PAGE_THEME_BACKGROUND_COVER_MODE_PROGRESSIVE_TOP
+            choiceLayout: PAGE_THEME_CHOICE_LAYOUT_ROWS
+            canvasTexture: PAGE_THEME_CANVAS_TEXTURE_BRUSHED
+            questionStyle: PAGE_THEME_QUESTION_STYLE_HEADLINE
             visitorExperience: PAGE_THEME_VISITOR_EXPERIENCE_CLASSIC
             bodyFont: ""
+            roles:
+            - role: PAGE_THEME_ROLE_CHOICES
+              style: ""
+            - role: PAGE_THEME_ROLE_CHOICES
+              style: ""
             titleFont: ""
             elementColor: ""
             elementFont: ""
@@ -25666,8 +25712,16 @@ components:
           badgeId: 8e4a1c7d-2b9f-4d3e-a5c6-9f0b1e7d3a52
           footerLogoId: c3f7a9e1-6d2b-4a8c-b1e5-7d0f3a9c2e64
           canvasCoverMode: PAGE_THEME_BACKGROUND_COVER_MODE_PROGRESSIVE_TOP
+          choiceLayout: PAGE_THEME_CHOICE_LAYOUT_ROWS
+          canvasTexture: PAGE_THEME_CANVAS_TEXTURE_BRUSHED
+          questionStyle: PAGE_THEME_QUESTION_STYLE_HEADLINE
           visitorExperience: PAGE_THEME_VISITOR_EXPERIENCE_CLASSIC
           bodyFont: ""
+          roles:
+          - role: PAGE_THEME_ROLE_CHOICES
+            style: ""
+          - role: PAGE_THEME_ROLE_CHOICES
+            style: ""
           titleFont: ""
           elementColor: ""
           elementFont: ""
@@ -25686,8 +25740,16 @@ components:
           badgeId: 8e4a1c7d-2b9f-4d3e-a5c6-9f0b1e7d3a52
           footerLogoId: c3f7a9e1-6d2b-4a8c-b1e5-7d0f3a9c2e64
           canvasCoverMode: PAGE_THEME_BACKGROUND_COVER_MODE_PROGRESSIVE_TOP
+          choiceLayout: PAGE_THEME_CHOICE_LAYOUT_ROWS
+          canvasTexture: PAGE_THEME_CANVAS_TEXTURE_BRUSHED
+          questionStyle: PAGE_THEME_QUESTION_STYLE_HEADLINE
           visitorExperience: PAGE_THEME_VISITOR_EXPERIENCE_CLASSIC
           bodyFont: ""
+          roles:
+          - role: PAGE_THEME_ROLE_CHOICES
+            style: ""
+          - role: PAGE_THEME_ROLE_CHOICES
+            style: ""
           titleFont: ""
           elementColor: ""
           elementFont: ""
@@ -27416,8 +27478,16 @@ components:
         badgeId: 8e4a1c7d-2b9f-4d3e-a5c6-9f0b1e7d3a52
         footerLogoId: c3f7a9e1-6d2b-4a8c-b1e5-7d0f3a9c2e64
         canvasCoverMode: PAGE_THEME_BACKGROUND_COVER_MODE_PROGRESSIVE_TOP
+        choiceLayout: PAGE_THEME_CHOICE_LAYOUT_ROWS
+        canvasTexture: PAGE_THEME_CANVAS_TEXTURE_BRUSHED
+        questionStyle: PAGE_THEME_QUESTION_STYLE_HEADLINE
         visitorExperience: PAGE_THEME_VISITOR_EXPERIENCE_CLASSIC
         bodyFont: ""
+        roles:
+        - role: PAGE_THEME_ROLE_CHOICES
+          style: ""
+        - role: PAGE_THEME_ROLE_CHOICES
+          style: ""
         titleFont: ""
         elementColor: ""
         elementFont: ""
@@ -27481,6 +27551,24 @@ components:
           example: PAGE_THEME_BACKGROUND_COVER_MODE_PROGRESSIVE_TOP
           title: Cover display mode
           type: string
+        canvasTexture:
+          description: A texture laid over the page background. Unset reads as NONE.
+          enum:
+          - PAGE_THEME_CANVAS_TEXTURE_UNSPECIFIED
+          - PAGE_THEME_CANVAS_TEXTURE_NONE
+          - PAGE_THEME_CANVAS_TEXTURE_BRUSHED
+          - PAGE_THEME_CANVAS_TEXTURE_GRAIN
+          example: PAGE_THEME_CANVAS_TEXTURE_BRUSHED
+          type: string
+        choiceLayout:
+          description: "How a choice question lays out its answers: AUTO (pills or\
+            \ tiles) or ROWS. Unset reads as AUTO."
+          enum:
+          - PAGE_THEME_CHOICE_LAYOUT_UNSPECIFIED
+          - PAGE_THEME_CHOICE_LAYOUT_AUTO
+          - PAGE_THEME_CHOICE_LAYOUT_ROWS
+          example: PAGE_THEME_CHOICE_LAYOUT_ROWS
+          type: string
         containerConfig:
           allOf:
           - $ref: "#/components/schemas/ContainerConfig"
@@ -27520,6 +27608,22 @@ components:
           readOnly: true
           title: Page theme ID
           type: string
+        questionStyle:
+          description: "How a form's questions are written: LABEL (small, in the body\
+            \ role) or HEADLINE (centered, in the heading role). Unset reads as LABEL."
+          enum:
+          - PAGE_THEME_QUESTION_STYLE_UNSPECIFIED
+          - PAGE_THEME_QUESTION_STYLE_LABEL
+          - PAGE_THEME_QUESTION_STYLE_HEADLINE
+          example: PAGE_THEME_QUESTION_STYLE_HEADLINE
+          type: string
+        roles:
+          description: "The roles with a look of their own (headings, body, small\
+            \ text, fields, choices, buttons, chat bubbles, link buttons). A role\
+            \ not listed keeps what it inherits."
+          items:
+            $ref: "#/components/schemas/PageThemeRoleOverride"
+          type: array
         titleFont:
           allOf:
           - $ref: "#/components/schemas/FontConfig"
@@ -27573,6 +27677,21 @@ components:
       - PAGE_THEME_BACKGROUND_COVER_MODE_PROGRESSIVE_TOP
       - PAGE_THEME_BACKGROUND_COVER_MODE_PROGRESSIVE_BOTTOM
       type: string
+    PageThemeCanvasTexture:
+      default: PAGE_THEME_CANVAS_TEXTURE_UNSPECIFIED
+      enum:
+      - PAGE_THEME_CANVAS_TEXTURE_UNSPECIFIED
+      - PAGE_THEME_CANVAS_TEXTURE_NONE
+      - PAGE_THEME_CANVAS_TEXTURE_BRUSHED
+      - PAGE_THEME_CANVAS_TEXTURE_GRAIN
+      type: string
+    PageThemeChoiceLayout:
+      default: PAGE_THEME_CHOICE_LAYOUT_UNSPECIFIED
+      enum:
+      - PAGE_THEME_CHOICE_LAYOUT_UNSPECIFIED
+      - PAGE_THEME_CHOICE_LAYOUT_AUTO
+      - PAGE_THEME_CHOICE_LAYOUT_ROWS
+      type: string
     PageThemeContainerVariant:
       default: PAGE_THEME_CONTAINER_VARIANT_UNSPECIFIED
       enum:
@@ -27594,6 +27713,99 @@ components:
       - PAGE_THEME_FONT_FAMILY_TIMES_NEW_ROMAN
       - PAGE_THEME_FONT_FAMILY_COURIER_NEW
       type: string
+    PageThemeQuestionStyle:
+      default: PAGE_THEME_QUESTION_STYLE_UNSPECIFIED
+      enum:
+      - PAGE_THEME_QUESTION_STYLE_UNSPECIFIED
+      - PAGE_THEME_QUESTION_STYLE_LABEL
+      - PAGE_THEME_QUESTION_STYLE_HEADLINE
+      type: string
+    PageThemeRole:
+      default: PAGE_THEME_ROLE_UNSPECIFIED
+      description: "A role of the theme: one kind of visible thing, styled on every\
+        \ page that shows it."
+      enum:
+      - PAGE_THEME_ROLE_UNSPECIFIED
+      - PAGE_THEME_ROLE_HEADING
+      - PAGE_THEME_ROLE_BODY
+      - PAGE_THEME_ROLE_SMALL_TEXT
+      - PAGE_THEME_ROLE_FIELDS
+      - PAGE_THEME_ROLE_CHOICES
+      - PAGE_THEME_ROLE_MAIN_BUTTON
+      - PAGE_THEME_ROLE_SECONDARY_ACTION
+      - PAGE_THEME_ROLE_BOT_BUBBLE
+      - PAGE_THEME_ROLE_VISITOR_BUBBLE
+      - PAGE_THEME_ROLE_LINK_BUTTONS
+      type: string
+    PageThemeRoleOverride:
+      description: One role and its look.
+      example:
+        role: PAGE_THEME_ROLE_CHOICES
+        style: ""
+      properties:
+        role:
+          description: The role this style applies to.
+          enum:
+          - PAGE_THEME_ROLE_UNSPECIFIED
+          - PAGE_THEME_ROLE_HEADING
+          - PAGE_THEME_ROLE_BODY
+          - PAGE_THEME_ROLE_SMALL_TEXT
+          - PAGE_THEME_ROLE_FIELDS
+          - PAGE_THEME_ROLE_CHOICES
+          - PAGE_THEME_ROLE_MAIN_BUTTON
+          - PAGE_THEME_ROLE_SECONDARY_ACTION
+          - PAGE_THEME_ROLE_BOT_BUBBLE
+          - PAGE_THEME_ROLE_VISITOR_BUBBLE
+          - PAGE_THEME_ROLE_LINK_BUTTONS
+          example: PAGE_THEME_ROLE_CHOICES
+          type: string
+        style:
+          allOf:
+          - $ref: "#/components/schemas/PageThemeRoleStyle"
+          description: "Its look. Empty, on an update, returns the role to what it\
+            \ inherits."
+      required:
+      - role
+    PageThemeRoleStyle:
+      description: |-
+        The look of one role: one kind of visible thing, on every page that shows it.
+
+        Every setting is optional: one left unset keeps what the role inherits from
+        the theme's base styles (titleFont, bodyFont, elementFont, elementColor)
+        or, for fields and chat bubbles, the look visitor pages always had. A role
+        with nothing set is the role as it was before roles existed.
+      properties:
+        accent:
+          allOf:
+          - $ref: "#/components/schemas/ThemeColor"
+          description: "Choices: the fill of a picked answer and its indicator. Fields:\
+            \ the focus ring."
+        borderColor:
+          allOf:
+          - $ref: "#/components/schemas/ThemeColor"
+          description: Border colour.
+        borderSize:
+          description: "Border width in pixels, 0 to 12. 0 removes the border."
+          example: 1
+          format: int32
+          type: integer
+        fill:
+          allOf:
+          - $ref: "#/components/schemas/ThemeColor"
+          description: Its background. An rgba colour makes it translucent (glass).
+        font:
+          allOf:
+          - $ref: "#/components/schemas/FontConfig"
+          description: "Its text: family, bold, italic, size and colour."
+        placeholderColor:
+          allOf:
+          - $ref: "#/components/schemas/ThemeColor"
+          description: "Fields only: the colour of the placeholder text."
+        radius:
+          description: "Corner radius in pixels, 0 to 999 (999 draws a pill)."
+          example: 14
+          format: int32
+          type: integer
     PageThemeStyling:
       description: |-
         The set of visual values a page theme carries.
@@ -27634,6 +27846,25 @@ components:
           - PAGE_THEME_BACKGROUND_COVER_MODE_PROGRESSIVE_BOTTOM
           example: PAGE_THEME_BACKGROUND_COVER_MODE_PROGRESSIVE_TOP
           type: string
+        canvasTexture:
+          description: "A texture over the page background: NONE, BRUSHED (paint streaks)\
+            \ or GRAIN (film grain)."
+          enum:
+          - PAGE_THEME_CANVAS_TEXTURE_UNSPECIFIED
+          - PAGE_THEME_CANVAS_TEXTURE_NONE
+          - PAGE_THEME_CANVAS_TEXTURE_BRUSHED
+          - PAGE_THEME_CANVAS_TEXTURE_GRAIN
+          example: PAGE_THEME_CANVAS_TEXTURE_BRUSHED
+          type: string
+        choiceLayout:
+          description: "How a choice question lays out its answers: AUTO (pills or\
+            \ tiles) or ROWS (full-width rows)."
+          enum:
+          - PAGE_THEME_CHOICE_LAYOUT_UNSPECIFIED
+          - PAGE_THEME_CHOICE_LAYOUT_AUTO
+          - PAGE_THEME_CHOICE_LAYOUT_ROWS
+          example: PAGE_THEME_CHOICE_LAYOUT_ROWS
+          type: string
         containerConfig:
           $ref: "#/components/schemas/ContainerConfig"
         containerEnabled:
@@ -27650,6 +27881,21 @@ components:
             page using the theme.
           example: true
           type: boolean
+        questionStyle:
+          description: "How a form's questions are written: LABEL (small, in the text\
+            \ style) or HEADLINE (centered, in the title style)."
+          enum:
+          - PAGE_THEME_QUESTION_STYLE_UNSPECIFIED
+          - PAGE_THEME_QUESTION_STYLE_LABEL
+          - PAGE_THEME_QUESTION_STYLE_HEADLINE
+          example: PAGE_THEME_QUESTION_STYLE_HEADLINE
+          type: string
+        roles:
+          description: "Role styles: each role sent replaces that role, an empty one\
+            \ returns it to what it inherits."
+          items:
+            $ref: "#/components/schemas/PageThemeRoleOverride"
+          type: array
         titleFont:
           allOf:
           - $ref: "#/components/schemas/FontConfig"
@@ -27689,8 +27935,16 @@ components:
           badgeId: 8e4a1c7d-2b9f-4d3e-a5c6-9f0b1e7d3a52
           footerLogoId: c3f7a9e1-6d2b-4a8c-b1e5-7d0f3a9c2e64
           canvasCoverMode: PAGE_THEME_BACKGROUND_COVER_MODE_PROGRESSIVE_TOP
+          choiceLayout: PAGE_THEME_CHOICE_LAYOUT_ROWS
+          canvasTexture: PAGE_THEME_CANVAS_TEXTURE_BRUSHED
+          questionStyle: PAGE_THEME_QUESTION_STYLE_HEADLINE
           visitorExperience: PAGE_THEME_VISITOR_EXPERIENCE_CLASSIC
           bodyFont: ""
+          roles:
+          - role: PAGE_THEME_ROLE_CHOICES
+            style: ""
+          - role: PAGE_THEME_ROLE_CHOICES
+            style: ""
           titleFont: ""
           elementColor: ""
           elementFont: ""
@@ -27926,6 +28180,9 @@ components:
           borderStyle: PAGE_THEME_BORDER_STYLE_SOLID
           opacity: 90
         canvasCoverMode: PAGE_THEME_BACKGROUND_COVER_MODE_PROGRESSIVE_TOP
+        choiceLayout: PAGE_THEME_CHOICE_LAYOUT_ROWS
+        canvasTexture: PAGE_THEME_CANVAS_TEXTURE_BRUSHED
+        questionStyle: PAGE_THEME_QUESTION_STYLE_HEADLINE
         visitorExperience: PAGE_THEME_VISITOR_EXPERIENCE_FOCUSED
         bodyFont:
           familyStack: "\"Gill Sans\", \"Trebuchet MS\", sans-serif"
@@ -27934,6 +28191,11 @@ components:
           bold: true
           family: PAGE_THEME_FONT_FAMILY_GEORGIA
           italic: false
+        roles:
+        - role: PAGE_THEME_ROLE_CHOICES
+          style: ""
+        - role: PAGE_THEME_ROLE_CHOICES
+          style: ""
         canvasCover:
           id: 5f1c2d3e-4b5a-6c7d-8e9f-0a1b2c3d4e5f
           delete: {}
@@ -28006,6 +28268,25 @@ components:
           - PAGE_THEME_BACKGROUND_COVER_MODE_PROGRESSIVE_BOTTOM
           example: PAGE_THEME_BACKGROUND_COVER_MODE_PROGRESSIVE_TOP
           type: string
+        canvasTexture:
+          description: "A texture over the page background: NONE, BRUSHED (paint streaks)\
+            \ or GRAIN (film grain)."
+          enum:
+          - PAGE_THEME_CANVAS_TEXTURE_UNSPECIFIED
+          - PAGE_THEME_CANVAS_TEXTURE_NONE
+          - PAGE_THEME_CANVAS_TEXTURE_BRUSHED
+          - PAGE_THEME_CANVAS_TEXTURE_GRAIN
+          example: PAGE_THEME_CANVAS_TEXTURE_BRUSHED
+          type: string
+        choiceLayout:
+          description: "How a choice question lays out its answers: AUTO (pills or\
+            \ tiles) or ROWS (full-width rows)."
+          enum:
+          - PAGE_THEME_CHOICE_LAYOUT_UNSPECIFIED
+          - PAGE_THEME_CHOICE_LAYOUT_AUTO
+          - PAGE_THEME_CHOICE_LAYOUT_ROWS
+          example: PAGE_THEME_CHOICE_LAYOUT_ROWS
+          type: string
         containerConfig:
           $ref: "#/components/schemas/ContainerConfig"
         containerEnabled:
@@ -28022,6 +28303,21 @@ components:
             page using the theme.
           example: true
           type: boolean
+        questionStyle:
+          description: "How a form's questions are written: LABEL (small, in the text\
+            \ style) or HEADLINE (centered, in the title style)."
+          enum:
+          - PAGE_THEME_QUESTION_STYLE_UNSPECIFIED
+          - PAGE_THEME_QUESTION_STYLE_LABEL
+          - PAGE_THEME_QUESTION_STYLE_HEADLINE
+          example: PAGE_THEME_QUESTION_STYLE_HEADLINE
+          type: string
+        roles:
+          description: "Role styles: each role sent replaces that role, an empty one\
+            \ returns it to what it inherits."
+          items:
+            $ref: "#/components/schemas/PageThemeRoleOverride"
+          type: array
         titleFont:
           allOf:
           - $ref: "#/components/schemas/FontConfig"
@@ -28048,8 +28344,16 @@ components:
         badgeShape: PAGE_THEME_BADGE_SHAPE_CIRCLE
         containerConfig: ""
         canvasCoverMode: PAGE_THEME_BACKGROUND_COVER_MODE_PROGRESSIVE_TOP
+        choiceLayout: PAGE_THEME_CHOICE_LAYOUT_ROWS
+        canvasTexture: PAGE_THEME_CANVAS_TEXTURE_BRUSHED
+        questionStyle: PAGE_THEME_QUESTION_STYLE_HEADLINE
         visitorExperience: PAGE_THEME_VISITOR_EXPERIENCE_FOCUSED
         bodyFont: ""
+        roles:
+        - role: PAGE_THEME_ROLE_CHOICES
+          style: ""
+        - role: PAGE_THEME_ROLE_CHOICES
+          style: ""
         canvasCover: ""
         titleFont: ""
         elementColor: ""
@@ -28110,6 +28414,25 @@ components:
           example: PAGE_THEME_BACKGROUND_COVER_MODE_PROGRESSIVE_TOP
           title: Cover display mode to update
           type: string
+        canvasTexture:
+          description: "A texture over the page background: NONE, BRUSHED (paint streaks)\
+            \ or GRAIN (film grain)."
+          enum:
+          - PAGE_THEME_CANVAS_TEXTURE_UNSPECIFIED
+          - PAGE_THEME_CANVAS_TEXTURE_NONE
+          - PAGE_THEME_CANVAS_TEXTURE_BRUSHED
+          - PAGE_THEME_CANVAS_TEXTURE_GRAIN
+          example: PAGE_THEME_CANVAS_TEXTURE_BRUSHED
+          type: string
+        choiceLayout:
+          description: "How a choice question lays out its answers: AUTO (pills or\
+            \ tiles) or ROWS (full-width rows, indicator on the right)."
+          enum:
+          - PAGE_THEME_CHOICE_LAYOUT_UNSPECIFIED
+          - PAGE_THEME_CHOICE_LAYOUT_AUTO
+          - PAGE_THEME_CHOICE_LAYOUT_ROWS
+          example: PAGE_THEME_CHOICE_LAYOUT_ROWS
+          type: string
         containerConfig:
           allOf:
           - $ref: "#/components/schemas/ContainerConfig"
@@ -28137,6 +28460,22 @@ components:
             \ it but keeps the image)."
           example: true
           type: boolean
+        questionStyle:
+          description: "How a form's questions are written: LABEL (small, in the text\
+            \ style) or HEADLINE (centered, in the title style)."
+          enum:
+          - PAGE_THEME_QUESTION_STYLE_UNSPECIFIED
+          - PAGE_THEME_QUESTION_STYLE_LABEL
+          - PAGE_THEME_QUESTION_STYLE_HEADLINE
+          example: PAGE_THEME_QUESTION_STYLE_HEADLINE
+          type: string
+        roles:
+          description: Role styles to set. Each role sent replaces that role; one
+            sent with an empty style returns it to what it inherits; roles not sent
+            are kept.
+          items:
+            $ref: "#/components/schemas/PageThemeRoleOverride"
+          type: array
         titleFont:
           allOf:
           - $ref: "#/components/schemas/FontConfig"
@@ -31202,8 +31541,16 @@ components:
             badgeId: 8e4a1c7d-2b9f-4d3e-a5c6-9f0b1e7d3a52
             footerLogoId: c3f7a9e1-6d2b-4a8c-b1e5-7d0f3a9c2e64
             canvasCoverMode: PAGE_THEME_BACKGROUND_COVER_MODE_PROGRESSIVE_TOP
+            choiceLayout: PAGE_THEME_CHOICE_LAYOUT_ROWS
+            canvasTexture: PAGE_THEME_CANVAS_TEXTURE_BRUSHED
+            questionStyle: PAGE_THEME_QUESTION_STYLE_HEADLINE
             visitorExperience: PAGE_THEME_VISITOR_EXPERIENCE_CLASSIC
             bodyFont: ""
+            roles:
+            - role: PAGE_THEME_ROLE_CHOICES
+              style: ""
+            - role: PAGE_THEME_ROLE_CHOICES
+              style: ""
             titleFont: ""
             elementColor: ""
             elementFont: ""

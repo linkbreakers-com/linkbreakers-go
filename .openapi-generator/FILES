@@ -446,8 +446,14 @@ model_page_theme.go
 model_page_theme_badge_shape.go
 model_page_theme_border_style.go
 model_page_theme_canvas_cover_mode.go
+model_page_theme_canvas_texture.go
+model_page_theme_choice_layout.go
 model_page_theme_container_variant.go
 model_page_theme_font_family.go
+model_page_theme_question_style.go
+model_page_theme_role.go
+model_page_theme_role_override.go
+model_page_theme_role_style.go
 model_page_theme_styling.go
 model_page_theme_template.go
 model_page_theme_template_images.go
