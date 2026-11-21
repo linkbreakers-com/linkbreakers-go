@@ -48,7 +48,7 @@ info:
 
     Send a `Linkbreakers-Client` request header saying which client made the call: `<client>/<version> (<details>)`, for example `my-integration/1.2.0 (python 3.12; linux)`. The official SDKs, the CLI and the MCP bridge set it for you, as `sdk-python/2.3.1 (python 3.12.4; linux)` or `cli/1.4.0 (darwin arm64)`. It is optional and changes nothing about how a request is handled; it tells us which clients and versions are in use, so we know what can be retired and what to fix first. Keep the details short and free of personal data. Browsers may send it too: it is allowed by CORS.
   title: Linkbreakers API
-  version: 1.203.0
+  version: 1.204.0
   x-api-versioning:
     compatibility: additive changes only within a version
     currentVersion: v1
@@ -14925,8 +14925,9 @@ components:
           - PAGE_THEME_CANVAS_TEXTURE_NONE
           - PAGE_THEME_CANVAS_TEXTURE_BRUSHED
           - PAGE_THEME_CANVAS_TEXTURE_GRAIN
+          - PAGE_THEME_CANVAS_TEXTURE_STARFIELD
           example: PAGE_THEME_CANVAS_TEXTURE_BRUSHED
-          title: "NONE, BRUSHED or GRAIN over the page background"
+          title: "NONE, BRUSHED, GRAIN or STARFIELD over the page background"
           type: string
         choiceLayout:
           enum:
@@ -27605,6 +27606,7 @@ components:
           - PAGE_THEME_CANVAS_TEXTURE_NONE
           - PAGE_THEME_CANVAS_TEXTURE_BRUSHED
           - PAGE_THEME_CANVAS_TEXTURE_GRAIN
+          - PAGE_THEME_CANVAS_TEXTURE_STARFIELD
           example: PAGE_THEME_CANVAS_TEXTURE_BRUSHED
           type: string
         choiceLayout:
@@ -27756,6 +27758,7 @@ components:
       - PAGE_THEME_CANVAS_TEXTURE_NONE
       - PAGE_THEME_CANVAS_TEXTURE_BRUSHED
       - PAGE_THEME_CANVAS_TEXTURE_GRAIN
+      - PAGE_THEME_CANVAS_TEXTURE_STARFIELD
       type: string
     PageThemeChoiceLayout:
       default: PAGE_THEME_CHOICE_LAYOUT_UNSPECIFIED
@@ -27927,13 +27930,15 @@ components:
           example: PAGE_THEME_BACKGROUND_COVER_MODE_PROGRESSIVE_TOP
           type: string
         canvasTexture:
-          description: "A texture over the page background: NONE, BRUSHED (paint streaks)\
-            \ or GRAIN (film grain)."
+          description: "A texture over the page background: NONE, BRUSHED (paint streaks),\
+            \ GRAIN (film grain) or STARFIELD (stars and Milky Way dust, for dark\
+            \ backgrounds)."
           enum:
           - PAGE_THEME_CANVAS_TEXTURE_UNSPECIFIED
           - PAGE_THEME_CANVAS_TEXTURE_NONE
           - PAGE_THEME_CANVAS_TEXTURE_BRUSHED
           - PAGE_THEME_CANVAS_TEXTURE_GRAIN
+          - PAGE_THEME_CANVAS_TEXTURE_STARFIELD
           example: PAGE_THEME_CANVAS_TEXTURE_BRUSHED
           type: string
         choiceLayout:
@@ -28381,13 +28386,15 @@ components:
           example: PAGE_THEME_BACKGROUND_COVER_MODE_PROGRESSIVE_TOP
           type: string
         canvasTexture:
-          description: "A texture over the page background: NONE, BRUSHED (paint streaks)\
-            \ or GRAIN (film grain)."
+          description: "A texture over the page background: NONE, BRUSHED (paint streaks),\
+            \ GRAIN (film grain) or STARFIELD (stars and Milky Way dust, for dark\
+            \ backgrounds)."
           enum:
           - PAGE_THEME_CANVAS_TEXTURE_UNSPECIFIED
           - PAGE_THEME_CANVAS_TEXTURE_NONE
           - PAGE_THEME_CANVAS_TEXTURE_BRUSHED
           - PAGE_THEME_CANVAS_TEXTURE_GRAIN
+          - PAGE_THEME_CANVAS_TEXTURE_STARFIELD
           example: PAGE_THEME_CANVAS_TEXTURE_BRUSHED
           type: string
         choiceLayout:
@@ -28564,13 +28571,15 @@ components:
           title: Cover display mode to update
           type: string
         canvasTexture:
-          description: "A texture over the page background: NONE, BRUSHED (paint streaks)\
-            \ or GRAIN (film grain)."
+          description: "A texture over the page background: NONE, BRUSHED (paint streaks),\
+            \ GRAIN (film grain) or STARFIELD (stars and Milky Way dust, for dark\
+            \ backgrounds)."
           enum:
           - PAGE_THEME_CANVAS_TEXTURE_UNSPECIFIED
           - PAGE_THEME_CANVAS_TEXTURE_NONE
           - PAGE_THEME_CANVAS_TEXTURE_BRUSHED
           - PAGE_THEME_CANVAS_TEXTURE_GRAIN
+          - PAGE_THEME_CANVAS_TEXTURE_STARFIELD
           example: PAGE_THEME_CANVAS_TEXTURE_BRUSHED
           type: string
         choiceLayout:
