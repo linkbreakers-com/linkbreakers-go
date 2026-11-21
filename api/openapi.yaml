@@ -48,7 +48,7 @@ info:
 
     Send a `Linkbreakers-Client` request header saying which client made the call: `<client>/<version> (<details>)`, for example `my-integration/1.2.0 (python 3.12; linux)`. The official SDKs, the CLI and the MCP bridge set it for you, as `sdk-python/2.3.1 (python 3.12.4; linux)` or `cli/1.4.0 (darwin arm64)`. It is optional and changes nothing about how a request is handled; it tells us which clients and versions are in use, so we know what can be retired and what to fix first. Keep the details short and free of personal data. Browsers may send it too: it is allowed by CORS.
   title: Linkbreakers API
-  version: 1.202.1
+  version: 1.203.0
   x-api-versioning:
     compatibility: additive changes only within a version
     currentVersion: v1
@@ -14946,6 +14946,13 @@ components:
           $ref: "#/components/schemas/ThemeColor"
         elementFont:
           $ref: "#/components/schemas/FontConfig"
+        elementStyles:
+          description: "The look of each element job (SURFACE, SELECTED, ACTION, QUIET).\
+            \ A job not listed follows the shape, the colours, or the look it always\
+            \ had."
+          items:
+            $ref: "#/components/schemas/PageThemeElementStyleOverride"
+          type: array
         footerLogo:
           allOf:
           - $ref: "#/components/schemas/MediaSelection"
@@ -14954,6 +14961,16 @@ components:
           example: true
           title: A small logo at the bottom of every page using this theme
           type: boolean
+        headingAlign:
+          description: "How titles and headline questions are aligned. Unset: centered\
+            \ titles, questions as the question style draws them. UNSPECIFIED on an\
+            \ update clears it."
+          enum:
+          - PAGE_THEME_TEXT_ALIGN_UNSPECIFIED
+          - PAGE_THEME_TEXT_ALIGN_CENTER
+          - PAGE_THEME_TEXT_ALIGN_LEFT
+          example: PAGE_THEME_TEXT_ALIGN_CENTER
+          type: string
         questionStyle:
           enum:
           - PAGE_THEME_QUESTION_STYLE_UNSPECIFIED
@@ -14962,11 +14979,21 @@ components:
           example: PAGE_THEME_QUESTION_STYLE_HEADLINE
           title: LABEL or HEADLINE questions
           type: string
-        roles:
-          items:
-            $ref: "#/components/schemas/PageThemeRoleOverride"
-          title: "Role styles: each role sent replaces that role"
-          type: array
+        shape:
+          allOf:
+          - $ref: "#/components/schemas/PageThemeShape"
+          description: The radius and border every job follows unless it has its own.
+        smallText:
+          allOf:
+          - $ref: "#/components/schemas/PageThemeSmallText"
+          description: "Small text: hints, counters, consent. Unset: the body text,\
+            \ smaller and muted."
+        textColor:
+          allOf:
+          - $ref: "#/components/schemas/ThemeColor"
+          description: "The text colour headings, body and small text follow when\
+            \ their own font has none. On an update, a colour without colours clears\
+            \ it."
         titleFont:
           $ref: "#/components/schemas/FontConfig"
         visitorExperience:
@@ -25585,33 +25612,37 @@ components:
             Warm cream background, navy buttons and the Inter font, made for restaurant table cards.
           pageTheme:
             badgeShape: PAGE_THEME_BADGE_SHAPE_CIRCLE
-            containerConfig: ""
             badgeId: 8e4a1c7d-2b9f-4d3e-a5c6-9f0b1e7d3a52
             footerLogoId: c3f7a9e1-6d2b-4a8c-b1e5-7d0f3a9c2e64
-            canvasCoverMode: PAGE_THEME_BACKGROUND_COVER_MODE_PROGRESSIVE_TOP
             choiceLayout: PAGE_THEME_CHOICE_LAYOUT_ROWS
             canvasTexture: PAGE_THEME_CANVAS_TEXTURE_BRUSHED
             questionStyle: PAGE_THEME_QUESTION_STYLE_HEADLINE
-            visitorExperience: PAGE_THEME_VISITOR_EXPERIENCE_CLASSIC
-            bodyFont: ""
-            roles:
-            - role: PAGE_THEME_ROLE_CHOICES
-              style: ""
-            - role: PAGE_THEME_ROLE_CHOICES
-              style: ""
-            titleFont: ""
+            elementStyles:
+            - style: ""
+              job: PAGE_THEME_ELEMENT_JOB_SURFACE
+            - style: ""
+              job: PAGE_THEME_ELEMENT_JOB_SURFACE
             elementColor: ""
             elementFont: ""
-            containerEnabled: true
             createdAt: 2026-03-14T09:30:00Z
+            id: f47ac10b-58cc-4372-a567-0e02b2c3d479
+            badgeEnabled: true
+            updatedAt: 2026-03-18T16:05:00Z
+            workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
+            containerConfig: ""
+            headingAlign: PAGE_THEME_TEXT_ALIGN_CENTER
+            shape: ""
+            canvasCoverMode: PAGE_THEME_BACKGROUND_COVER_MODE_PROGRESSIVE_TOP
+            visitorExperience: PAGE_THEME_VISITOR_EXPERIENCE_CLASSIC
+            bodyFont: ""
+            smallText: ""
+            titleFont: ""
+            textColor: ""
+            containerEnabled: true
             canvasCoverId: 5f1c2d3e-4b5a-6c7d-8e9f-0a1b2c3d4e5f
             badgeIconColor: ""
             footerLogoEnabled: true
-            id: f47ac10b-58cc-4372-a567-0e02b2c3d479
-            badgeEnabled: true
             canvasColor: ""
-            updatedAt: 2026-03-18T16:05:00Z
-            workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
           owned: true
           faq: "[{\"id\": \"1\", \"question\": \"Does it work on a phone?\", \"answer\"\
             : \"Yes, every page using this template is built for small screens first.\"\
@@ -25640,33 +25671,37 @@ components:
             Warm cream background, navy buttons and the Inter font, made for restaurant table cards.
           pageTheme:
             badgeShape: PAGE_THEME_BADGE_SHAPE_CIRCLE
-            containerConfig: ""
             badgeId: 8e4a1c7d-2b9f-4d3e-a5c6-9f0b1e7d3a52
             footerLogoId: c3f7a9e1-6d2b-4a8c-b1e5-7d0f3a9c2e64
-            canvasCoverMode: PAGE_THEME_BACKGROUND_COVER_MODE_PROGRESSIVE_TOP
             choiceLayout: PAGE_THEME_CHOICE_LAYOUT_ROWS
             canvasTexture: PAGE_THEME_CANVAS_TEXTURE_BRUSHED
             questionStyle: PAGE_THEME_QUESTION_STYLE_HEADLINE
-            visitorExperience: PAGE_THEME_VISITOR_EXPERIENCE_CLASSIC
-            bodyFont: ""
-            roles:
-            - role: PAGE_THEME_ROLE_CHOICES
-              style: ""
-            - role: PAGE_THEME_ROLE_CHOICES
-              style: ""
-            titleFont: ""
+            elementStyles:
+            - style: ""
+              job: PAGE_THEME_ELEMENT_JOB_SURFACE
+            - style: ""
+              job: PAGE_THEME_ELEMENT_JOB_SURFACE
             elementColor: ""
             elementFont: ""
-            containerEnabled: true
             createdAt: 2026-03-14T09:30:00Z
+            id: f47ac10b-58cc-4372-a567-0e02b2c3d479
+            badgeEnabled: true
+            updatedAt: 2026-03-18T16:05:00Z
+            workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
+            containerConfig: ""
+            headingAlign: PAGE_THEME_TEXT_ALIGN_CENTER
+            shape: ""
+            canvasCoverMode: PAGE_THEME_BACKGROUND_COVER_MODE_PROGRESSIVE_TOP
+            visitorExperience: PAGE_THEME_VISITOR_EXPERIENCE_CLASSIC
+            bodyFont: ""
+            smallText: ""
+            titleFont: ""
+            textColor: ""
+            containerEnabled: true
             canvasCoverId: 5f1c2d3e-4b5a-6c7d-8e9f-0a1b2c3d4e5f
             badgeIconColor: ""
             footerLogoEnabled: true
-            id: f47ac10b-58cc-4372-a567-0e02b2c3d479
-            badgeEnabled: true
             canvasColor: ""
-            updatedAt: 2026-03-18T16:05:00Z
-            workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
           owned: true
           faq: "[{\"id\": \"1\", \"question\": \"Does it work on a phone?\", \"answer\"\
             : \"Yes, every page using this template is built for small screens first.\"\
@@ -25708,61 +25743,69 @@ components:
         nextPageToken: eyJpZCI6ImY0N2FjMTBiIn0=
         pageThemes:
         - badgeShape: PAGE_THEME_BADGE_SHAPE_CIRCLE
-          containerConfig: ""
           badgeId: 8e4a1c7d-2b9f-4d3e-a5c6-9f0b1e7d3a52
           footerLogoId: c3f7a9e1-6d2b-4a8c-b1e5-7d0f3a9c2e64
-          canvasCoverMode: PAGE_THEME_BACKGROUND_COVER_MODE_PROGRESSIVE_TOP
           choiceLayout: PAGE_THEME_CHOICE_LAYOUT_ROWS
           canvasTexture: PAGE_THEME_CANVAS_TEXTURE_BRUSHED
           questionStyle: PAGE_THEME_QUESTION_STYLE_HEADLINE
-          visitorExperience: PAGE_THEME_VISITOR_EXPERIENCE_CLASSIC
-          bodyFont: ""
-          roles:
-          - role: PAGE_THEME_ROLE_CHOICES
-            style: ""
-          - role: PAGE_THEME_ROLE_CHOICES
-            style: ""
-          titleFont: ""
+          elementStyles:
+          - style: ""
+            job: PAGE_THEME_ELEMENT_JOB_SURFACE
+          - style: ""
+            job: PAGE_THEME_ELEMENT_JOB_SURFACE
           elementColor: ""
           elementFont: ""
-          containerEnabled: true
           createdAt: 2026-03-14T09:30:00Z
+          id: f47ac10b-58cc-4372-a567-0e02b2c3d479
+          badgeEnabled: true
+          updatedAt: 2026-03-18T16:05:00Z
+          workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
+          containerConfig: ""
+          headingAlign: PAGE_THEME_TEXT_ALIGN_CENTER
+          shape: ""
+          canvasCoverMode: PAGE_THEME_BACKGROUND_COVER_MODE_PROGRESSIVE_TOP
+          visitorExperience: PAGE_THEME_VISITOR_EXPERIENCE_CLASSIC
+          bodyFont: ""
+          smallText: ""
+          titleFont: ""
+          textColor: ""
+          containerEnabled: true
           canvasCoverId: 5f1c2d3e-4b5a-6c7d-8e9f-0a1b2c3d4e5f
           badgeIconColor: ""
           footerLogoEnabled: true
-          id: f47ac10b-58cc-4372-a567-0e02b2c3d479
-          badgeEnabled: true
           canvasColor: ""
-          updatedAt: 2026-03-18T16:05:00Z
-          workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
         - badgeShape: PAGE_THEME_BADGE_SHAPE_CIRCLE
-          containerConfig: ""
           badgeId: 8e4a1c7d-2b9f-4d3e-a5c6-9f0b1e7d3a52
           footerLogoId: c3f7a9e1-6d2b-4a8c-b1e5-7d0f3a9c2e64
-          canvasCoverMode: PAGE_THEME_BACKGROUND_COVER_MODE_PROGRESSIVE_TOP
           choiceLayout: PAGE_THEME_CHOICE_LAYOUT_ROWS
           canvasTexture: PAGE_THEME_CANVAS_TEXTURE_BRUSHED
           questionStyle: PAGE_THEME_QUESTION_STYLE_HEADLINE
-          visitorExperience: PAGE_THEME_VISITOR_EXPERIENCE_CLASSIC
-          bodyFont: ""
-          roles:
-          - role: PAGE_THEME_ROLE_CHOICES
-            style: ""
-          - role: PAGE_THEME_ROLE_CHOICES
-            style: ""
-          titleFont: ""
+          elementStyles:
+          - style: ""
+            job: PAGE_THEME_ELEMENT_JOB_SURFACE
+          - style: ""
+            job: PAGE_THEME_ELEMENT_JOB_SURFACE
           elementColor: ""
           elementFont: ""
-          containerEnabled: true
           createdAt: 2026-03-14T09:30:00Z
+          id: f47ac10b-58cc-4372-a567-0e02b2c3d479
+          badgeEnabled: true
+          updatedAt: 2026-03-18T16:05:00Z
+          workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
+          containerConfig: ""
+          headingAlign: PAGE_THEME_TEXT_ALIGN_CENTER
+          shape: ""
+          canvasCoverMode: PAGE_THEME_BACKGROUND_COVER_MODE_PROGRESSIVE_TOP
+          visitorExperience: PAGE_THEME_VISITOR_EXPERIENCE_CLASSIC
+          bodyFont: ""
+          smallText: ""
+          titleFont: ""
+          textColor: ""
+          containerEnabled: true
           canvasCoverId: 5f1c2d3e-4b5a-6c7d-8e9f-0a1b2c3d4e5f
           badgeIconColor: ""
           footerLogoEnabled: true
-          id: f47ac10b-58cc-4372-a567-0e02b2c3d479
-          badgeEnabled: true
           canvasColor: ""
-          updatedAt: 2026-03-18T16:05:00Z
-          workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
         totalCount: 24
       properties:
         nextPageToken:
@@ -27474,33 +27517,37 @@ components:
     PageTheme:
       example:
         badgeShape: PAGE_THEME_BADGE_SHAPE_CIRCLE
-        containerConfig: ""
         badgeId: 8e4a1c7d-2b9f-4d3e-a5c6-9f0b1e7d3a52
         footerLogoId: c3f7a9e1-6d2b-4a8c-b1e5-7d0f3a9c2e64
-        canvasCoverMode: PAGE_THEME_BACKGROUND_COVER_MODE_PROGRESSIVE_TOP
         choiceLayout: PAGE_THEME_CHOICE_LAYOUT_ROWS
         canvasTexture: PAGE_THEME_CANVAS_TEXTURE_BRUSHED
         questionStyle: PAGE_THEME_QUESTION_STYLE_HEADLINE
-        visitorExperience: PAGE_THEME_VISITOR_EXPERIENCE_CLASSIC
-        bodyFont: ""
-        roles:
-        - role: PAGE_THEME_ROLE_CHOICES
-          style: ""
-        - role: PAGE_THEME_ROLE_CHOICES
-          style: ""
-        titleFont: ""
+        elementStyles:
+        - style: ""
+          job: PAGE_THEME_ELEMENT_JOB_SURFACE
+        - style: ""
+          job: PAGE_THEME_ELEMENT_JOB_SURFACE
         elementColor: ""
         elementFont: ""
-        containerEnabled: true
         createdAt: 2026-03-14T09:30:00Z
+        id: f47ac10b-58cc-4372-a567-0e02b2c3d479
+        badgeEnabled: true
+        updatedAt: 2026-03-18T16:05:00Z
+        workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
+        containerConfig: ""
+        headingAlign: PAGE_THEME_TEXT_ALIGN_CENTER
+        shape: ""
+        canvasCoverMode: PAGE_THEME_BACKGROUND_COVER_MODE_PROGRESSIVE_TOP
+        visitorExperience: PAGE_THEME_VISITOR_EXPERIENCE_CLASSIC
+        bodyFont: ""
+        smallText: ""
+        titleFont: ""
+        textColor: ""
+        containerEnabled: true
         canvasCoverId: 5f1c2d3e-4b5a-6c7d-8e9f-0a1b2c3d4e5f
         badgeIconColor: ""
         footerLogoEnabled: true
-        id: f47ac10b-58cc-4372-a567-0e02b2c3d479
-        badgeEnabled: true
         canvasColor: ""
-        updatedAt: 2026-03-18T16:05:00Z
-        workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
       externalDocs:
         description: Learn more about page themes in Linkbreakers.
         url: https://linkbreakers.com/help/article/whats-a-page-theme
@@ -27591,6 +27638,13 @@ components:
           allOf:
           - $ref: "#/components/schemas/FontConfig"
           title: Interactive element text font configuration
+        elementStyles:
+          description: "The look of each element job (SURFACE, SELECTED, ACTION, QUIET).\
+            \ A job not listed follows the shape, the colours, or the look it always\
+            \ had."
+          items:
+            $ref: "#/components/schemas/PageThemeElementStyleOverride"
+          type: array
         footerLogoEnabled:
           description: |-
             Whether the footer logo (a small company or brand logo centered at the bottom of every page using this theme) is shown.
@@ -27603,6 +27657,16 @@ components:
           example: c3f7a9e1-6d2b-4a8c-b1e5-7d0f3a9c2e64
           title: Footer logo image ID (a media library image)
           type: string
+        headingAlign:
+          description: "How titles and headline questions are aligned. Unset: centered\
+            \ titles, questions as the question style draws them. UNSPECIFIED on an\
+            \ update clears it."
+          enum:
+          - PAGE_THEME_TEXT_ALIGN_UNSPECIFIED
+          - PAGE_THEME_TEXT_ALIGN_CENTER
+          - PAGE_THEME_TEXT_ALIGN_LEFT
+          example: PAGE_THEME_TEXT_ALIGN_CENTER
+          type: string
         id:
           example: f47ac10b-58cc-4372-a567-0e02b2c3d479
           readOnly: true
@@ -27610,20 +27674,28 @@ components:
           type: string
         questionStyle:
           description: "How a form's questions are written: LABEL (small, in the body\
-            \ role) or HEADLINE (centered, in the heading role). Unset reads as LABEL."
+            \ text) or HEADLINE (a heading, in the title font). Unset reads as LABEL."
           enum:
           - PAGE_THEME_QUESTION_STYLE_UNSPECIFIED
           - PAGE_THEME_QUESTION_STYLE_LABEL
           - PAGE_THEME_QUESTION_STYLE_HEADLINE
           example: PAGE_THEME_QUESTION_STYLE_HEADLINE
           type: string
-        roles:
-          description: "The roles with a look of their own (headings, body, small\
-            \ text, fields, choices, buttons, chat bubbles, link buttons). A role\
-            \ not listed keeps what it inherits."
-          items:
-            $ref: "#/components/schemas/PageThemeRoleOverride"
-          type: array
+        shape:
+          allOf:
+          - $ref: "#/components/schemas/PageThemeShape"
+          description: The radius and border every job follows unless it has its own.
+        smallText:
+          allOf:
+          - $ref: "#/components/schemas/PageThemeSmallText"
+          description: "Small text: hints, counters, consent. Unset: the body text,\
+            \ smaller and muted."
+        textColor:
+          allOf:
+          - $ref: "#/components/schemas/ThemeColor"
+          description: "The text colour headings, body and small text follow when\
+            \ their own font has none. On an update, a colour without colours clears\
+            \ it."
         titleFont:
           allOf:
           - $ref: "#/components/schemas/FontConfig"
@@ -27699,6 +27771,68 @@ components:
       - PAGE_THEME_CONTAINER_VARIANT_ROUNDED
       - PAGE_THEME_CONTAINER_VARIANT_SQUARE
       type: string
+    PageThemeElementJob:
+      default: PAGE_THEME_ELEMENT_JOB_UNSPECIFIED
+      description: |-
+        What an element does on a page, whatever the step: each step decides which
+        of its elements does which job, and the theme styles the job once.
+      enum:
+      - PAGE_THEME_ELEMENT_JOB_UNSPECIFIED
+      - PAGE_THEME_ELEMENT_JOB_SURFACE
+      - PAGE_THEME_ELEMENT_JOB_SELECTED
+      - PAGE_THEME_ELEMENT_JOB_ACTION
+      - PAGE_THEME_ELEMENT_JOB_QUIET
+      type: string
+    PageThemeElementStyle:
+      description: |-
+        The look of one job. Every setting is optional: one left unset follows the
+        theme's shape (radius, border) and colours, or the look the element always had.
+      properties:
+        borderColor:
+          allOf:
+          - $ref: "#/components/schemas/ThemeColor"
+          description: Border colour.
+        borderSize:
+          description: "Border width in pixels, 0 to 12. 0 removes the border."
+          example: 0
+          format: int32
+          type: integer
+        fill:
+          allOf:
+          - $ref: "#/components/schemas/ThemeColor"
+          description: Its background. An rgba colour makes it translucent (glass).
+        radius:
+          description: "Corner radius in pixels, 0 to 999 (999 draws a pill)."
+          example: 14
+          format: int32
+          type: integer
+        textColor:
+          allOf:
+          - $ref: "#/components/schemas/ThemeColor"
+          description: Its text colour.
+    PageThemeElementStyleOverride:
+      description: One job and its look.
+      example:
+        style: ""
+        job: PAGE_THEME_ELEMENT_JOB_SURFACE
+      properties:
+        job:
+          description: The job this look applies to.
+          enum:
+          - PAGE_THEME_ELEMENT_JOB_UNSPECIFIED
+          - PAGE_THEME_ELEMENT_JOB_SURFACE
+          - PAGE_THEME_ELEMENT_JOB_SELECTED
+          - PAGE_THEME_ELEMENT_JOB_ACTION
+          - PAGE_THEME_ELEMENT_JOB_QUIET
+          example: PAGE_THEME_ELEMENT_JOB_SURFACE
+          type: string
+        style:
+          allOf:
+          - $ref: "#/components/schemas/PageThemeElementStyle"
+          description: "Its look. Empty, on an update, returns the job to what it\
+            \ follows."
+      required:
+      - job
     PageThemeFontFamily:
       default: PAGE_THEME_FONT_FAMILY_UNSPECIFIED
       description: " - PAGE_THEME_FONT_FAMILY_UNSPECIFIED: Maps to the default system\
@@ -27720,90 +27854,36 @@ components:
       - PAGE_THEME_QUESTION_STYLE_LABEL
       - PAGE_THEME_QUESTION_STYLE_HEADLINE
       type: string
-    PageThemeRole:
-      default: PAGE_THEME_ROLE_UNSPECIFIED
-      description: "A role of the theme: one kind of visible thing, styled on every\
-        \ page that shows it."
-      enum:
-      - PAGE_THEME_ROLE_UNSPECIFIED
-      - PAGE_THEME_ROLE_HEADING
-      - PAGE_THEME_ROLE_BODY
-      - PAGE_THEME_ROLE_SMALL_TEXT
-      - PAGE_THEME_ROLE_FIELDS
-      - PAGE_THEME_ROLE_CHOICES
-      - PAGE_THEME_ROLE_MAIN_BUTTON
-      - PAGE_THEME_ROLE_SECONDARY_ACTION
-      - PAGE_THEME_ROLE_BOT_BUBBLE
-      - PAGE_THEME_ROLE_VISITOR_BUBBLE
-      - PAGE_THEME_ROLE_LINK_BUTTONS
-      type: string
-    PageThemeRoleOverride:
-      description: One role and its look.
-      example:
-        role: PAGE_THEME_ROLE_CHOICES
-        style: ""
+    PageThemeShape:
+      description: "The theme's shape: the radius and border every job follows unless\
+        \ it has its own."
       properties:
-        role:
-          description: The role this style applies to.
-          enum:
-          - PAGE_THEME_ROLE_UNSPECIFIED
-          - PAGE_THEME_ROLE_HEADING
-          - PAGE_THEME_ROLE_BODY
-          - PAGE_THEME_ROLE_SMALL_TEXT
-          - PAGE_THEME_ROLE_FIELDS
-          - PAGE_THEME_ROLE_CHOICES
-          - PAGE_THEME_ROLE_MAIN_BUTTON
-          - PAGE_THEME_ROLE_SECONDARY_ACTION
-          - PAGE_THEME_ROLE_BOT_BUBBLE
-          - PAGE_THEME_ROLE_VISITOR_BUBBLE
-          - PAGE_THEME_ROLE_LINK_BUTTONS
-          example: PAGE_THEME_ROLE_CHOICES
-          type: string
-        style:
-          allOf:
-          - $ref: "#/components/schemas/PageThemeRoleStyle"
-          description: "Its look. Empty, on an update, returns the role to what it\
-            \ inherits."
-      required:
-      - role
-    PageThemeRoleStyle:
-      description: |-
-        The look of one role: one kind of visible thing, on every page that shows it.
-
-        Every setting is optional: one left unset keeps what the role inherits from
-        the theme's base styles (titleFont, bodyFont, elementFont, elementColor)
-        or, for fields and chat bubbles, the look visitor pages always had. A role
-        with nothing set is the role as it was before roles existed.
-      properties:
-        accent:
-          allOf:
-          - $ref: "#/components/schemas/ThemeColor"
-          description: "Choices: the fill of a picked answer and its indicator. Fields:\
-            \ the focus ring."
         borderColor:
           allOf:
           - $ref: "#/components/schemas/ThemeColor"
           description: Border colour.
         borderSize:
-          description: "Border width in pixels, 0 to 12. 0 removes the border."
+          description: "Border width in pixels, 0 to 12."
           example: 1
           format: int32
           type: integer
-        fill:
-          allOf:
-          - $ref: "#/components/schemas/ThemeColor"
-          description: Its background. An rgba colour makes it translucent (glass).
-        font:
-          allOf:
-          - $ref: "#/components/schemas/FontConfig"
-          description: "Its text: family, bold, italic, size and colour."
-        placeholderColor:
-          allOf:
-          - $ref: "#/components/schemas/ThemeColor"
-          description: "Fields only: the colour of the placeholder text."
         radius:
-          description: "Corner radius in pixels, 0 to 999 (999 draws a pill)."
-          example: 14
+          description: "Corner radius in pixels, 0 to 999."
+          example: 12
+          format: int32
+          type: integer
+    PageThemeSmallText:
+      description: |-
+        Small text (hints, counters such as "3 messages left", consent wording):
+        the body text, smaller and muted, unless given its own size and colour.
+      properties:
+        color:
+          allOf:
+          - $ref: "#/components/schemas/ThemeColor"
+          description: Its colour.
+        fontSize:
+          description: "Size in pixels, 10 to 18."
+          example: 13
           format: int32
           type: integer
     PageThemeStyling:
@@ -27874,6 +27954,13 @@ components:
           $ref: "#/components/schemas/ThemeColor"
         elementFont:
           $ref: "#/components/schemas/FontConfig"
+        elementStyles:
+          description: "The look of each element job (SURFACE, SELECTED, ACTION, QUIET).\
+            \ A job not listed follows the shape, the colours, or the look it always\
+            \ had."
+          items:
+            $ref: "#/components/schemas/PageThemeElementStyleOverride"
+          type: array
         footerLogo:
           $ref: "#/components/schemas/MediaSelection"
         footerLogoEnabled:
@@ -27881,6 +27968,15 @@ components:
             page using the theme.
           example: true
           type: boolean
+        headingAlign:
+          description: "How titles and headline questions are aligned. Unset: centered\
+            \ titles, questions as the question style draws them."
+          enum:
+          - PAGE_THEME_TEXT_ALIGN_UNSPECIFIED
+          - PAGE_THEME_TEXT_ALIGN_CENTER
+          - PAGE_THEME_TEXT_ALIGN_LEFT
+          example: PAGE_THEME_TEXT_ALIGN_CENTER
+          type: string
         questionStyle:
           description: "How a form's questions are written: LABEL (small, in the text\
             \ style) or HEADLINE (centered, in the title style)."
@@ -27890,12 +27986,20 @@ components:
           - PAGE_THEME_QUESTION_STYLE_HEADLINE
           example: PAGE_THEME_QUESTION_STYLE_HEADLINE
           type: string
-        roles:
-          description: "Role styles: each role sent replaces that role, an empty one\
-            \ returns it to what it inherits."
-          items:
-            $ref: "#/components/schemas/PageThemeRoleOverride"
-          type: array
+        shape:
+          allOf:
+          - $ref: "#/components/schemas/PageThemeShape"
+          description: The radius and border every job follows unless it has its own.
+        smallText:
+          allOf:
+          - $ref: "#/components/schemas/PageThemeSmallText"
+          description: "Small text: hints, counters, consent. Unset: the body text,\
+            \ smaller and muted."
+        textColor:
+          allOf:
+          - $ref: "#/components/schemas/ThemeColor"
+          description: "The text colour headings, body and small text follow when\
+            \ their own font has none."
         titleFont:
           allOf:
           - $ref: "#/components/schemas/FontConfig"
@@ -27931,33 +28035,37 @@ components:
           Warm cream background, navy buttons and the Inter font, made for restaurant table cards.
         pageTheme:
           badgeShape: PAGE_THEME_BADGE_SHAPE_CIRCLE
-          containerConfig: ""
           badgeId: 8e4a1c7d-2b9f-4d3e-a5c6-9f0b1e7d3a52
           footerLogoId: c3f7a9e1-6d2b-4a8c-b1e5-7d0f3a9c2e64
-          canvasCoverMode: PAGE_THEME_BACKGROUND_COVER_MODE_PROGRESSIVE_TOP
           choiceLayout: PAGE_THEME_CHOICE_LAYOUT_ROWS
           canvasTexture: PAGE_THEME_CANVAS_TEXTURE_BRUSHED
           questionStyle: PAGE_THEME_QUESTION_STYLE_HEADLINE
-          visitorExperience: PAGE_THEME_VISITOR_EXPERIENCE_CLASSIC
-          bodyFont: ""
-          roles:
-          - role: PAGE_THEME_ROLE_CHOICES
-            style: ""
-          - role: PAGE_THEME_ROLE_CHOICES
-            style: ""
-          titleFont: ""
+          elementStyles:
+          - style: ""
+            job: PAGE_THEME_ELEMENT_JOB_SURFACE
+          - style: ""
+            job: PAGE_THEME_ELEMENT_JOB_SURFACE
           elementColor: ""
           elementFont: ""
-          containerEnabled: true
           createdAt: 2026-03-14T09:30:00Z
+          id: f47ac10b-58cc-4372-a567-0e02b2c3d479
+          badgeEnabled: true
+          updatedAt: 2026-03-18T16:05:00Z
+          workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
+          containerConfig: ""
+          headingAlign: PAGE_THEME_TEXT_ALIGN_CENTER
+          shape: ""
+          canvasCoverMode: PAGE_THEME_BACKGROUND_COVER_MODE_PROGRESSIVE_TOP
+          visitorExperience: PAGE_THEME_VISITOR_EXPERIENCE_CLASSIC
+          bodyFont: ""
+          smallText: ""
+          titleFont: ""
+          textColor: ""
+          containerEnabled: true
           canvasCoverId: 5f1c2d3e-4b5a-6c7d-8e9f-0a1b2c3d4e5f
           badgeIconColor: ""
           footerLogoEnabled: true
-          id: f47ac10b-58cc-4372-a567-0e02b2c3d479
-          badgeEnabled: true
           canvasColor: ""
-          updatedAt: 2026-03-18T16:05:00Z
-          workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
         owned: true
         faq: "[{\"id\": \"1\", \"question\": \"Does it work on a phone?\", \"answer\"\
           : \"Yes, every page using this template is built for small screens first.\"\
@@ -28179,6 +28287,8 @@ components:
           variant: PAGE_THEME_CONTAINER_VARIANT_ROUNDED
           borderStyle: PAGE_THEME_BORDER_STYLE_SOLID
           opacity: 90
+        headingAlign: PAGE_THEME_TEXT_ALIGN_CENTER
+        shape: ""
         canvasCoverMode: PAGE_THEME_BACKGROUND_COVER_MODE_PROGRESSIVE_TOP
         choiceLayout: PAGE_THEME_CHOICE_LAYOUT_ROWS
         canvasTexture: PAGE_THEME_CANVAS_TEXTURE_BRUSHED
@@ -28191,15 +28301,17 @@ components:
           bold: true
           family: PAGE_THEME_FONT_FAMILY_GEORGIA
           italic: false
-        roles:
-        - role: PAGE_THEME_ROLE_CHOICES
-          style: ""
-        - role: PAGE_THEME_ROLE_CHOICES
-          style: ""
         canvasCover:
           id: 5f1c2d3e-4b5a-6c7d-8e9f-0a1b2c3d4e5f
           delete: {}
+        elementStyles:
+        - style: ""
+          job: PAGE_THEME_ELEMENT_JOB_SURFACE
+        - style: ""
+          job: PAGE_THEME_ELEMENT_JOB_SURFACE
+        smallText: ""
         titleFont: ""
+        textColor: ""
         elementColor:
           stops:
           - 0%
@@ -28296,6 +28408,13 @@ components:
           $ref: "#/components/schemas/ThemeColor"
         elementFont:
           $ref: "#/components/schemas/FontConfig"
+        elementStyles:
+          description: "The look of each element job (SURFACE, SELECTED, ACTION, QUIET).\
+            \ A job not listed follows the shape, the colours, or the look it always\
+            \ had."
+          items:
+            $ref: "#/components/schemas/PageThemeElementStyleOverride"
+          type: array
         footerLogo:
           $ref: "#/components/schemas/MediaSelection"
         footerLogoEnabled:
@@ -28303,6 +28422,15 @@ components:
             page using the theme.
           example: true
           type: boolean
+        headingAlign:
+          description: "How titles and headline questions are aligned. Unset: centered\
+            \ titles, questions as the question style draws them."
+          enum:
+          - PAGE_THEME_TEXT_ALIGN_UNSPECIFIED
+          - PAGE_THEME_TEXT_ALIGN_CENTER
+          - PAGE_THEME_TEXT_ALIGN_LEFT
+          example: PAGE_THEME_TEXT_ALIGN_CENTER
+          type: string
         questionStyle:
           description: "How a form's questions are written: LABEL (small, in the text\
             \ style) or HEADLINE (centered, in the title style)."
@@ -28312,12 +28440,20 @@ components:
           - PAGE_THEME_QUESTION_STYLE_HEADLINE
           example: PAGE_THEME_QUESTION_STYLE_HEADLINE
           type: string
-        roles:
-          description: "Role styles: each role sent replaces that role, an empty one\
-            \ returns it to what it inherits."
-          items:
-            $ref: "#/components/schemas/PageThemeRoleOverride"
-          type: array
+        shape:
+          allOf:
+          - $ref: "#/components/schemas/PageThemeShape"
+          description: The radius and border every job follows unless it has its own.
+        smallText:
+          allOf:
+          - $ref: "#/components/schemas/PageThemeSmallText"
+          description: "Small text: hints, counters, consent. Unset: the body text,\
+            \ smaller and muted."
+        textColor:
+          allOf:
+          - $ref: "#/components/schemas/ThemeColor"
+          description: "The text colour headings, body and small text follow when\
+            \ their own font has none."
         titleFont:
           allOf:
           - $ref: "#/components/schemas/FontConfig"
@@ -28332,6 +28468,15 @@ components:
           - PAGE_THEME_VISITOR_EXPERIENCE_FOCUSED
           example: PAGE_THEME_VISITOR_EXPERIENCE_FOCUSED
           type: string
+    PageThemeTextAlign:
+      default: PAGE_THEME_TEXT_ALIGN_UNSPECIFIED
+      description: "How headings (titles, and questions written as headlines) are\
+        \ aligned."
+      enum:
+      - PAGE_THEME_TEXT_ALIGN_UNSPECIFIED
+      - PAGE_THEME_TEXT_ALIGN_CENTER
+      - PAGE_THEME_TEXT_ALIGN_LEFT
+      type: string
     PageThemeVisitorExperience:
       default: PAGE_THEME_VISITOR_EXPERIENCE_UNSPECIFIED
       enum:
@@ -28343,19 +28488,23 @@ components:
       example:
         badgeShape: PAGE_THEME_BADGE_SHAPE_CIRCLE
         containerConfig: ""
+        headingAlign: PAGE_THEME_TEXT_ALIGN_CENTER
+        shape: ""
         canvasCoverMode: PAGE_THEME_BACKGROUND_COVER_MODE_PROGRESSIVE_TOP
         choiceLayout: PAGE_THEME_CHOICE_LAYOUT_ROWS
         canvasTexture: PAGE_THEME_CANVAS_TEXTURE_BRUSHED
         questionStyle: PAGE_THEME_QUESTION_STYLE_HEADLINE
         visitorExperience: PAGE_THEME_VISITOR_EXPERIENCE_FOCUSED
         bodyFont: ""
-        roles:
-        - role: PAGE_THEME_ROLE_CHOICES
-          style: ""
-        - role: PAGE_THEME_ROLE_CHOICES
-          style: ""
         canvasCover: ""
+        elementStyles:
+        - style: ""
+          job: PAGE_THEME_ELEMENT_JOB_SURFACE
+        - style: ""
+          job: PAGE_THEME_ELEMENT_JOB_SURFACE
+        smallText: ""
         titleFont: ""
+        textColor: ""
         elementColor: ""
         footerLogo: ""
         elementFont: ""
@@ -28449,6 +28598,14 @@ components:
           allOf:
           - $ref: "#/components/schemas/FontConfig"
           title: Interactive element text font configuration to update
+        elementStyles:
+          description: "The look of each element job (SURFACE, SELECTED, ACTION, QUIET).\
+            \ Each job sent replaces that job; one sent with an empty style returns\
+            \ to what it follows; jobs not sent are kept. A job not listed follows\
+            \ the shape, the colours, or the look it always had."
+          items:
+            $ref: "#/components/schemas/PageThemeElementStyleOverride"
+          type: array
         footerLogo:
           allOf:
           - $ref: "#/components/schemas/MediaSelection"
@@ -28460,6 +28617,16 @@ components:
             \ it but keeps the image)."
           example: true
           type: boolean
+        headingAlign:
+          description: "How titles and headline questions are aligned. Unset: centered\
+            \ titles, questions as the question style draws them. UNSPECIFIED on an\
+            \ update clears it."
+          enum:
+          - PAGE_THEME_TEXT_ALIGN_UNSPECIFIED
+          - PAGE_THEME_TEXT_ALIGN_CENTER
+          - PAGE_THEME_TEXT_ALIGN_LEFT
+          example: PAGE_THEME_TEXT_ALIGN_CENTER
+          type: string
         questionStyle:
           description: "How a form's questions are written: LABEL (small, in the text\
             \ style) or HEADLINE (centered, in the title style)."
@@ -28469,13 +28636,21 @@ components:
           - PAGE_THEME_QUESTION_STYLE_HEADLINE
           example: PAGE_THEME_QUESTION_STYLE_HEADLINE
           type: string
-        roles:
-          description: Role styles to set. Each role sent replaces that role; one
-            sent with an empty style returns it to what it inherits; roles not sent
-            are kept.
-          items:
-            $ref: "#/components/schemas/PageThemeRoleOverride"
-          type: array
+        shape:
+          allOf:
+          - $ref: "#/components/schemas/PageThemeShape"
+          description: The radius and border every job follows unless it has its own.
+        smallText:
+          allOf:
+          - $ref: "#/components/schemas/PageThemeSmallText"
+          description: "Small text: hints, counters, consent. Unset: the body text,\
+            \ smaller and muted."
+        textColor:
+          allOf:
+          - $ref: "#/components/schemas/ThemeColor"
+          description: "The text colour headings, body and small text follow when\
+            \ their own font has none. On an update, a colour without colours clears\
+            \ it."
         titleFont:
           allOf:
           - $ref: "#/components/schemas/FontConfig"
@@ -31537,33 +31712,37 @@ components:
             Warm cream background, navy buttons and the Inter font, made for restaurant table cards.
           pageTheme:
             badgeShape: PAGE_THEME_BADGE_SHAPE_CIRCLE
-            containerConfig: ""
             badgeId: 8e4a1c7d-2b9f-4d3e-a5c6-9f0b1e7d3a52
             footerLogoId: c3f7a9e1-6d2b-4a8c-b1e5-7d0f3a9c2e64
-            canvasCoverMode: PAGE_THEME_BACKGROUND_COVER_MODE_PROGRESSIVE_TOP
             choiceLayout: PAGE_THEME_CHOICE_LAYOUT_ROWS
             canvasTexture: PAGE_THEME_CANVAS_TEXTURE_BRUSHED
             questionStyle: PAGE_THEME_QUESTION_STYLE_HEADLINE
-            visitorExperience: PAGE_THEME_VISITOR_EXPERIENCE_CLASSIC
-            bodyFont: ""
-            roles:
-            - role: PAGE_THEME_ROLE_CHOICES
-              style: ""
-            - role: PAGE_THEME_ROLE_CHOICES
-              style: ""
-            titleFont: ""
+            elementStyles:
+            - style: ""
+              job: PAGE_THEME_ELEMENT_JOB_SURFACE
+            - style: ""
+              job: PAGE_THEME_ELEMENT_JOB_SURFACE
             elementColor: ""
             elementFont: ""
-            containerEnabled: true
             createdAt: 2026-03-14T09:30:00Z
+            id: f47ac10b-58cc-4372-a567-0e02b2c3d479
+            badgeEnabled: true
+            updatedAt: 2026-03-18T16:05:00Z
+            workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
+            containerConfig: ""
+            headingAlign: PAGE_THEME_TEXT_ALIGN_CENTER
+            shape: ""
+            canvasCoverMode: PAGE_THEME_BACKGROUND_COVER_MODE_PROGRESSIVE_TOP
+            visitorExperience: PAGE_THEME_VISITOR_EXPERIENCE_CLASSIC
+            bodyFont: ""
+            smallText: ""
+            titleFont: ""
+            textColor: ""
+            containerEnabled: true
             canvasCoverId: 5f1c2d3e-4b5a-6c7d-8e9f-0a1b2c3d4e5f
             badgeIconColor: ""
             footerLogoEnabled: true
-            id: f47ac10b-58cc-4372-a567-0e02b2c3d479
-            badgeEnabled: true
             canvasColor: ""
-            updatedAt: 2026-03-18T16:05:00Z
-            workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
           owned: true
           faq: "[{\"id\": \"1\", \"question\": \"Does it work on a phone?\", \"answer\"\
             : \"Yes, every page using this template is built for small screens first.\"\
