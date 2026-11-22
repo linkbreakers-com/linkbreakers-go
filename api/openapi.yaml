@@ -48,7 +48,7 @@ info:
 
     Send a `Linkbreakers-Client` request header saying which client made the call: `<client>/<version> (<details>)`, for example `my-integration/1.2.0 (python 3.12; linux)`. The official SDKs, the CLI and the MCP bridge set it for you, as `sdk-python/2.3.1 (python 3.12.4; linux)` or `cli/1.4.0 (darwin arm64)`. It is optional and changes nothing about how a request is handled; it tells us which clients and versions are in use, so we know what can be retired and what to fix first. Keep the details short and free of personal data. Browsers may send it too: it is allowed by CORS.
   title: Linkbreakers API
-  version: 1.204.1
+  version: 1.205.0
   x-api-versioning:
     compatibility: additive changes only within a version
     currentVersion: v1
@@ -14903,6 +14903,16 @@ components:
           - PAGE_THEME_BADGE_SHAPE_ROUNDED
           example: PAGE_THEME_BADGE_SHAPE_CIRCLE
           type: string
+        bodyAlign:
+          description: "How body text is aligned: descriptions, messages, helper text,\
+            \ and answer and button labels. Unset: centered. UNSPECIFIED on an update\
+            \ clears it."
+          enum:
+          - PAGE_THEME_TEXT_ALIGN_UNSPECIFIED
+          - PAGE_THEME_TEXT_ALIGN_CENTER
+          - PAGE_THEME_TEXT_ALIGN_LEFT
+          example: PAGE_THEME_TEXT_ALIGN_LEFT
+          type: string
         bodyFont:
           $ref: "#/components/schemas/FontConfig"
         canvasColor:
@@ -25616,6 +25626,7 @@ components:
             badgeId: 8e4a1c7d-2b9f-4d3e-a5c6-9f0b1e7d3a52
             footerLogoId: c3f7a9e1-6d2b-4a8c-b1e5-7d0f3a9c2e64
             choiceLayout: PAGE_THEME_CHOICE_LAYOUT_ROWS
+            bodyAlign: PAGE_THEME_TEXT_ALIGN_LEFT
             canvasTexture: PAGE_THEME_CANVAS_TEXTURE_BRUSHED
             questionStyle: PAGE_THEME_QUESTION_STYLE_HEADLINE
             elementStyles:
@@ -25675,6 +25686,7 @@ components:
             badgeId: 8e4a1c7d-2b9f-4d3e-a5c6-9f0b1e7d3a52
             footerLogoId: c3f7a9e1-6d2b-4a8c-b1e5-7d0f3a9c2e64
             choiceLayout: PAGE_THEME_CHOICE_LAYOUT_ROWS
+            bodyAlign: PAGE_THEME_TEXT_ALIGN_LEFT
             canvasTexture: PAGE_THEME_CANVAS_TEXTURE_BRUSHED
             questionStyle: PAGE_THEME_QUESTION_STYLE_HEADLINE
             elementStyles:
@@ -25747,6 +25759,7 @@ components:
           badgeId: 8e4a1c7d-2b9f-4d3e-a5c6-9f0b1e7d3a52
           footerLogoId: c3f7a9e1-6d2b-4a8c-b1e5-7d0f3a9c2e64
           choiceLayout: PAGE_THEME_CHOICE_LAYOUT_ROWS
+          bodyAlign: PAGE_THEME_TEXT_ALIGN_LEFT
           canvasTexture: PAGE_THEME_CANVAS_TEXTURE_BRUSHED
           questionStyle: PAGE_THEME_QUESTION_STYLE_HEADLINE
           elementStyles:
@@ -25779,6 +25792,7 @@ components:
           badgeId: 8e4a1c7d-2b9f-4d3e-a5c6-9f0b1e7d3a52
           footerLogoId: c3f7a9e1-6d2b-4a8c-b1e5-7d0f3a9c2e64
           choiceLayout: PAGE_THEME_CHOICE_LAYOUT_ROWS
+          bodyAlign: PAGE_THEME_TEXT_ALIGN_LEFT
           canvasTexture: PAGE_THEME_CANVAS_TEXTURE_BRUSHED
           questionStyle: PAGE_THEME_QUESTION_STYLE_HEADLINE
           elementStyles:
@@ -27521,6 +27535,7 @@ components:
         badgeId: 8e4a1c7d-2b9f-4d3e-a5c6-9f0b1e7d3a52
         footerLogoId: c3f7a9e1-6d2b-4a8c-b1e5-7d0f3a9c2e64
         choiceLayout: PAGE_THEME_CHOICE_LAYOUT_ROWS
+        bodyAlign: PAGE_THEME_TEXT_ALIGN_LEFT
         canvasTexture: PAGE_THEME_CANVAS_TEXTURE_BRUSHED
         questionStyle: PAGE_THEME_QUESTION_STYLE_HEADLINE
         elementStyles:
@@ -27575,6 +27590,16 @@ components:
           - PAGE_THEME_BADGE_SHAPE_ROUNDED
           example: PAGE_THEME_BADGE_SHAPE_CIRCLE
           title: "Shape the badge image is cropped to (circle, square or rounded)"
+          type: string
+        bodyAlign:
+          description: "How body text is aligned: descriptions, messages, helper text,\
+            \ and answer and button labels. Unset: centered. UNSPECIFIED on an update\
+            \ clears it."
+          enum:
+          - PAGE_THEME_TEXT_ALIGN_UNSPECIFIED
+          - PAGE_THEME_TEXT_ALIGN_CENTER
+          - PAGE_THEME_TEXT_ALIGN_LEFT
+          example: PAGE_THEME_TEXT_ALIGN_LEFT
           type: string
         bodyFont:
           allOf:
@@ -27913,6 +27938,15 @@ components:
           - PAGE_THEME_BADGE_SHAPE_ROUNDED
           example: PAGE_THEME_BADGE_SHAPE_CIRCLE
           type: string
+        bodyAlign:
+          description: "How body text is aligned: descriptions, messages, helper text,\
+            \ and answer and button labels. Unset: centered."
+          enum:
+          - PAGE_THEME_TEXT_ALIGN_UNSPECIFIED
+          - PAGE_THEME_TEXT_ALIGN_CENTER
+          - PAGE_THEME_TEXT_ALIGN_LEFT
+          example: PAGE_THEME_TEXT_ALIGN_LEFT
+          type: string
         bodyFont:
           $ref: "#/components/schemas/FontConfig"
         canvasColor:
@@ -28043,6 +28077,7 @@ components:
           badgeId: 8e4a1c7d-2b9f-4d3e-a5c6-9f0b1e7d3a52
           footerLogoId: c3f7a9e1-6d2b-4a8c-b1e5-7d0f3a9c2e64
           choiceLayout: PAGE_THEME_CHOICE_LAYOUT_ROWS
+          bodyAlign: PAGE_THEME_TEXT_ALIGN_LEFT
           canvasTexture: PAGE_THEME_CANVAS_TEXTURE_BRUSHED
           questionStyle: PAGE_THEME_QUESTION_STYLE_HEADLINE
           elementStyles:
@@ -28285,38 +28320,15 @@ components:
         changes. Editing the backing theme directly would leave a stale thumbnail.
       example:
         badgeShape: PAGE_THEME_BADGE_SHAPE_CIRCLE
-        containerConfig:
-          backgroundColor: ""
-          borderColor: ""
-          borderSize: 2
-          variant: PAGE_THEME_CONTAINER_VARIANT_ROUNDED
-          borderStyle: PAGE_THEME_BORDER_STYLE_SOLID
-          opacity: 90
-        headingAlign: PAGE_THEME_TEXT_ALIGN_CENTER
-        shape: ""
-        canvasCoverMode: PAGE_THEME_BACKGROUND_COVER_MODE_PROGRESSIVE_TOP
         choiceLayout: PAGE_THEME_CHOICE_LAYOUT_ROWS
+        bodyAlign: PAGE_THEME_TEXT_ALIGN_LEFT
         canvasTexture: PAGE_THEME_CANVAS_TEXTURE_BRUSHED
         questionStyle: PAGE_THEME_QUESTION_STYLE_HEADLINE
-        visitorExperience: PAGE_THEME_VISITOR_EXPERIENCE_FOCUSED
-        bodyFont:
-          familyStack: "\"Gill Sans\", \"Trebuchet MS\", sans-serif"
-          color: ""
-          fontSize: 18
-          bold: true
-          family: PAGE_THEME_FONT_FAMILY_GEORGIA
-          italic: false
-        canvasCover:
-          id: 5f1c2d3e-4b5a-6c7d-8e9f-0a1b2c3d4e5f
-          delete: {}
         elementStyles:
         - style: ""
           job: PAGE_THEME_ELEMENT_JOB_SURFACE
         - style: ""
           job: PAGE_THEME_ELEMENT_JOB_SURFACE
-        smallText: ""
-        titleFont: ""
-        textColor: ""
         elementColor:
           stops:
           - 0%
@@ -28336,6 +28348,31 @@ components:
           bold: true
           family: PAGE_THEME_FONT_FAMILY_GEORGIA
           italic: false
+        badgeEnabled: true
+        containerConfig:
+          backgroundColor: ""
+          borderColor: ""
+          borderSize: 2
+          variant: PAGE_THEME_CONTAINER_VARIANT_ROUNDED
+          borderStyle: PAGE_THEME_BORDER_STYLE_SOLID
+          opacity: 90
+        headingAlign: PAGE_THEME_TEXT_ALIGN_CENTER
+        shape: ""
+        canvasCoverMode: PAGE_THEME_BACKGROUND_COVER_MODE_PROGRESSIVE_TOP
+        visitorExperience: PAGE_THEME_VISITOR_EXPERIENCE_FOCUSED
+        bodyFont:
+          familyStack: "\"Gill Sans\", \"Trebuchet MS\", sans-serif"
+          color: ""
+          fontSize: 18
+          bold: true
+          family: PAGE_THEME_FONT_FAMILY_GEORGIA
+          italic: false
+        canvasCover:
+          id: 5f1c2d3e-4b5a-6c7d-8e9f-0a1b2c3d4e5f
+          delete: {}
+        smallText: ""
+        titleFont: ""
+        textColor: ""
         containerEnabled: true
         badge:
           id: 5f1c2d3e-4b5a-6c7d-8e9f-0a1b2c3d4e5f
@@ -28350,7 +28387,6 @@ components:
           - "#F4EDE4"
           direction: 135deg
         footerLogoEnabled: true
-        badgeEnabled: true
         canvasColor: ""
       properties:
         badge:
@@ -28368,6 +28404,15 @@ components:
           - PAGE_THEME_BADGE_SHAPE_SQUARE
           - PAGE_THEME_BADGE_SHAPE_ROUNDED
           example: PAGE_THEME_BADGE_SHAPE_CIRCLE
+          type: string
+        bodyAlign:
+          description: "How body text is aligned: descriptions, messages, helper text,\
+            \ and answer and button labels. Unset: centered."
+          enum:
+          - PAGE_THEME_TEXT_ALIGN_UNSPECIFIED
+          - PAGE_THEME_TEXT_ALIGN_CENTER
+          - PAGE_THEME_TEXT_ALIGN_LEFT
+          example: PAGE_THEME_TEXT_ALIGN_LEFT
           type: string
         bodyFont:
           $ref: "#/components/schemas/FontConfig"
@@ -28494,32 +28539,33 @@ components:
     PageThemesServiceUpdateBody:
       example:
         badgeShape: PAGE_THEME_BADGE_SHAPE_CIRCLE
-        containerConfig: ""
-        headingAlign: PAGE_THEME_TEXT_ALIGN_CENTER
-        shape: ""
-        canvasCoverMode: PAGE_THEME_BACKGROUND_COVER_MODE_PROGRESSIVE_TOP
         choiceLayout: PAGE_THEME_CHOICE_LAYOUT_ROWS
+        bodyAlign: PAGE_THEME_TEXT_ALIGN_LEFT
         canvasTexture: PAGE_THEME_CANVAS_TEXTURE_BRUSHED
         questionStyle: PAGE_THEME_QUESTION_STYLE_HEADLINE
-        visitorExperience: PAGE_THEME_VISITOR_EXPERIENCE_FOCUSED
-        bodyFont: ""
-        canvasCover: ""
         elementStyles:
         - style: ""
           job: PAGE_THEME_ELEMENT_JOB_SURFACE
         - style: ""
           job: PAGE_THEME_ELEMENT_JOB_SURFACE
-        smallText: ""
-        titleFont: ""
-        textColor: ""
         elementColor: ""
         footerLogo: ""
         elementFont: ""
+        badgeEnabled: true
+        containerConfig: ""
+        headingAlign: PAGE_THEME_TEXT_ALIGN_CENTER
+        shape: ""
+        canvasCoverMode: PAGE_THEME_BACKGROUND_COVER_MODE_PROGRESSIVE_TOP
+        visitorExperience: PAGE_THEME_VISITOR_EXPERIENCE_FOCUSED
+        bodyFont: ""
+        canvasCover: ""
+        smallText: ""
+        titleFont: ""
+        textColor: ""
         containerEnabled: true
         badge: ""
         badgeIconColor: ""
         footerLogoEnabled: true
-        badgeEnabled: true
         canvasColor: ""
       properties:
         badge:
@@ -28545,6 +28591,16 @@ components:
           - PAGE_THEME_BADGE_SHAPE_ROUNDED
           example: PAGE_THEME_BADGE_SHAPE_CIRCLE
           title: Badge shape to update
+          type: string
+        bodyAlign:
+          description: "How body text is aligned: descriptions, messages, helper text,\
+            \ and answer and button labels. Unset: centered. UNSPECIFIED on an update\
+            \ clears it."
+          enum:
+          - PAGE_THEME_TEXT_ALIGN_UNSPECIFIED
+          - PAGE_THEME_TEXT_ALIGN_CENTER
+          - PAGE_THEME_TEXT_ALIGN_LEFT
+          example: PAGE_THEME_TEXT_ALIGN_LEFT
           type: string
         bodyFont:
           allOf:
@@ -31724,6 +31780,7 @@ components:
             badgeId: 8e4a1c7d-2b9f-4d3e-a5c6-9f0b1e7d3a52
             footerLogoId: c3f7a9e1-6d2b-4a8c-b1e5-7d0f3a9c2e64
             choiceLayout: PAGE_THEME_CHOICE_LAYOUT_ROWS
+            bodyAlign: PAGE_THEME_TEXT_ALIGN_LEFT
             canvasTexture: PAGE_THEME_CANVAS_TEXTURE_BRUSHED
             questionStyle: PAGE_THEME_QUESTION_STYLE_HEADLINE
             elementStyles:
