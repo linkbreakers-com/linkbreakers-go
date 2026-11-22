@@ -26,7 +26,7 @@ info:
 
     ## Batches and background jobs
 
-    `POST /v1/links/bulk` creates up to 250 links in one transactional request; `POST /v1/links/batch` takes the same links as a bare JSON array. `POST /v1/links/bulk/jobs` accepts the same batch and answers `202 Accepted` at once with a job and a `Location` header; poll `GET /v1/jobs/{id}` until `status` is `JOB_STATUS_SUCCEEDED` (the created link ids are in `linksBulkCreate.linkIds`) or `JOB_STATUS_FAILED` (`error` says why, and nothing was created). Jobs can be read for 24 hours after they finish.
+    `POST /v1/links/bulk` creates up to 250 links in one transactional request; `POST /v1/links/batch` takes the same links as a bare JSON array. `POST /v1/links/bulk/jobs` accepts the same batch and answers `202 Accepted` at once with a link job and a `Location` header; poll `GET /v1/links/jobs/{id}` until `status` is `LINK_JOB_STATUS_SUCCEEDED` (the created link ids are in `linksBulkCreate.linkIds`) or `LINK_JOB_STATUS_FAILED` (`error` says why, and nothing was created). Link jobs can be read for 24 hours after they finish.
 
     ## Paused workspaces
 
@@ -48,7 +48,7 @@ info:
 
     Send a `Linkbreakers-Client` request header saying which client made the call: `<client>/<version> (<details>)`, for example `my-integration/1.2.0 (python 3.12; linux)`. The official SDKs, the CLI and the MCP bridge set it for you, as `sdk-python/2.3.1 (python 3.12.4; linux)` or `cli/1.4.0 (darwin arm64)`. It is optional and changes nothing about how a request is handled; it tells us which clients and versions are in use, so we know what can be retired and what to fix first. Keep the details short and free of personal data. Browsers may send it too: it is allowed by CORS.
   title: Linkbreakers API
-  version: 1.204.0
+  version: 1.204.1
   x-api-versioning:
     compatibility: additive changes only within a version
     currentVersion: v1
@@ -93,9 +93,9 @@ tags:
 - description: "Send every scan, visit, form submission and captured visitor detail\
     \ to your Google Analytics 4 property, server side."
   name: "Integrations: Google Analytics"
-- description: "Follow a bulk link creation that runs in the background. Start it\
-    \ with `POST /v1/links/bulk/jobs`, then check it here until it is done."
-  name: Jobs
+- description: "Follow links being created in the background. Start a bulk creation\
+    \ with `POST /v1/links/bulk/jobs`, then read the job here until it is done."
+  name: Link Jobs
 - description: "Short links and their QR codes: create them (one at a time, in bulk\
     \ or in the background), read, update and delete them, and render their QR code\
     \ images."
@@ -4557,74 +4557,6 @@ paths:
       tags:
       - "Integrations: Google Analytics"
       x-required-scope: integrations:write
-  /v1/jobs/{id}:
-    get:
-      description: |-
-        Returns a background job and where it stands. Today every job is a bulk
-        link creation started with `POST /v1/links/bulk/jobs`: its 202 Accepted
-        response carries this job's URL in the `Location` header.
-
-        Read the job every few seconds until it is finished:
-
-        - `JOB_STATUS_PENDING`: accepted, waiting to run. Check again.
-        - `JOB_STATUS_RUNNING`: creating the links. Check again.
-        - `JOB_STATUS_SUCCEEDED`: done. `linksBulkCreate.linkIds` lists the created
-          links, in the order you sent them.
-        - `JOB_STATUS_FAILED`: `error` says why. No link was created: a batch is
-          all or nothing.
-
-        A job can be read for 24 hours after it finishes; after that, this
-        answers `JOB_NOT_FOUND`.
-
-        Requires the `links:read` scope.
-      operationId: JobsService_Get
-      parameters:
-      - description: The job ID returned when the job was accepted.
-        explode: false
-        in: path
-        name: id
-        required: true
-        schema:
-          type: string
-        style: simple
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Job"
-          description: Everything worked as expected.
-          headers:
-            RateLimit:
-              $ref: "#/components/headers/RateLimit"
-            RateLimit-Policy:
-              $ref: "#/components/headers/RateLimit-Policy"
-            RateLimit-Remaining:
-              $ref: "#/components/headers/RateLimit-Remaining"
-        "429":
-          $ref: "#/components/responses/TooManyRequests"
-        default:
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-          description: Unexpected error
-          headers:
-            RateLimit:
-              $ref: "#/components/headers/RateLimit"
-            RateLimit-Policy:
-              $ref: "#/components/headers/RateLimit-Policy"
-            RateLimit-Remaining:
-              $ref: "#/components/headers/RateLimit-Remaining"
-      security:
-      - bearerAuth:
-        - links:read
-      - oauth2:
-        - links:read
-      summary: Get a job
-      tags:
-      - Jobs
-      x-required-scope: links:read
   /v1/links:
     get:
       description: |-
@@ -5005,8 +4937,8 @@ paths:
     post:
       description: |-
         Accepts the same batch as POST /v1/links/bulk, answers 202 Accepted at
-        once with a job and a Location header, and creates the links in the
-        background. Poll GET /v1/jobs/{id} for the result. The batch is
+        once with a link job and a Location header, and creates the links in the
+        background. Poll GET /v1/links/jobs/{id} for the result. The batch is
         transactional: when the job fails, no link was created.
 
         Requires the `links:write` scope.
@@ -5035,18 +4967,18 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Job"
-          description: "Accepted. The links are being created; poll the job at the\
-            \ Location header (GET /v1/jobs/{id})."
+                $ref: "#/components/schemas/LinkJob"
+          description: "Accepted. The links are being created; poll the link job at\
+            \ the Location header (GET /v1/links/jobs/{id})."
           headers:
             Idempotent-Replayed:
               $ref: "#/components/headers/Idempotent-Replayed"
             Location:
-              description: "Where to poll the job: GET this path until its status\
-                \ is JOB_STATUS_SUCCEEDED or JOB_STATUS_FAILED."
+              description: "Where to poll the link job: GET this path until its status\
+                \ is LINK_JOB_STATUS_SUCCEEDED or LINK_JOB_STATUS_FAILED."
               explode: false
               schema:
-                example: /v1/jobs/0b5c7a52-4e0d-4f8a-9a39-5f1f3c0d2e11
+                example: /v1/links/jobs/0b5c7a52-4e0d-4f8a-9a39-5f1f3c0d2e11
                 type: string
               style: simple
             RateLimit:
@@ -5081,10 +5013,10 @@ paths:
       x-async:
         idField: id
         statusField: status
-        statusPath: "/v1/jobs/{id}"
+        statusPath: "/v1/links/jobs/{id}"
         terminal:
-        - JOB_STATUS_SUCCEEDED
-        - JOB_STATUS_FAILED
+        - LINK_JOB_STATUS_SUCCEEDED
+        - LINK_JOB_STATUS_FAILED
       x-required-scope: links:write
   /v1/links/contact:
     post:
@@ -5153,6 +5085,74 @@ paths:
       tags:
       - Links
       x-required-scope: links:write
+  /v1/links/jobs/{id}:
+    get:
+      description: |-
+        Returns a link job and where it stands. Today every link job is a bulk
+        link creation started with `POST /v1/links/bulk/jobs`: its 202 Accepted
+        response carries this job's URL in the `Location` header.
+
+        Read the job every few seconds until it is finished:
+
+        - `LINK_JOB_STATUS_PENDING`: accepted, waiting to run. Check again.
+        - `LINK_JOB_STATUS_RUNNING`: creating the links. Check again.
+        - `LINK_JOB_STATUS_SUCCEEDED`: done. `linksBulkCreate.linkIds` lists the
+          created links, in the order you sent them.
+        - `LINK_JOB_STATUS_FAILED`: `error` says why. No link was created: a batch
+          is all or nothing.
+
+        A link job can be read for 24 hours after it finishes; after that, this
+        answers `LINK_JOB_NOT_FOUND`.
+
+        Requires the `links:read` scope.
+      operationId: LinkJobsService_Get
+      parameters:
+      - description: The link job ID returned when the job was accepted.
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LinkJob"
+          description: Everything worked as expected.
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - links:read
+      - oauth2:
+        - links:read
+      summary: Get a link job
+      tags:
+      - Link Jobs
+      x-required-scope: links:read
   /v1/links/open-media:
     post:
       description: |-
@@ -23286,129 +23286,6 @@ components:
           example: Lovelace
           title: Last name used in invitation email and dashboard
           type: string
-    Job:
-      description: |-
-        A bulk link creation running in the background.
-
-        You get one back from `POST /v1/links/bulk/jobs`, and read it again with
-        `GET /v1/jobs/{id}` until it is finished. Its status says where it stands:
-
-        - pending: accepted, waiting to run.
-        - running: creating the links now.
-        - succeeded: done; `linksBulkCreate.linkIds` holds the created link IDs.
-        - failed: `error` says why. No link was created: a batch is all or nothing.
-
-        A job can be read for 24 hours after it finishes.
-      example:
-        createdAt: 2026-03-14T09:30:00Z
-        completedAt: 2026-03-14T09:30:12Z
-        statusUrl: /v1/jobs/1f8e3c6a-7d2b-4a9e-b5c1-8e4f0a6d2c79
-        id: 1f8e3c6a-7d2b-4a9e-b5c1-8e4f0a6d2c79
-        error: ""
-        linksBulkCreate: ""
-        type: JOB_TYPE_LINKS_BULK_CREATE
-        itemCount: 24
-        status: JOB_STATUS_SUCCEEDED
-      properties:
-        completedAt:
-          description: "When the job finished, once it has."
-          example: 2026-03-14T09:30:12Z
-          format: date-time
-          type: string
-        createdAt:
-          description: When the job was accepted.
-          example: 2026-03-14T09:30:00Z
-          format: date-time
-          type: string
-        error:
-          allOf:
-          - $ref: "#/components/schemas/JobError"
-          description: Set when status is JOB_STATUS_FAILED.
-        id:
-          description: Job ID (UUID).
-          example: 1f8e3c6a-7d2b-4a9e-b5c1-8e4f0a6d2c79
-          type: string
-        itemCount:
-          description: How many items the job was submitted with.
-          example: 24
-          format: int32
-          type: integer
-        linksBulkCreate:
-          allOf:
-          - $ref: "#/components/schemas/LinksBulkCreateResult"
-          description: Set when a JOB_TYPE_LINKS_BULK_CREATE job succeeded.
-        status:
-          description: |-
-            Where the job stands. Poll until JOB_STATUS_SUCCEEDED or JOB_STATUS_FAILED.
-
-             - JOB_STATUS_UNSPECIFIED: Not set.
-             - JOB_STATUS_PENDING: Accepted and waiting to run.
-             - JOB_STATUS_RUNNING: Running now.
-             - JOB_STATUS_SUCCEEDED: Finished; the result is set.
-             - JOB_STATUS_FAILED: Finished without doing its work; error says why. Nothing was created.
-          enum:
-          - JOB_STATUS_UNSPECIFIED
-          - JOB_STATUS_PENDING
-          - JOB_STATUS_RUNNING
-          - JOB_STATUS_SUCCEEDED
-          - JOB_STATUS_FAILED
-          example: JOB_STATUS_SUCCEEDED
-          type: string
-        statusUrl:
-          description: Path to poll for this job's status.
-          example: /v1/jobs/1f8e3c6a-7d2b-4a9e-b5c1-8e4f0a6d2c79
-          type: string
-        type:
-          description: |-
-            What the job does.
-
-             - JOB_TYPE_UNSPECIFIED: Not set.
-             - JOB_TYPE_LINKS_BULK_CREATE: Creates a batch of links (POST /v1/links/bulk/jobs).
-          enum:
-          - JOB_TYPE_UNSPECIFIED
-          - JOB_TYPE_LINKS_BULK_CREATE
-          example: JOB_TYPE_LINKS_BULK_CREATE
-          type: string
-    JobError:
-      description: Why a job failed.
-      properties:
-        codeType:
-          description: "Stable error code, the same codeType a synchronous call would\
-            \ return."
-          example: INSUFFICIENT_PLATFORM_CREDITS
-          type: string
-        message:
-          description: Human-readable explanation.
-          example: "Not enough platform credits to create 24 links: 12 credits left."
-          type: string
-    JobStatus:
-      default: JOB_STATUS_UNSPECIFIED
-      description: |-
-        Where a job stands.
-
-         - JOB_STATUS_UNSPECIFIED: Not set.
-         - JOB_STATUS_PENDING: Accepted and waiting to run.
-         - JOB_STATUS_RUNNING: Running now.
-         - JOB_STATUS_SUCCEEDED: Finished; the result is set.
-         - JOB_STATUS_FAILED: Finished without doing its work; error says why. Nothing was created.
-      enum:
-      - JOB_STATUS_UNSPECIFIED
-      - JOB_STATUS_PENDING
-      - JOB_STATUS_RUNNING
-      - JOB_STATUS_SUCCEEDED
-      - JOB_STATUS_FAILED
-      type: string
-    JobType:
-      default: JOB_TYPE_UNSPECIFIED
-      description: |-
-        What a job does.
-
-         - JOB_TYPE_UNSPECIFIED: Not set.
-         - JOB_TYPE_LINKS_BULK_CREATE: Creates a batch of links (POST /v1/links/bulk/jobs).
-      enum:
-      - JOB_TYPE_UNSPECIFIED
-      - JOB_TYPE_LINKS_BULK_CREATE
-      type: string
     JourneyProgress:
       description: |-
         How far one visit got through a workflow. Conditions are not counted,
@@ -23799,6 +23676,129 @@ components:
       - LINK_INTEGRATION_KIND_SALESFORCE
       - LINK_INTEGRATION_KIND_ZOHO_CRM
       type: string
+    LinkJob:
+      description: |-
+        Links being created in the background.
+
+        You get one back from `POST /v1/links/bulk/jobs`, and read it again with
+        `GET /v1/links/jobs/{id}` until it is finished. Its status says where it stands:
+
+        - pending: accepted, waiting to run.
+        - running: creating the links now.
+        - succeeded: done; `linksBulkCreate.linkIds` holds the created link IDs.
+        - failed: `error` says why. No link was created: a batch is all or nothing.
+
+        A link job can be read for 24 hours after it finishes.
+      example:
+        createdAt: 2026-03-14T09:30:00Z
+        completedAt: 2026-03-14T09:30:12Z
+        statusUrl: /v1/links/jobs/1f8e3c6a-7d2b-4a9e-b5c1-8e4f0a6d2c79
+        id: 1f8e3c6a-7d2b-4a9e-b5c1-8e4f0a6d2c79
+        error: ""
+        linksBulkCreate: ""
+        type: LINK_JOB_TYPE_BULK_CREATE
+        itemCount: 24
+        status: LINK_JOB_STATUS_SUCCEEDED
+      properties:
+        completedAt:
+          description: "When the job finished, once it has."
+          example: 2026-03-14T09:30:12Z
+          format: date-time
+          type: string
+        createdAt:
+          description: When the job was accepted.
+          example: 2026-03-14T09:30:00Z
+          format: date-time
+          type: string
+        error:
+          allOf:
+          - $ref: "#/components/schemas/LinkJobError"
+          description: Set when status is LINK_JOB_STATUS_FAILED.
+        id:
+          description: Link job ID (UUID).
+          example: 1f8e3c6a-7d2b-4a9e-b5c1-8e4f0a6d2c79
+          type: string
+        itemCount:
+          description: How many links the job was submitted with.
+          example: 24
+          format: int32
+          type: integer
+        linksBulkCreate:
+          allOf:
+          - $ref: "#/components/schemas/LinksBulkCreateResult"
+          description: Set when a LINK_JOB_TYPE_BULK_CREATE job succeeded.
+        status:
+          description: |-
+            Where the job stands. Poll until LINK_JOB_STATUS_SUCCEEDED or LINK_JOB_STATUS_FAILED.
+
+             - LINK_JOB_STATUS_UNSPECIFIED: Not set.
+             - LINK_JOB_STATUS_PENDING: Accepted and waiting to run.
+             - LINK_JOB_STATUS_RUNNING: Running now.
+             - LINK_JOB_STATUS_SUCCEEDED: Finished; the result is set.
+             - LINK_JOB_STATUS_FAILED: Finished without doing its work; error says why. Nothing was created.
+          enum:
+          - LINK_JOB_STATUS_UNSPECIFIED
+          - LINK_JOB_STATUS_PENDING
+          - LINK_JOB_STATUS_RUNNING
+          - LINK_JOB_STATUS_SUCCEEDED
+          - LINK_JOB_STATUS_FAILED
+          example: LINK_JOB_STATUS_SUCCEEDED
+          type: string
+        statusUrl:
+          description: Path to poll for this job's status.
+          example: /v1/links/jobs/1f8e3c6a-7d2b-4a9e-b5c1-8e4f0a6d2c79
+          type: string
+        type:
+          description: |-
+            What the job does.
+
+             - LINK_JOB_TYPE_UNSPECIFIED: Not set.
+             - LINK_JOB_TYPE_BULK_CREATE: Creates a batch of links (POST /v1/links/bulk/jobs).
+          enum:
+          - LINK_JOB_TYPE_UNSPECIFIED
+          - LINK_JOB_TYPE_BULK_CREATE
+          example: LINK_JOB_TYPE_BULK_CREATE
+          type: string
+    LinkJobError:
+      description: Why a link job failed.
+      properties:
+        codeType:
+          description: "Stable error code, the same codeType a synchronous call would\
+            \ return."
+          example: INSUFFICIENT_PLATFORM_CREDITS
+          type: string
+        message:
+          description: Human-readable explanation.
+          example: "Not enough platform credits to create 24 links: 12 credits left."
+          type: string
+    LinkJobStatus:
+      default: LINK_JOB_STATUS_UNSPECIFIED
+      description: |-
+        Where a link job stands.
+
+         - LINK_JOB_STATUS_UNSPECIFIED: Not set.
+         - LINK_JOB_STATUS_PENDING: Accepted and waiting to run.
+         - LINK_JOB_STATUS_RUNNING: Running now.
+         - LINK_JOB_STATUS_SUCCEEDED: Finished; the result is set.
+         - LINK_JOB_STATUS_FAILED: Finished without doing its work; error says why. Nothing was created.
+      enum:
+      - LINK_JOB_STATUS_UNSPECIFIED
+      - LINK_JOB_STATUS_PENDING
+      - LINK_JOB_STATUS_RUNNING
+      - LINK_JOB_STATUS_SUCCEEDED
+      - LINK_JOB_STATUS_FAILED
+      type: string
+    LinkJobType:
+      default: LINK_JOB_TYPE_UNSPECIFIED
+      description: |-
+        What a link job does.
+
+         - LINK_JOB_TYPE_UNSPECIFIED: Not set.
+         - LINK_JOB_TYPE_BULK_CREATE: Creates a batch of links (POST /v1/links/bulk/jobs).
+      enum:
+      - LINK_JOB_TYPE_UNSPECIFIED
+      - LINK_JOB_TYPE_BULK_CREATE
+      type: string
     LinkSetting:
       description: Stores per-link compliance preferences that drive how Linkbreakers
         collects visitor data before executing the workflow.
@@ -23874,7 +23874,7 @@ components:
       title: Entry payload for EVENT_ACTION_LINK_VISIT (currently no specific fields)
       type: object
     LinksBulkCreateResult:
-      description: Result of a JOB_TYPE_LINKS_BULK_CREATE job.
+      description: Result of a LINK_JOB_TYPE_BULK_CREATE job.
       properties:
         linkIds:
           description: |-

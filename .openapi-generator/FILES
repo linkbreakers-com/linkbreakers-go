@@ -13,7 +13,7 @@ api_integrations_forms.go
 api_integrations_google_analytics.go
 api_integrations_retargeting_pixels.go
 api_integrations_slack.go
-api_jobs.go
+api_link_jobs.go
 api_link_settings.go
 api_links.go
 api_media.go
@@ -354,10 +354,6 @@ model_in_app_browser_details.go
 model_integration_delivery.go
 model_integration_visitor_data.go
 model_invite_member_request.go
-model_job.go
-model_job_error.go
-model_job_status.go
-model_job_type.go
 model_journey_progress.go
 model_language_condition_outcome.go
 model_language_condition_payload.go
@@ -366,6 +362,10 @@ model_language_condition_trace_option.go
 model_link.go
 model_link_integration.go
 model_link_integration_kind.go
+model_link_job.go
+model_link_job_error.go
+model_link_job_status.go
+model_link_job_type.go
 model_link_setting.go
 model_link_settings_service_update_body.go
 model_link_sort_field.go
