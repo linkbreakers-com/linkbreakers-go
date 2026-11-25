@@ -1,0 +1,164 @@
+/*
+Linkbreakers API
+
+The Linkbreakers REST API: links, QR codes, workflows, visitors and analytics, as JSON over HTTPS. Send a workspace API token as `Authorization: Bearer <token>`.  ## Entry points  `GET https://api.linkbreakers.com/` and `GET https://api.linkbreakers.com/v1` answer without credentials with the API's name, version and links. This document is served at `https://api.linkbreakers.com/openapi.json`.  ## Rate limits  Every response describes where the caller stands in the IETF `RateLimit-Policy` and `RateLimit` header fields (draft-ietf-httpapi-ratelimit-headers), and in `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset` and `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset` (a Unix timestamp) for clients that read those. A request past the limit gets `429 Too Many Requests` with `Retry-After` in seconds.  - Workspace API token: 720 requests per 60 seconds, per token. - Dashboard session or OAuth token: 600 requests per 60 seconds, per token. - No credentials: 300 requests per 60 seconds, per client IP.  Each plan also includes a number of API calls per billing cycle. Past it, calls answer `429` with the code `MAX_PUBLIC_API_QUERIED_REACHED` until the cycle renews or the plan changes.  ## Pagination  Every list pages with opaque cursors (AIP-158). Pass `pageSize`, then send the `nextPageToken` of each response back as `pageToken` (or its alias `cursor`) to get the next page. An empty or absent `nextPageToken` means the list is complete. Each list operation describes this in `x-pagination`.  ## Batches and background jobs  `POST /v1/links/bulk` creates up to 250 links in one transactional request; `POST /v1/links/batch` takes the same links as a bare JSON array. `POST /v1/links/bulk/jobs` accepts the same batch and answers `202 Accepted` at once with a link job and a `Location` header; poll `GET /v1/links/jobs/{id}` until `status` is `LINK_JOB_STATUS_SUCCEEDED` (the created link ids are in `linksBulkCreate.linkIds`) or `LINK_JOB_STATUS_FAILED` (`error` says why, and nothing was created). Link jobs can be read for 24 hours after they finish.  ## Paused workspaces  A free workspace whose members have not verified any email address is paused 7 days after sign-up. Its calls then answer `403` with the code `WORKSPACE_UNVERIFIED` and change nothing; QR codes and links keep working for visitors. To lift the pause, ask the workspace owner to verify their email: `POST /v1/members/email-verification` sends the verification email again, and works while the workspace is paused. `unverifiedPauseAt` on the workspace says when the pause starts.  ## Versioning and deprecation  The version is in the path: every operation lives under `/v1`. Within a version, changes are additive only: new operations, new optional request fields, new response fields and new enum values. Clients should ignore fields and enum values they do not know. Anything that would break an existing client ships under a new path version instead.  An operation is retired in two steps. First it is deprecated: it keeps working, is flagged `deprecated: true` in this document, and every response carries a `Deprecation` header field (RFC 9745) with the time it was deprecated and a `Link` with `rel=\"deprecation\"` to the policy. Then, at least 180 days later, it may be removed; that date is announced in advance in a `Sunset` header field (RFC 8594) and as `x-sunset` on the operation. The full policy: https://linkbreakers.com/help/article/api-versioning-and-deprecation-policy  A renamed operation keeps answering its former path while clients still call it, until that path's sunset at the latest: a former path no client calls for 14 days is removed. Responses on a former path carry the same `Deprecation`, `Sunset` and `Link` header fields; this document lists only the current path, and the policy lists the former paths that still answer.  ## Idempotent retries  Every POST, PUT and PATCH accepts an optional `Idempotency-Key` header (draft-ietf-httpapi-idempotency-key-header). Send a new unique value, such as a UUID, with each logical request and reuse it only to retry that request. A retry with the same key and the same request returns the first response, marked `Idempotent-Replayed: true`, instead of running again. Keys are scoped to the token and kept for 24 hours. The same key with a different request is refused with `422`, and a retry while the first request is still running gets `409` with `Retry-After`. Server errors (5xx) and refusals such as 401, 403 and 429 are not stored, so retrying them runs the request again.  ## Identifying your client  Send a `Linkbreakers-Client` request header saying which client made the call: `<client>/<version> (<details>)`, for example `my-integration/1.2.0 (python 3.12; linux)`. The official SDKs, the CLI and the MCP bridge set it for you, as `sdk-python/2.3.1 (python 3.12.4; linux)` or `cli/1.4.0 (darwin arm64)`. It is optional and changes nothing about how a request is handled; it tells us which clients and versions are in use, so we know what can be retired and what to fix first. Keep the details short and free of personal data. Browsers may send it too: it is allowed by CORS.
+
+API version: 1.205.2
+*/
+
+// Code generated by OpenAPI Generator (https://openapi-generator.tech); DO NOT EDIT.
+
+package linkbreakers
+
+import (
+	"encoding/json"
+)
+
+// checks if the WorkflowStepMedia type satisfies the MappedNullable interface at compile time
+var _ MappedNullable = &WorkflowStepMedia{}
+
+// WorkflowStepMedia A page step's own images: a badge and a cover that replace the page theme's on this step only, so one link can show a different picture on each page (a person's photo on a contact card, a logo on the thank-you page, another cover on the form). They change what is shown, never how: the badge keeps the theme's badge shape and border, the cover the theme's cover mode and placement, and a step without one shows the theme's.  Each slot is an image of the workspace's media library (UUID): upload or import the image first and pass its media id. Any READY PNG, JPEG, WebP or SVG image of at most 3 MB. Available on page steps only: MESSAGE_PAGE, MULTI_LINK, CONTACT_CARD, SOCIAL_LINKS_PAGE, FORM_SUBMIT, PASSWORD_VERIFY, THANK_YOU_PAGE, LOCATION_REQUEST and CHAT_BOT. A contact card's badge is the person's photo, also saved in the downloaded contact.
+type WorkflowStepMedia struct {
+	// The image shown in the page theme's badge slot on this step, in the theme's badge shape and border, even when the theme has no badge (UUID of a media library image). Empty: the theme's badge.
+	BadgeMediaId *string `json:"badgeMediaId,omitempty"`
+	// The image shown as this step's cover, in the theme's cover mode and placement (UUID of a media library image). Empty: the theme's cover.
+	CoverMediaId *string `json:"coverMediaId,omitempty"`
+}
+
+// NewWorkflowStepMedia instantiates a new WorkflowStepMedia object
+// This constructor will assign default values to properties that have it defined,
+// and makes sure properties required by API are set, but the set of arguments
+// will change when the set of required properties is changed
+func NewWorkflowStepMedia() *WorkflowStepMedia {
+	this := WorkflowStepMedia{}
+	return &this
+}
+
+// NewWorkflowStepMediaWithDefaults instantiates a new WorkflowStepMedia object
+// This constructor will only assign default values to properties that have it defined,
+// but it doesn't guarantee that properties required by API are set
+func NewWorkflowStepMediaWithDefaults() *WorkflowStepMedia {
+	this := WorkflowStepMedia{}
+	return &this
+}
+
+// GetBadgeMediaId returns the BadgeMediaId field value if set, zero value otherwise.
+func (o *WorkflowStepMedia) GetBadgeMediaId() string {
+	if o == nil || IsNil(o.BadgeMediaId) {
+		var ret string
+		return ret
+	}
+	return *o.BadgeMediaId
+}
+
+// GetBadgeMediaIdOk returns a tuple with the BadgeMediaId field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *WorkflowStepMedia) GetBadgeMediaIdOk() (*string, bool) {
+	if o == nil || IsNil(o.BadgeMediaId) {
+		return nil, false
+	}
+	return o.BadgeMediaId, true
+}
+
+// HasBadgeMediaId returns a boolean if a field has been set.
+func (o *WorkflowStepMedia) HasBadgeMediaId() bool {
+	if o != nil && !IsNil(o.BadgeMediaId) {
+		return true
+	}
+
+	return false
+}
+
+// SetBadgeMediaId gets a reference to the given string and assigns it to the BadgeMediaId field.
+func (o *WorkflowStepMedia) SetBadgeMediaId(v string) {
+	o.BadgeMediaId = &v
+}
+
+// GetCoverMediaId returns the CoverMediaId field value if set, zero value otherwise.
+func (o *WorkflowStepMedia) GetCoverMediaId() string {
+	if o == nil || IsNil(o.CoverMediaId) {
+		var ret string
+		return ret
+	}
+	return *o.CoverMediaId
+}
+
+// GetCoverMediaIdOk returns a tuple with the CoverMediaId field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *WorkflowStepMedia) GetCoverMediaIdOk() (*string, bool) {
+	if o == nil || IsNil(o.CoverMediaId) {
+		return nil, false
+	}
+	return o.CoverMediaId, true
+}
+
+// HasCoverMediaId returns a boolean if a field has been set.
+func (o *WorkflowStepMedia) HasCoverMediaId() bool {
+	if o != nil && !IsNil(o.CoverMediaId) {
+		return true
+	}
+
+	return false
+}
+
+// SetCoverMediaId gets a reference to the given string and assigns it to the CoverMediaId field.
+func (o *WorkflowStepMedia) SetCoverMediaId(v string) {
+	o.CoverMediaId = &v
+}
+
+func (o WorkflowStepMedia) MarshalJSON() ([]byte, error) {
+	toSerialize,err := o.ToMap()
+	if err != nil {
+		return []byte{}, err
+	}
+	return json.Marshal(toSerialize)
+}
+
+func (o WorkflowStepMedia) ToMap() (map[string]interface{}, error) {
+	toSerialize := map[string]interface{}{}
+	if !IsNil(o.BadgeMediaId) {
+		toSerialize["badgeMediaId"] = o.BadgeMediaId
+	}
+	if !IsNil(o.CoverMediaId) {
+		toSerialize["coverMediaId"] = o.CoverMediaId
+	}
+	return toSerialize, nil
+}
+
+type NullableWorkflowStepMedia struct {
+	value *WorkflowStepMedia
+	isSet bool
+}
+
+func (v NullableWorkflowStepMedia) Get() *WorkflowStepMedia {
+	return v.value
+}
+
+func (v *NullableWorkflowStepMedia) Set(val *WorkflowStepMedia) {
+	v.value = val
+	v.isSet = true
+}
+
+func (v NullableWorkflowStepMedia) IsSet() bool {
+	return v.isSet
+}
+
+func (v *NullableWorkflowStepMedia) Unset() {
+	v.value = nil
+	v.isSet = false
+}
+
+func NewNullableWorkflowStepMedia(val *WorkflowStepMedia) *NullableWorkflowStepMedia {
+	return &NullableWorkflowStepMedia{value: val, isSet: true}
+}
+
+func (v NullableWorkflowStepMedia) MarshalJSON() ([]byte, error) {
+	return json.Marshal(v.value)
+}
+
+func (v *NullableWorkflowStepMedia) UnmarshalJSON(src []byte) error {
+	v.isSet = true
+	return json.Unmarshal(src, &v.value)
+}
+
+

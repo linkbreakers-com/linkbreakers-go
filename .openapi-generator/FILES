@@ -41,7 +41,9 @@ model_agent_claim_status.go
 model_agent_guardrail.go
 model_agent_guardrail_list.go
 model_agent_guardrail_preset.go
-model_agent_knowledge_document.go
+model_agent_knowledge_item.go
+model_agent_knowledge_item_kind.go
+model_agent_knowledge_item_status.go
 model_agent_limits.go
 model_agent_question_handling.go
 model_agent_question_handling_preset.go
@@ -52,9 +54,9 @@ model_agent_role_preset.go
 model_agent_tone.go
 model_agent_tone_preset.go
 model_agent_usage.go
-model_agents_service_create_knowledge_document_body.go
+model_agents_service_create_knowledge_item_body.go
 model_agents_service_update_body.go
-model_agents_service_update_knowledge_document_body.go
+model_agents_service_update_knowledge_item_body.go
 model_analytics_dashboard.go
 model_analytics_dashboards_service_generate_widget_summary_body.go
 model_analytics_dashboards_service_update_body.go
@@ -148,7 +150,7 @@ model_country_condition_outcome.go
 model_country_condition_payload.go
 model_country_condition_trace_data.go
 model_country_condition_trace_option.go
-model_create_agent_knowledge_document_response.go
+model_create_agent_knowledge_item_response.go
 model_create_agent_request.go
 model_create_agent_response.go
 model_create_bulk_links_request.go
@@ -497,6 +499,7 @@ model_qrcode_template_scope.go
 model_qrcode_templates_service_update_body.go
 model_redirect_trace_data.go
 model_redirect_trace_data_fallback_reason.go
+model_refresh_agent_knowledge_item_response.go
 model_render_qrcode_images_response.go
 model_rendered_qrcode.go
 model_replace_media_import_response.go
@@ -577,7 +580,7 @@ model_traffic_split_variant.go
 model_traffic_split_variant_result.go
 model_triggered_by.go
 model_type_date.go
-model_update_agent_knowledge_document_response.go
+model_update_agent_knowledge_item_response.go
 model_update_agent_response.go
 model_update_contact_connection_response.go
 model_update_custom_domain_response.go
@@ -657,6 +660,7 @@ model_workflow_step_branch.go
 model_workflow_step_copy_notice.go
 model_workflow_step_copy_notice_type.go
 model_workflow_step_kind.go
+model_workflow_step_media.go
 model_workflow_step_node_type.go
 model_workflow_step_payload.go
 model_workflow_steps_document.go
@@ -664,6 +668,7 @@ model_workflow_steps_document_edge.go
 model_workflow_steps_document_entry.go
 model_workflow_steps_document_media.go
 model_workflow_steps_document_step.go
+model_workflow_steps_document_step_media.go
 model_workflow_steps_service_connect_body.go
 model_workflow_steps_service_create_body.go
 model_workflow_steps_service_export_body.go

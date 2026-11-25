@@ -48,7 +48,7 @@ info:
 
     Send a `Linkbreakers-Client` request header saying which client made the call: `<client>/<version> (<details>)`, for example `my-integration/1.2.0 (python 3.12; linux)`. The official SDKs, the CLI and the MCP bridge set it for you, as `sdk-python/2.3.1 (python 3.12.4; linux)` or `cli/1.4.0 (darwin arm64)`. It is optional and changes nothing about how a request is handled; it tells us which clients and versions are in use, so we know what can be retired and what to fix first. Keep the details short and free of personal data. Browsers may send it too: it is allowed by CORS.
   title: Linkbreakers API
-  version: 1.205.1
+  version: 1.205.2
   x-api-versioning:
     compatibility: additive changes only within a version
     currentVersion: v1
@@ -65,7 +65,8 @@ security:
 - bearerAuth: []
 tags:
 - description: "AI chat personas you build (a role, a tone, guardrails and knowledge\
-    \ documents) and plug into a link's Chat Bot step, where they talk to your visitors."
+    \ items: Markdown, web pages and media files) and plug into a link's Chat Bot\
+    \ step, where they talk to your visitors."
   name: Agents
 - description: "Scan and visit numbers: rolling workspace totals, time series, and\
     \ breakdowns by country, device, hour, link or workflow step, with funnels, A/B\
@@ -199,7 +200,7 @@ paths:
   /v1/agents:
     get:
       description: |-
-        List the workspace's agents, without their knowledge documents.
+        List the workspace's agents, without their knowledge items.
 
         Requires the `agents:read` scope.
       operationId: AgentsService_List
@@ -340,13 +341,13 @@ paths:
       tags:
       - Agents
       x-required-scope: agents:write
-  /v1/agents/{agentId}/knowledge-documents:
+  /v1/agents/{agentId}/knowledge-items:
     post:
       description: |-
-        Add a Markdown document to an agent's knowledge.
+        Add an item to an agent's knowledge: Markdown text, a web page read from its URL, or a PDF or image of the media library. A web page or media item is read in the background: it is returned with the status reading, then becomes ready, or failed with a reason. Only ready items are part of what the agent knows.
 
         Requires the `agents:write` scope.
-      operationId: AgentsService_CreateKnowledgeDocument
+      operationId: AgentsService_CreateKnowledgeItem
       parameters:
       - description: The agent's ID (UUID).
         explode: false
@@ -372,14 +373,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/AgentsServiceCreateKnowledgeDocumentBody"
+              $ref: "#/components/schemas/AgentsServiceCreateKnowledgeItemBody"
         required: true
       responses:
         "200":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/CreateAgentKnowledgeDocumentResponse"
+                $ref: "#/components/schemas/CreateAgentKnowledgeItemResponse"
           description: Everything worked as expected.
           headers:
             Idempotent-Replayed:
@@ -410,17 +411,17 @@ paths:
         - agents:write
       - oauth2:
         - agents:write
-      summary: Add a knowledge document
+      summary: Add a knowledge item
       tags:
       - Agents
       x-required-scope: agents:write
-  /v1/agents/{agentId}/knowledge-documents/{id}:
+  /v1/agents/{agentId}/knowledge-items/{id}:
     delete:
       description: |-
-        Remove a document from an agent's knowledge.
+        Remove an item from an agent's knowledge. A media file it read stays in the media library.
 
         Requires the `agents:write` scope.
-      operationId: AgentsService_DeleteKnowledgeDocument
+      operationId: AgentsService_DeleteKnowledgeItem
       parameters:
       - description: The agent's ID (UUID).
         explode: false
@@ -430,7 +431,7 @@ paths:
         schema:
           type: string
         style: simple
-      - description: The document's ID (UUID).
+      - description: The item's ID (UUID).
         explode: false
         in: path
         name: id
@@ -473,16 +474,16 @@ paths:
         - agents:write
       - oauth2:
         - agents:write
-      summary: Delete a knowledge document
+      summary: Delete a knowledge item
       tags:
       - Agents
       x-required-scope: agents:write
     patch:
       description: |-
-        Change a knowledge document's title or content.
+        Change a knowledge item's title, a Markdown item's content, a web page item's URL or a media item's file. A new URL or file is read again in the background. The kind of an item cannot change.
 
         Requires the `agents:write` scope.
-      operationId: AgentsService_UpdateKnowledgeDocument
+      operationId: AgentsService_UpdateKnowledgeItem
       parameters:
       - description: The agent's ID (UUID).
         explode: false
@@ -492,7 +493,7 @@ paths:
         schema:
           type: string
         style: simple
-      - description: The document's ID (UUID).
+      - description: The item's ID (UUID).
         explode: false
         in: path
         name: id
@@ -516,14 +517,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/AgentsServiceUpdateKnowledgeDocumentBody"
+              $ref: "#/components/schemas/AgentsServiceUpdateKnowledgeItemBody"
         required: true
       responses:
         "200":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/UpdateAgentKnowledgeDocumentResponse"
+                $ref: "#/components/schemas/UpdateAgentKnowledgeItemResponse"
           description: Everything worked as expected.
           headers:
             Idempotent-Replayed:
@@ -554,14 +555,96 @@ paths:
         - agents:write
       - oauth2:
         - agents:write
-      summary: Update a knowledge document
+      summary: Update a knowledge item
+      tags:
+      - Agents
+      x-required-scope: agents:write
+  /v1/agents/{agentId}/knowledge-items/{id}:refresh:
+    post:
+      description: |-
+        Read a web page or media item again, in the background: after the page or file changed, or to retry an item that failed. The agent keeps the text read before until the new reading is ready. A Markdown item has nothing to read and is refused.
+
+        Requires the `agents:write` scope.
+      operationId: AgentsService_RefreshKnowledgeItem
+      parameters:
+      - description: The agent's ID (UUID).
+        explode: false
+        in: path
+        name: agentId
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: The item's ID (UUID).
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: "A unique value per request, such as a UUID, that makes retrying\
+          \ it safe: a retry with the same key and body returns the first response\
+          \ instead of acting twice."
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AgentsServiceRefreshKnowledgeItemBody"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RefreshAgentKnowledgeItemResponse"
+          description: Everything worked as expected.
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - agents:write
+      - oauth2:
+        - agents:write
+      summary: Refresh a knowledge item
       tags:
       - Agents
       x-required-scope: agents:write
   /v1/agents/{id}:
     delete:
       description: |-
-        Delete an agent and its knowledge documents.
+        Delete an agent and its knowledge items.
 
         Requires the `agents:write` scope.
       operationId: AgentsService_Delete
@@ -615,7 +698,7 @@ paths:
       x-required-scope: agents:write
     get:
       description: |-
-        Retrieve an agent with its knowledge documents.
+        Retrieve an agent with its knowledge items.
 
         Requires the `agents:read` scope.
       operationId: AgentsService_Get
@@ -6704,12 +6787,12 @@ paths:
            - UPLOAD_ORIGIN_UNSPECIFIED: Not set. Uploads that do not say where they come from are recorded as UPLOAD_ORIGIN_MEDIA_LIBRARY.
            - UPLOAD_ORIGIN_MEDIA_LIBRARY: Uploaded from the media library itself
            - UPLOAD_ORIGIN_QR_CODE_LOGO: Uploaded while picking a QR code's logo
-           - UPLOAD_ORIGIN_BACKGROUND_COVER: Uploaded while picking a page theme's background cover
-           - UPLOAD_ORIGIN_BADGE: Uploaded while picking a page theme's badge
+           - UPLOAD_ORIGIN_BACKGROUND_COVER: Uploaded while picking a background cover, a page theme's or a step's own
+           - UPLOAD_ORIGIN_BADGE: Uploaded while picking a badge, a page theme's or a step's own
            - UPLOAD_ORIGIN_FOOTER_LOGO: Uploaded while picking a page theme's footer logo
            - UPLOAD_ORIGIN_OPEN_MEDIA: Uploaded while picking the media an Open media step opens
            - UPLOAD_ORIGIN_ASSISTANT: Imported by the Assistant, from a file attached to a conversation or a URL
-           - UPLOAD_ORIGIN_CONTACT_CARD_AVATAR: Uploaded while picking a contact card's photo
+           - UPLOAD_ORIGIN_CONTACT_CARD_AVATAR: Uploaded while picking a contact card's photo (its step's badge); new uploads use UPLOAD_ORIGIN_BADGE
         explode: true
         in: query
         name: uploadedFrom
@@ -13326,32 +13409,13 @@ components:
       description: A chat persona the workspace builds and plugs into workflow steps.
       example:
         instructions: "You work for Hotel Lumiere, a boutique hotel in Lyon."
+        knowledgeItemCount: 3
         role: AGENT_ROLE_SUPPORT_FAQ
         tone: AGENT_TONE_FRIENDLY
         questionHandling: AGENT_QUESTION_HANDLING_ANSWER_AND_STEER
         language: fr
         customRules: Never quote room rates. Send booking questions to reception@example.com.
         createdAt: 2026-03-14T09:30:00Z
-        knowledgeDocuments:
-        - createdAt: 2026-03-14T09:30:00Z
-          agentId: 3f9a1c52-8d1e-4b7a-9c3e-2a6f5d8b1e40
-          id: e5b2c8f1-6a3d-4b9e-8c7f-1d0a2e4b6c93
-          title: Opening hours and prices
-          content: |-
-            # Opening hours
-
-            Monday to Friday, 9am to 6pm.
-          updatedAt: 2026-03-18T16:05:00Z
-        - createdAt: 2026-03-14T09:30:00Z
-          agentId: 3f9a1c52-8d1e-4b7a-9c3e-2a6f5d8b1e40
-          id: e5b2c8f1-6a3d-4b9e-8c7f-1d0a2e4b6c93
-          title: Opening hours and prices
-          content: |-
-            # Opening hours
-
-            Monday to Friday, 9am to 6pm.
-          updatedAt: 2026-03-18T16:05:00Z
-        knowledgeDocumentCount: 3
         replyLength: AGENT_REPLY_LENGTH_SHORT
         guardrails:
         - AGENT_GUARDRAIL_STAY_ON_TOPIC
@@ -13367,6 +13431,39 @@ components:
           linkName: Spring menu
           workflowStepId: 987fcdeb-a321-45e6-b789-123456789012
         emojiEnabled: true
+        knowledgeItems:
+        - createdAt: 2026-03-14T09:30:00Z
+          agentId: 3f9a1c52-8d1e-4b7a-9c3e-2a6f5d8b1e40
+          kind: AGENT_KNOWLEDGE_ITEM_KIND_WEB_PAGE
+          failureReason: The page answered 404 Not Found.
+          id: e5b2c8f1-6a3d-4b9e-8c7f-1d0a2e4b6c93
+          mediaId: 9b1f3e4a-2c5d-4e6f-8a7b-0c1d2e3f4a5b
+          readAt: 2026-03-18T16:05:00Z
+          title: Our menu
+          content: |-
+            # Menu
+
+            - Spicy chicken bowl, 14 EUR
+            - Roasted vegetable curry, 12 EUR
+          url: https://example.com/menu
+          status: AGENT_KNOWLEDGE_ITEM_STATUS_READY
+          updatedAt: 2026-03-18T16:05:00Z
+        - createdAt: 2026-03-14T09:30:00Z
+          agentId: 3f9a1c52-8d1e-4b7a-9c3e-2a6f5d8b1e40
+          kind: AGENT_KNOWLEDGE_ITEM_KIND_WEB_PAGE
+          failureReason: The page answered 404 Not Found.
+          id: e5b2c8f1-6a3d-4b9e-8c7f-1d0a2e4b6c93
+          mediaId: 9b1f3e4a-2c5d-4e6f-8a7b-0c1d2e3f4a5b
+          readAt: 2026-03-18T16:05:00Z
+          title: Our menu
+          content: |-
+            # Menu
+
+            - Spicy chicken bowl, 14 EUR
+            - Roasted vegetable curry, 12 EUR
+          url: https://example.com/menu
+          status: AGENT_KNOWLEDGE_ITEM_STATUS_READY
+          updatedAt: 2026-03-18T16:05:00Z
         updatedAt: 2026-03-18T16:05:00Z
         workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
       properties:
@@ -13402,17 +13499,17 @@ components:
             \ is, what matters to it."
           example: "You work for Hotel Lumiere, a boutique hotel in Lyon."
           type: string
-        knowledgeDocumentCount:
-          description: How many knowledge documents the agent has.
+        knowledgeItemCount:
+          description: How many knowledge items the agent has.
           example: 3
           format: int32
           readOnly: true
           type: integer
-        knowledgeDocuments:
-          description: The agent's knowledge documents. Getting one agent returns
-            them with their content; listing agents leaves them out.
+        knowledgeItems:
+          description: "The agent's knowledge items, oldest first. Getting one agent\
+            \ returns them with their content; listing agents leaves them out."
           items:
-            $ref: "#/components/schemas/AgentKnowledgeDocument"
+            $ref: "#/components/schemas/AgentKnowledgeItem"
           readOnly: true
           type: array
         language:
@@ -13563,52 +13660,127 @@ components:
           - $ref: "#/components/schemas/AgentGuardrail"
           description: The guardrail.
           example: AGENT_GUARDRAIL_NO_COMMITMENTS
-    AgentKnowledgeDocument:
-      description: One Markdown document the agent knows.
+    AgentKnowledgeItem:
+      description: "One thing the agent knows: Markdown, a web page or a media file.\
+        \ The agent answers from the text of its items."
       example:
         createdAt: 2026-03-14T09:30:00Z
         agentId: 3f9a1c52-8d1e-4b7a-9c3e-2a6f5d8b1e40
+        kind: AGENT_KNOWLEDGE_ITEM_KIND_WEB_PAGE
+        failureReason: The page answered 404 Not Found.
         id: e5b2c8f1-6a3d-4b9e-8c7f-1d0a2e4b6c93
-        title: Opening hours and prices
+        mediaId: 9b1f3e4a-2c5d-4e6f-8a7b-0c1d2e3f4a5b
+        readAt: 2026-03-18T16:05:00Z
+        title: Our menu
         content: |-
-          # Opening hours
+          # Menu
 
-          Monday to Friday, 9am to 6pm.
+          - Spicy chicken bowl, 14 EUR
+          - Roasted vegetable curry, 12 EUR
+        url: https://example.com/menu
+        status: AGENT_KNOWLEDGE_ITEM_STATUS_READY
         updatedAt: 2026-03-18T16:05:00Z
       properties:
         agentId:
-          description: The agent the document belongs to (UUID).
+          description: The agent the item belongs to (UUID).
           example: 3f9a1c52-8d1e-4b7a-9c3e-2a6f5d8b1e40
           readOnly: true
           type: string
         content:
-          description: The document's Markdown content.
+          description: "What the agent knows from this item, in Markdown. For a Markdown\
+            \ item, the text written; for a web page or media item, the text read\
+            \ from it, empty until it is ready."
           example: |-
-            # Opening hours
+            # Menu
 
-            Monday to Friday, 9am to 6pm.
+            - Spicy chicken bowl, 14 EUR
+            - Roasted vegetable curry, 12 EUR
           type: string
         createdAt:
-          description: When the document was created.
+          description: When the item was created.
           example: 2026-03-14T09:30:00Z
           format: date-time
           readOnly: true
           type: string
+        failureReason:
+          description: Why the web page or file could not be read. Set only when the
+            status is failed.
+          example: The page answered 404 Not Found.
+          readOnly: true
+          type: string
         id:
-          description: The unique identifier of the document (UUID).
+          description: The unique identifier of the item (UUID).
           example: e5b2c8f1-6a3d-4b9e-8c7f-1d0a2e4b6c93
           readOnly: true
           type: string
-        title:
-          description: The document's title.
-          example: Opening hours and prices
+        kind:
+          allOf:
+          - $ref: "#/components/schemas/AgentKnowledgeItemKind"
+          description: What the item is made of. It cannot change once the item exists.
+          example: AGENT_KNOWLEDGE_ITEM_KIND_WEB_PAGE
+        mediaId:
+          description: "The media item read (UUID): a PDF or an image of the workspace's\
+            \ media library. Set for media items only."
+          example: 9b1f3e4a-2c5d-4e6f-8a7b-0c1d2e3f4a5b
           type: string
-        updatedAt:
-          description: When the document was last updated.
+        readAt:
+          description: When the web page or file was last read successfully. Empty
+            for Markdown items and for items never read.
           example: 2026-03-18T16:05:00Z
           format: date-time
           readOnly: true
           type: string
+        status:
+          allOf:
+          - $ref: "#/components/schemas/AgentKnowledgeItemStatus"
+          description: Whether the item's text is part of what the agent knows.
+          example: AGENT_KNOWLEDGE_ITEM_STATUS_READY
+          readOnly: true
+        title:
+          description: The item's title. A web page or file added without one takes
+            the page's title or the file's name.
+          example: Our menu
+          type: string
+        updatedAt:
+          description: When the item was last updated.
+          example: 2026-03-18T16:05:00Z
+          format: date-time
+          readOnly: true
+          type: string
+        url:
+          description: The web page's http or https URL. Set for web page items only.
+          example: https://example.com/menu
+          type: string
+    AgentKnowledgeItemKind:
+      default: AGENT_KNOWLEDGE_ITEM_KIND_UNSPECIFIED
+      description: |-
+        What a knowledge item is made of.
+
+         - AGENT_KNOWLEDGE_ITEM_KIND_UNSPECIFIED: Not set.
+         - AGENT_KNOWLEDGE_ITEM_KIND_MARKDOWN: Text written in Markdown, in the item itself.
+         - AGENT_KNOWLEDGE_ITEM_KIND_WEB_PAGE: A web page, read from its http or https URL and turned into Markdown. A URL that serves a PDF is read like a file.
+         - AGENT_KNOWLEDGE_ITEM_KIND_MEDIA: A PDF or an image of the workspace's media library, read into Markdown.
+      enum:
+      - AGENT_KNOWLEDGE_ITEM_KIND_UNSPECIFIED
+      - AGENT_KNOWLEDGE_ITEM_KIND_MARKDOWN
+      - AGENT_KNOWLEDGE_ITEM_KIND_WEB_PAGE
+      - AGENT_KNOWLEDGE_ITEM_KIND_MEDIA
+      type: string
+    AgentKnowledgeItemStatus:
+      default: AGENT_KNOWLEDGE_ITEM_STATUS_UNSPECIFIED
+      description: |-
+        Whether a knowledge item's text is ready for the agent.
+
+         - AGENT_KNOWLEDGE_ITEM_STATUS_UNSPECIFIED: Not set.
+         - AGENT_KNOWLEDGE_ITEM_STATUS_READY: The item's text is part of what the agent knows.
+         - AGENT_KNOWLEDGE_ITEM_STATUS_READING: The web page or file is being read, usually for a few seconds, up to a minute for a long PDF. A new item is not known yet; an item read again keeps its previous text until the new one is ready.
+         - AGENT_KNOWLEDGE_ITEM_STATUS_FAILED: The web page or file could not be read; failureReason says why. The agent does not know it. Refresh the item to try again.
+      enum:
+      - AGENT_KNOWLEDGE_ITEM_STATUS_UNSPECIFIED
+      - AGENT_KNOWLEDGE_ITEM_STATUS_READY
+      - AGENT_KNOWLEDGE_ITEM_STATUS_READING
+      - AGENT_KNOWLEDGE_ITEM_STATUS_FAILED
+      type: string
     AgentLimits:
       description: The sizes agent settings and knowledge must stay within.
       properties:
@@ -13642,18 +13814,19 @@ components:
           example: 4000
           format: int32
           type: integer
-        knowledgeMaxDocuments:
-          description: Most knowledge documents an agent can have.
+        knowledgeMaxItems:
+          description: Most knowledge items an agent can have.
           example: 20
           format: int32
           type: integer
         knowledgeMaxTotalCharacters:
-          description: Most characters an agent's knowledge documents can hold together.
+          description: "Most characters the text of an agent's knowledge items can\
+            \ hold together, web pages and files as read included."
           example: 50000
           format: int32
           type: integer
         knowledgeTitleMaxLength:
-          description: "Longest knowledge document title, in characters."
+          description: "Longest knowledge item title, in characters."
           example: 120
           format: int32
           type: integer
@@ -13840,29 +14013,52 @@ components:
           description: The chat bot step (UUID).
           example: 987fcdeb-a321-45e6-b789-123456789012
           type: string
-    AgentsServiceCreateKnowledgeDocumentBody:
-      description: Adds a Markdown document to an agent.
+    AgentsServiceCreateKnowledgeItemBody:
+      description: "Adds a knowledge item to an agent: Markdown written in it, a web\
+        \ page read from its URL, or a PDF or image of the media library."
       example:
-        title: Restaurant opening hours
+        kind: AGENT_KNOWLEDGE_ITEM_KIND_WEB_PAGE
+        mediaId: 9b1f3e4a-2c5d-4e6f-8a7b-0c1d2e3f4a5b
+        title: Our menu
         content: |-
           # Restaurant
 
           Open every day from 12pm to 2:30pm and 7pm to 10:30pm.
+        url: https://example.com/menu
       properties:
         content:
-          description: The document's Markdown content.
+          description: "The Markdown text, for a Markdown item only."
           example: |-
             # Restaurant
 
             Open every day from 12pm to 2:30pm and 7pm to 10:30pm.
           type: string
+        kind:
+          allOf:
+          - $ref: "#/components/schemas/AgentKnowledgeItemKind"
+          description: "What the item is made of: MARKDOWN takes content, WEB_PAGE\
+            \ takes url, MEDIA takes mediaId."
+          example: AGENT_KNOWLEDGE_ITEM_KIND_WEB_PAGE
+        mediaId:
+          description: "The media item to read (UUID), for a media item only: a PDF\
+            \ or an image of the workspace's media library."
+          example: 9b1f3e4a-2c5d-4e6f-8a7b-0c1d2e3f4a5b
+          type: string
         title:
-          description: The document's title.
-          example: Restaurant opening hours
+          description: The item's title. Required for a Markdown item; a web page
+            or file left without one takes the page's title or the file's name.
+          example: Our menu
+          type: string
+        url:
+          description: "The web page's http or https URL, for a web page item only.\
+            \ One item reads one page."
+          example: https://example.com/menu
           type: string
       required:
-      - content
-      - title
+      - kind
+    AgentsServiceRefreshKnowledgeItemBody:
+      description: Reads a web page or media item again.
+      type: object
     AgentsServiceUpdateBody:
       description: Changes an agent. Fields left unset keep their value.
       example:
@@ -13928,25 +14124,37 @@ components:
           - $ref: "#/components/schemas/AgentTone"
           description: New tone. UNSPECIFIED keeps it.
           example: AGENT_TONE_PROFESSIONAL
-    AgentsServiceUpdateKnowledgeDocumentBody:
-      description: Changes a knowledge document. Fields left unset keep their value.
+    AgentsServiceUpdateKnowledgeItemBody:
+      description: Changes a knowledge item. Fields left unset keep their value; the
+        kind cannot change.
       example:
-        title: Restaurant opening hours
+        mediaId: 9b1f3e4a-2c5d-4e6f-8a7b-0c1d2e3f4a5b
+        title: Our menu
         content: |-
           # Restaurant
 
           Open every day from 12pm to 2:30pm and 7pm to 11pm.
+        url: https://example.com/menu
       properties:
         content:
-          description: New Markdown content.
+          description: "New Markdown text, for a Markdown item only."
           example: |-
             # Restaurant
 
             Open every day from 12pm to 2:30pm and 7pm to 11pm.
           type: string
+        mediaId:
+          description: "Another media item (UUID), for a media item only. The file\
+            \ is read again."
+          example: 9b1f3e4a-2c5d-4e6f-8a7b-0c1d2e3f4a5b
+          type: string
         title:
           description: New title.
-          example: Restaurant opening hours
+          example: Our menu
+          type: string
+        url:
+          description: "New URL, for a web page item only. The page is read again."
+          example: https://example.com/menu
           type: string
     AnalyticsDashboard:
       example:
@@ -14116,8 +14324,8 @@ components:
          - API_SCOPE_BILLING_WRITE: Open checkout, credit top-up and billing portal sessions.
          - API_SCOPE_ASSISTANT_READ: Read the Assistant conversation.
          - API_SCOPE_ASSISTANT_WRITE: Send files to the Assistant, clear the conversation and contact support.
-         - API_SCOPE_AGENTS_READ: Read agents and their knowledge documents.
-         - API_SCOPE_AGENTS_WRITE: Create, update and delete agents and their knowledge documents.
+         - API_SCOPE_AGENTS_READ: Read agents and their knowledge items.
+         - API_SCOPE_AGENTS_WRITE: Create, update and delete agents and their knowledge items.
       enum:
       - API_SCOPE_UNSPECIFIED
       - API_SCOPE_LINKS_READ
@@ -14226,8 +14434,8 @@ components:
              - API_SCOPE_BILLING_WRITE: Open checkout, credit top-up and billing portal sessions.
              - API_SCOPE_ASSISTANT_READ: Read the Assistant conversation.
              - API_SCOPE_ASSISTANT_WRITE: Send files to the Assistant, clear the conversation and contact support.
-             - API_SCOPE_AGENTS_READ: Read agents and their knowledge documents.
-             - API_SCOPE_AGENTS_WRITE: Create, update and delete agents and their knowledge documents.
+             - API_SCOPE_AGENTS_READ: Read agents and their knowledge items.
+             - API_SCOPE_AGENTS_WRITE: Create, update and delete agents and their knowledge items.
           enum:
           - API_SCOPE_UNSPECIFIED
           - API_SCOPE_LINKS_READ
@@ -15649,18 +15857,24 @@ components:
         unchanged: false
         media: ""
         detachedReferences:
-        - linkId: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
+        - agentId: 3f9a1c52-8d1e-4b7a-9c3e-2a6f5d8b1e40
+          linkId: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
           qrcodeTemplateId: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
           pageThemeTemplateId: 2b8d4f60-7a1c-4e3b-9f52-c6d0e8a1b347
           qrcodeTemplateName: Table card
+          agentKnowledgeItemId: e5b2c8f1-6a3d-4b9e-8c7f-1d0a2e4b6c93
+          agentName: Front desk
           pageThemeTemplateName: Lyon bistro
           type: TYPE_OPEN_MEDIA_STEP
           linkName: Spring menu
           workflowStepId: 987fcdeb-a321-45e6-b789-123456789012
-        - linkId: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
+        - agentId: 3f9a1c52-8d1e-4b7a-9c3e-2a6f5d8b1e40
+          linkId: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
           qrcodeTemplateId: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
           pageThemeTemplateId: 2b8d4f60-7a1c-4e3b-9f52-c6d0e8a1b347
           qrcodeTemplateName: Table card
+          agentKnowledgeItemId: e5b2c8f1-6a3d-4b9e-8c7f-1d0a2e4b6c93
+          agentName: Front desk
           pageThemeTemplateName: Lyon bistro
           type: TYPE_OPEN_MEDIA_STEP
           linkName: Spring menu
@@ -16430,15 +16644,15 @@ components:
         hasRoute:
           example: true
           type: boolean
-    CreateAgentKnowledgeDocumentResponse:
-      description: Returns the created document.
+    CreateAgentKnowledgeItemResponse:
+      description: Returns the created item. A web page or media item comes back reading.
       example:
-        document: ""
+        item: ""
       properties:
-        document:
+        item:
           allOf:
-          - $ref: "#/components/schemas/AgentKnowledgeDocument"
-          description: The created document.
+          - $ref: "#/components/schemas/AgentKnowledgeItem"
+          description: The created item.
     CreateAgentRequest:
       description: Creates an agent. Unset presets take their defaults.
       example:
@@ -17156,6 +17370,7 @@ components:
           nextCanGoBack: true
           canvasPosition: ""
           rendersPage: true
+          media: ""
           branches:
           - branchId: a3f1c6d8-2e4b-4a7c-9d1f-6b8e0c2a4f57
             nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
@@ -17181,6 +17396,7 @@ components:
           nextCanGoBack: true
           canvasPosition: ""
           rendersPage: true
+          media: ""
           branches:
           - branchId: a3f1c6d8-2e4b-4a7c-9d1f-6b8e0c2a4f57
             nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
@@ -17570,6 +17786,7 @@ components:
           nextCanGoBack: true
           canvasPosition: ""
           rendersPage: true
+          media: ""
           branches:
           - branchId: a3f1c6d8-2e4b-4a7c-9d1f-6b8e0c2a4f57
             nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
@@ -17595,6 +17812,7 @@ components:
           nextCanGoBack: true
           canvasPosition: ""
           rendersPage: true
+          media: ""
           branches:
           - branchId: a3f1c6d8-2e4b-4a7c-9d1f-6b8e0c2a4f57
             nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
@@ -18229,6 +18447,7 @@ components:
           nextCanGoBack: true
           canvasPosition: ""
           rendersPage: true
+          media: ""
           branches:
           - branchId: a3f1c6d8-2e4b-4a7c-9d1f-6b8e0c2a4f57
             nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
@@ -18315,8 +18534,8 @@ components:
                - API_SCOPE_BILLING_WRITE: Open checkout, credit top-up and billing portal sessions.
                - API_SCOPE_ASSISTANT_READ: Read the Assistant conversation.
                - API_SCOPE_ASSISTANT_WRITE: Send files to the Assistant, clear the conversation and contact support.
-               - API_SCOPE_AGENTS_READ: Read agents and their knowledge documents.
-               - API_SCOPE_AGENTS_WRITE: Create, update and delete agents and their knowledge documents.
+               - API_SCOPE_AGENTS_READ: Read agents and their knowledge items.
+               - API_SCOPE_AGENTS_WRITE: Create, update and delete agents and their knowledge items.
             enum:
             - API_SCOPE_UNSPECIFIED
             - API_SCOPE_LINKS_READ
@@ -21372,6 +21591,7 @@ components:
             eventAction: EVENT_ACTION_FORM_SUBMIT
             attributeCapture: ""
             key: s1
+            stepMedia: ""
           - payload:
               timeOfDayCondition:
                 elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
@@ -21693,6 +21913,7 @@ components:
             eventAction: EVENT_ACTION_FORM_SUBMIT
             attributeCapture: ""
             key: s1
+            stepMedia: ""
           version: 1
       properties:
         document:
@@ -22409,14 +22630,14 @@ components:
           type: string
       title: Request to read a claim link
     GetAgentResponse:
-      description: Returns the agent with its knowledge documents.
+      description: Returns the agent with its knowledge items.
       example:
         agent: ""
       properties:
         agent:
           allOf:
           - $ref: "#/components/schemas/Agent"
-          description: "The agent, with its knowledge documents and their content."
+          description: "The agent, with its knowledge items and their content."
     GetAttributeDistributionRequest:
       example:
         linkId: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
@@ -23306,18 +23527,24 @@ components:
         media:
           fileName: menu-cover.png
           references:
-          - linkId: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
+          - agentId: 3f9a1c52-8d1e-4b7a-9c3e-2a6f5d8b1e40
+            linkId: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
             qrcodeTemplateId: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
             pageThemeTemplateId: 2b8d4f60-7a1c-4e3b-9f52-c6d0e8a1b347
             qrcodeTemplateName: Table card
+            agentKnowledgeItemId: e5b2c8f1-6a3d-4b9e-8c7f-1d0a2e4b6c93
+            agentName: Front desk
             pageThemeTemplateName: Lyon bistro
             type: TYPE_OPEN_MEDIA_STEP
             linkName: Spring menu
             workflowStepId: 987fcdeb-a321-45e6-b789-123456789012
-          - linkId: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
+          - agentId: 3f9a1c52-8d1e-4b7a-9c3e-2a6f5d8b1e40
+            linkId: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
             qrcodeTemplateId: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
             pageThemeTemplateId: 2b8d4f60-7a1c-4e3b-9f52-c6d0e8a1b347
             qrcodeTemplateName: Table card
+            agentKnowledgeItemId: e5b2c8f1-6a3d-4b9e-8c7f-1d0a2e4b6c93
+            agentName: Front desk
             pageThemeTemplateName: Lyon bistro
             type: TYPE_OPEN_MEDIA_STEP
             linkName: Spring menu
@@ -23852,6 +24079,7 @@ components:
           nextCanGoBack: true
           canvasPosition: ""
           rendersPage: true
+          media: ""
           branches:
           - branchId: a3f1c6d8-2e4b-4a7c-9d1f-6b8e0c2a4f57
             nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
@@ -24185,6 +24413,7 @@ components:
             nextCanGoBack: true
             canvasPosition: ""
             rendersPage: true
+            media: ""
             branches:
             - branchId: a3f1c6d8-2e4b-4a7c-9d1f-6b8e0c2a4f57
               nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
@@ -24212,6 +24441,7 @@ components:
             nextCanGoBack: true
             canvasPosition: ""
             rendersPage: true
+            media: ""
             branches:
             - branchId: a3f1c6d8-2e4b-4a7c-9d1f-6b8e0c2a4f57
               nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
@@ -24256,6 +24486,7 @@ components:
           nextCanGoBack: true
           canvasPosition: ""
           rendersPage: true
+          media: ""
           branches:
           - branchId: a3f1c6d8-2e4b-4a7c-9d1f-6b8e0c2a4f57
             nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
@@ -25337,32 +25568,13 @@ components:
         totalCount: 3
         agents:
         - instructions: "You work for Hotel Lumiere, a boutique hotel in Lyon."
+          knowledgeItemCount: 3
           role: AGENT_ROLE_SUPPORT_FAQ
           tone: AGENT_TONE_FRIENDLY
           questionHandling: AGENT_QUESTION_HANDLING_ANSWER_AND_STEER
           language: fr
           customRules: Never quote room rates. Send booking questions to reception@example.com.
           createdAt: 2026-03-14T09:30:00Z
-          knowledgeDocuments:
-          - createdAt: 2026-03-14T09:30:00Z
-            agentId: 3f9a1c52-8d1e-4b7a-9c3e-2a6f5d8b1e40
-            id: e5b2c8f1-6a3d-4b9e-8c7f-1d0a2e4b6c93
-            title: Opening hours and prices
-            content: |-
-              # Opening hours
-
-              Monday to Friday, 9am to 6pm.
-            updatedAt: 2026-03-18T16:05:00Z
-          - createdAt: 2026-03-14T09:30:00Z
-            agentId: 3f9a1c52-8d1e-4b7a-9c3e-2a6f5d8b1e40
-            id: e5b2c8f1-6a3d-4b9e-8c7f-1d0a2e4b6c93
-            title: Opening hours and prices
-            content: |-
-              # Opening hours
-
-              Monday to Friday, 9am to 6pm.
-            updatedAt: 2026-03-18T16:05:00Z
-          knowledgeDocumentCount: 3
           replyLength: AGENT_REPLY_LENGTH_SHORT
           guardrails:
           - AGENT_GUARDRAIL_STAY_ON_TOPIC
@@ -25378,35 +25590,49 @@ components:
             linkName: Spring menu
             workflowStepId: 987fcdeb-a321-45e6-b789-123456789012
           emojiEnabled: true
+          knowledgeItems:
+          - createdAt: 2026-03-14T09:30:00Z
+            agentId: 3f9a1c52-8d1e-4b7a-9c3e-2a6f5d8b1e40
+            kind: AGENT_KNOWLEDGE_ITEM_KIND_WEB_PAGE
+            failureReason: The page answered 404 Not Found.
+            id: e5b2c8f1-6a3d-4b9e-8c7f-1d0a2e4b6c93
+            mediaId: 9b1f3e4a-2c5d-4e6f-8a7b-0c1d2e3f4a5b
+            readAt: 2026-03-18T16:05:00Z
+            title: Our menu
+            content: |-
+              # Menu
+
+              - Spicy chicken bowl, 14 EUR
+              - Roasted vegetable curry, 12 EUR
+            url: https://example.com/menu
+            status: AGENT_KNOWLEDGE_ITEM_STATUS_READY
+            updatedAt: 2026-03-18T16:05:00Z
+          - createdAt: 2026-03-14T09:30:00Z
+            agentId: 3f9a1c52-8d1e-4b7a-9c3e-2a6f5d8b1e40
+            kind: AGENT_KNOWLEDGE_ITEM_KIND_WEB_PAGE
+            failureReason: The page answered 404 Not Found.
+            id: e5b2c8f1-6a3d-4b9e-8c7f-1d0a2e4b6c93
+            mediaId: 9b1f3e4a-2c5d-4e6f-8a7b-0c1d2e3f4a5b
+            readAt: 2026-03-18T16:05:00Z
+            title: Our menu
+            content: |-
+              # Menu
+
+              - Spicy chicken bowl, 14 EUR
+              - Roasted vegetable curry, 12 EUR
+            url: https://example.com/menu
+            status: AGENT_KNOWLEDGE_ITEM_STATUS_READY
+            updatedAt: 2026-03-18T16:05:00Z
           updatedAt: 2026-03-18T16:05:00Z
           workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
         - instructions: "You work for Hotel Lumiere, a boutique hotel in Lyon."
+          knowledgeItemCount: 3
           role: AGENT_ROLE_SUPPORT_FAQ
           tone: AGENT_TONE_FRIENDLY
           questionHandling: AGENT_QUESTION_HANDLING_ANSWER_AND_STEER
           language: fr
           customRules: Never quote room rates. Send booking questions to reception@example.com.
           createdAt: 2026-03-14T09:30:00Z
-          knowledgeDocuments:
-          - createdAt: 2026-03-14T09:30:00Z
-            agentId: 3f9a1c52-8d1e-4b7a-9c3e-2a6f5d8b1e40
-            id: e5b2c8f1-6a3d-4b9e-8c7f-1d0a2e4b6c93
-            title: Opening hours and prices
-            content: |-
-              # Opening hours
-
-              Monday to Friday, 9am to 6pm.
-            updatedAt: 2026-03-18T16:05:00Z
-          - createdAt: 2026-03-14T09:30:00Z
-            agentId: 3f9a1c52-8d1e-4b7a-9c3e-2a6f5d8b1e40
-            id: e5b2c8f1-6a3d-4b9e-8c7f-1d0a2e4b6c93
-            title: Opening hours and prices
-            content: |-
-              # Opening hours
-
-              Monday to Friday, 9am to 6pm.
-            updatedAt: 2026-03-18T16:05:00Z
-          knowledgeDocumentCount: 3
           replyLength: AGENT_REPLY_LENGTH_SHORT
           guardrails:
           - AGENT_GUARDRAIL_STAY_ON_TOPIC
@@ -25422,11 +25648,44 @@ components:
             linkName: Spring menu
             workflowStepId: 987fcdeb-a321-45e6-b789-123456789012
           emojiEnabled: true
+          knowledgeItems:
+          - createdAt: 2026-03-14T09:30:00Z
+            agentId: 3f9a1c52-8d1e-4b7a-9c3e-2a6f5d8b1e40
+            kind: AGENT_KNOWLEDGE_ITEM_KIND_WEB_PAGE
+            failureReason: The page answered 404 Not Found.
+            id: e5b2c8f1-6a3d-4b9e-8c7f-1d0a2e4b6c93
+            mediaId: 9b1f3e4a-2c5d-4e6f-8a7b-0c1d2e3f4a5b
+            readAt: 2026-03-18T16:05:00Z
+            title: Our menu
+            content: |-
+              # Menu
+
+              - Spicy chicken bowl, 14 EUR
+              - Roasted vegetable curry, 12 EUR
+            url: https://example.com/menu
+            status: AGENT_KNOWLEDGE_ITEM_STATUS_READY
+            updatedAt: 2026-03-18T16:05:00Z
+          - createdAt: 2026-03-14T09:30:00Z
+            agentId: 3f9a1c52-8d1e-4b7a-9c3e-2a6f5d8b1e40
+            kind: AGENT_KNOWLEDGE_ITEM_KIND_WEB_PAGE
+            failureReason: The page answered 404 Not Found.
+            id: e5b2c8f1-6a3d-4b9e-8c7f-1d0a2e4b6c93
+            mediaId: 9b1f3e4a-2c5d-4e6f-8a7b-0c1d2e3f4a5b
+            readAt: 2026-03-18T16:05:00Z
+            title: Our menu
+            content: |-
+              # Menu
+
+              - Spicy chicken bowl, 14 EUR
+              - Roasted vegetable curry, 12 EUR
+            url: https://example.com/menu
+            status: AGENT_KNOWLEDGE_ITEM_STATUS_READY
+            updatedAt: 2026-03-18T16:05:00Z
           updatedAt: 2026-03-18T16:05:00Z
           workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
       properties:
         agents:
-          description: "The agents, without their knowledge documents."
+          description: "The agents, without their knowledge items."
           items:
             $ref: "#/components/schemas/Agent"
           type: array
@@ -26720,18 +26979,24 @@ components:
         media:
         - fileName: menu-cover.png
           references:
-          - linkId: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
+          - agentId: 3f9a1c52-8d1e-4b7a-9c3e-2a6f5d8b1e40
+            linkId: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
             qrcodeTemplateId: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
             pageThemeTemplateId: 2b8d4f60-7a1c-4e3b-9f52-c6d0e8a1b347
             qrcodeTemplateName: Table card
+            agentKnowledgeItemId: e5b2c8f1-6a3d-4b9e-8c7f-1d0a2e4b6c93
+            agentName: Front desk
             pageThemeTemplateName: Lyon bistro
             type: TYPE_OPEN_MEDIA_STEP
             linkName: Spring menu
             workflowStepId: 987fcdeb-a321-45e6-b789-123456789012
-          - linkId: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
+          - agentId: 3f9a1c52-8d1e-4b7a-9c3e-2a6f5d8b1e40
+            linkId: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
             qrcodeTemplateId: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
             pageThemeTemplateId: 2b8d4f60-7a1c-4e3b-9f52-c6d0e8a1b347
             qrcodeTemplateName: Table card
+            agentKnowledgeItemId: e5b2c8f1-6a3d-4b9e-8c7f-1d0a2e4b6c93
+            agentName: Front desk
             pageThemeTemplateName: Lyon bistro
             type: TYPE_OPEN_MEDIA_STEP
             linkName: Spring menu
@@ -26753,18 +27018,24 @@ components:
           workspaceId: c0d3cafe-5b1e-4d42-a6fd-0c5f5c3962d0
         - fileName: menu-cover.png
           references:
-          - linkId: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
+          - agentId: 3f9a1c52-8d1e-4b7a-9c3e-2a6f5d8b1e40
+            linkId: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
             qrcodeTemplateId: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
             pageThemeTemplateId: 2b8d4f60-7a1c-4e3b-9f52-c6d0e8a1b347
             qrcodeTemplateName: Table card
+            agentKnowledgeItemId: e5b2c8f1-6a3d-4b9e-8c7f-1d0a2e4b6c93
+            agentName: Front desk
             pageThemeTemplateName: Lyon bistro
             type: TYPE_OPEN_MEDIA_STEP
             linkName: Spring menu
             workflowStepId: 987fcdeb-a321-45e6-b789-123456789012
-          - linkId: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
+          - agentId: 3f9a1c52-8d1e-4b7a-9c3e-2a6f5d8b1e40
+            linkId: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
             qrcodeTemplateId: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
             pageThemeTemplateId: 2b8d4f60-7a1c-4e3b-9f52-c6d0e8a1b347
             qrcodeTemplateName: Table card
+            agentKnowledgeItemId: e5b2c8f1-6a3d-4b9e-8c7f-1d0a2e4b6c93
+            agentName: Front desk
             pageThemeTemplateName: Lyon bistro
             type: TYPE_OPEN_MEDIA_STEP
             linkName: Spring menu
@@ -27676,6 +27947,7 @@ components:
           nextCanGoBack: true
           canvasPosition: ""
           rendersPage: true
+          media: ""
           branches:
           - branchId: a3f1c6d8-2e4b-4a7c-9d1f-6b8e0c2a4f57
             nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
@@ -27701,6 +27973,7 @@ components:
           nextCanGoBack: true
           canvasPosition: ""
           rendersPage: true
+          media: ""
           branches:
           - branchId: a3f1c6d8-2e4b-4a7c-9d1f-6b8e0c2a4f57
             nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
@@ -27904,18 +28177,24 @@ components:
       example:
         fileName: menu-cover.png
         references:
-        - linkId: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
+        - agentId: 3f9a1c52-8d1e-4b7a-9c3e-2a6f5d8b1e40
+          linkId: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
           qrcodeTemplateId: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
           pageThemeTemplateId: 2b8d4f60-7a1c-4e3b-9f52-c6d0e8a1b347
           qrcodeTemplateName: Table card
+          agentKnowledgeItemId: e5b2c8f1-6a3d-4b9e-8c7f-1d0a2e4b6c93
+          agentName: Front desk
           pageThemeTemplateName: Lyon bistro
           type: TYPE_OPEN_MEDIA_STEP
           linkName: Spring menu
           workflowStepId: 987fcdeb-a321-45e6-b789-123456789012
-        - linkId: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
+        - agentId: 3f9a1c52-8d1e-4b7a-9c3e-2a6f5d8b1e40
+          linkId: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
           qrcodeTemplateId: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
           pageThemeTemplateId: 2b8d4f60-7a1c-4e3b-9f52-c6d0e8a1b347
           qrcodeTemplateName: Table card
+          agentKnowledgeItemId: e5b2c8f1-6a3d-4b9e-8c7f-1d0a2e4b6c93
+          agentName: Front desk
           pageThemeTemplateName: Lyon bistro
           type: TYPE_OPEN_MEDIA_STEP
           linkName: Spring menu
@@ -28075,20 +28354,39 @@ components:
         One place a media item is used. A media item's references are where it is used;
         none means it is not used anywhere.
       example:
+        agentId: 3f9a1c52-8d1e-4b7a-9c3e-2a6f5d8b1e40
         linkId: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
         qrcodeTemplateId: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
         pageThemeTemplateId: 2b8d4f60-7a1c-4e3b-9f52-c6d0e8a1b347
         qrcodeTemplateName: Table card
+        agentKnowledgeItemId: e5b2c8f1-6a3d-4b9e-8c7f-1d0a2e4b6c93
+        agentName: Front desk
         pageThemeTemplateName: Lyon bistro
         type: TYPE_OPEN_MEDIA_STEP
         linkName: Spring menu
         workflowStepId: 987fcdeb-a321-45e6-b789-123456789012
       properties:
+        agentId:
+          description: The agent that reads the media as knowledge (UUID). Set only
+            for TYPE_AGENT_KNOWLEDGE.
+          example: 3f9a1c52-8d1e-4b7a-9c3e-2a6f5d8b1e40
+          readOnly: true
+          type: string
+        agentKnowledgeItemId:
+          description: The knowledge item that reads the media (UUID). Set with agentId.
+          example: e5b2c8f1-6a3d-4b9e-8c7f-1d0a2e4b6c93
+          readOnly: true
+          type: string
+        agentName:
+          description: The agent's name. Set with agentId.
+          example: Front desk
+          readOnly: true
+          type: string
         linkId:
           description: "The link that uses the media (UUID): the Open media step's\
-            \ link, a link whose page theme shows it, or a link whose QR code uses\
-            \ it as its logo. Empty when the use is not tied to a link, as for a template's\
-            \ own theme or QR code design."
+            \ or the step's link, a link whose page theme shows it, or a link whose\
+            \ QR code uses it as its logo. Empty when the use is not tied to a link,\
+            \ as for a template's own theme or QR code design."
           example: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
           readOnly: true
           type: string
@@ -28129,8 +28427,8 @@ components:
           title: What uses the media
         workflowStepId:
           description: |-
-            The workflow step using the media (UUID): the Open media step handing it out, or the contact card
-            showing it as its photo. Set only for TYPE_OPEN_MEDIA_STEP and TYPE_CONTACT_CARD_AVATAR.
+            The workflow step using the media (UUID): the Open media step handing it out, or the step showing
+            it as its own badge or cover. Set only for TYPE_OPEN_MEDIA_STEP, TYPE_STEP_BADGE and TYPE_STEP_COVER.
           example: 987fcdeb-a321-45e6-b789-123456789012
           readOnly: true
           type: string
@@ -28145,8 +28443,14 @@ components:
          - TYPE_QR_CODE_LOGO: A QR code design uses the media as its logo, in the center of the QR code. The design keeps its
         own copy of the image, so this does not block deleting the media; deleting it clears this use.
         Replacing the media's file detaches it too: the design keeps its current logo.
-         - TYPE_CONTACT_CARD_AVATAR: A contact card workflow step shows the media as the person's photo, and saves it with the
-        contact. It blocks deleting the media.
+         - TYPE_CONTACT_CARD_AVATAR: Deprecated: no longer returned. A contact card's photo is its step's badge, listed as
+        TYPE_STEP_BADGE.
+         - TYPE_STEP_BADGE: A workflow step shows the media as its own badge, in place of the page theme's (a contact
+        card's badge is the person's photo). It blocks deleting the media.
+         - TYPE_STEP_COVER: A workflow step shows the media as its own cover, in place of the page theme's. It blocks
+        deleting the media.
+         - TYPE_AGENT_KNOWLEDGE: An agent reads the media (a PDF or an image) as one of its knowledge items. It blocks deleting
+        the media; replacing the media's file reads the new file into the agent's knowledge.
       enum:
       - TYPE_UNSPECIFIED
       - TYPE_OPEN_MEDIA_STEP
@@ -28155,6 +28459,9 @@ components:
       - TYPE_PAGE_THEME_FOOTER_LOGO
       - TYPE_QR_CODE_LOGO
       - TYPE_CONTACT_CARD_AVATAR
+      - TYPE_STEP_BADGE
+      - TYPE_STEP_COVER
+      - TYPE_AGENT_KNOWLEDGE
       title: What uses the media
       type: string
     MediaSelection:
@@ -28308,12 +28615,12 @@ components:
          - UPLOAD_ORIGIN_UNSPECIFIED: Not set. Uploads that do not say where they come from are recorded as UPLOAD_ORIGIN_MEDIA_LIBRARY.
          - UPLOAD_ORIGIN_MEDIA_LIBRARY: Uploaded from the media library itself
          - UPLOAD_ORIGIN_QR_CODE_LOGO: Uploaded while picking a QR code's logo
-         - UPLOAD_ORIGIN_BACKGROUND_COVER: Uploaded while picking a page theme's background cover
-         - UPLOAD_ORIGIN_BADGE: Uploaded while picking a page theme's badge
+         - UPLOAD_ORIGIN_BACKGROUND_COVER: Uploaded while picking a background cover, a page theme's or a step's own
+         - UPLOAD_ORIGIN_BADGE: Uploaded while picking a badge, a page theme's or a step's own
          - UPLOAD_ORIGIN_FOOTER_LOGO: Uploaded while picking a page theme's footer logo
          - UPLOAD_ORIGIN_OPEN_MEDIA: Uploaded while picking the media an Open media step opens
          - UPLOAD_ORIGIN_ASSISTANT: Imported by the Assistant, from a file attached to a conversation or a URL
-         - UPLOAD_ORIGIN_CONTACT_CARD_AVATAR: Uploaded while picking a contact card's photo
+         - UPLOAD_ORIGIN_CONTACT_CARD_AVATAR: Uploaded while picking a contact card's photo (its step's badge); new uploads use UPLOAD_ORIGIN_BADGE
       enum:
       - UPLOAD_ORIGIN_UNSPECIFIED
       - UPLOAD_ORIGIN_MEDIA_LIBRARY
@@ -28331,7 +28638,7 @@ components:
         Deprecated: the value recorded at upload, kept for older clients. It no longer limits anything. Uploads
         accept images (PNG, JPEG, WebP, SVG) up to 10 MB, PDF documents up to 25 MB and MP4 videos up to 50 MB,
         whatever the usage. Where media is used is checked when it is attached: a QR code logo, background
-        cover, badge, footer logo or contact card photo must be an image of at most 3 MB; an Open media step takes any media.
+        cover, badge, footer logo or a step's own badge or cover must be an image of at most 3 MB; an Open media step takes any media.
 
          - USAGE_UNSPECIFIED: Not set
          - USAGE_CENTRAL_QRCODE_IMAGE: The logo in the center of a QR code
@@ -31225,6 +31532,15 @@ components:
       - FALLBACK_REASON_MEDIA_MISSING
       title: Says why a visitor was sent to the link's fallback destination
       type: string
+    RefreshAgentKnowledgeItemResponse:
+      description: "Returns the item, reading."
+      example:
+        item: ""
+      properties:
+        item:
+          allOf:
+          - $ref: "#/components/schemas/AgentKnowledgeItem"
+          description: "The item, being read again."
     RenderQrcodeImagesResponse:
       description: "Carries the rendered codes, in request order."
       example:
@@ -31279,18 +31595,24 @@ components:
         unchanged: false
         media: ""
         detachedReferences:
-        - linkId: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
+        - agentId: 3f9a1c52-8d1e-4b7a-9c3e-2a6f5d8b1e40
+          linkId: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
           qrcodeTemplateId: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
           pageThemeTemplateId: 2b8d4f60-7a1c-4e3b-9f52-c6d0e8a1b347
           qrcodeTemplateName: Table card
+          agentKnowledgeItemId: e5b2c8f1-6a3d-4b9e-8c7f-1d0a2e4b6c93
+          agentName: Front desk
           pageThemeTemplateName: Lyon bistro
           type: TYPE_OPEN_MEDIA_STEP
           linkName: Spring menu
           workflowStepId: 987fcdeb-a321-45e6-b789-123456789012
-        - linkId: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
+        - agentId: 3f9a1c52-8d1e-4b7a-9c3e-2a6f5d8b1e40
+          linkId: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
           qrcodeTemplateId: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
           pageThemeTemplateId: 2b8d4f60-7a1c-4e3b-9f52-c6d0e8a1b347
           qrcodeTemplateName: Table card
+          agentKnowledgeItemId: e5b2c8f1-6a3d-4b9e-8c7f-1d0a2e4b6c93
+          agentName: Front desk
           pageThemeTemplateName: Lyon bistro
           type: TYPE_OPEN_MEDIA_STEP
           linkName: Spring menu
@@ -32840,15 +33162,15 @@ components:
       - TRIGGERED_BY_VISITOR
       title: The actor that triggered the event
       type: string
-    UpdateAgentKnowledgeDocumentResponse:
-      description: Returns the updated document.
+    UpdateAgentKnowledgeItemResponse:
+      description: Returns the updated item.
       example:
-        document: ""
+        item: ""
       properties:
-        document:
+        item:
           allOf:
-          - $ref: "#/components/schemas/AgentKnowledgeDocument"
-          description: The updated document.
+          - $ref: "#/components/schemas/AgentKnowledgeItem"
+          description: The updated item.
     UpdateAgentResponse:
       description: Returns the updated agent.
       example:
@@ -32857,7 +33179,7 @@ components:
         agent:
           allOf:
           - $ref: "#/components/schemas/Agent"
-          description: "The updated agent, with its knowledge documents."
+          description: "The updated agent, with its knowledge items."
     UpdateContactConnectionResponse:
       example:
         connection:
@@ -33400,6 +33722,7 @@ components:
           nextCanGoBack: true
           canvasPosition: ""
           rendersPage: true
+          media: ""
           branches:
           - branchId: a3f1c6d8-2e4b-4a7c-9d1f-6b8e0c2a4f57
             nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
@@ -33516,9 +33839,10 @@ components:
       properties:
         avatarMediaId:
           description: |-
-            A photo of the person, from the workspace's media library (UUID), shown round at the top of the
-            card and saved with the contact. Upload or import the image first and pass its media id. Any READY
-            image of at most 3 MB.
+            A photo of the person, from the workspace's media library (UUID), shown at the top of the card in
+            the page theme's badge style and saved with the contact. It becomes the contact card step's badge
+            image (the step's media.badge_media_id). Upload or import the image first and pass its media id.
+            Any READY image of at most 3 MB.
           example: 5f1c2d3e-4b5a-6c7d-8e9f-0a1b2c3d4e5f
           type: string
         buttonLabel:
@@ -33625,11 +33949,13 @@ components:
       properties:
         avatarMediaId:
           description: |-
-            A photo of the person, from the workspace's media library (UUID): shown round at the top of the
-            card, in the page theme's badge style, and saved with the contact as its photo. Upload the image
-            first (POST /v1/media/uploads, a PUT of its bytes, then its complete call) or import it from a URL,
-            and pass the media id: the image itself is never sent here. Any READY image of at most 3 MB can be
-            a contact card photo. Empty on an update removes it.
+            A photo of the person, from the workspace's media library (UUID): shown at the top of the card,
+            in the page theme's badge style, and saved with the contact as its photo. The same value as the
+            step's media.badge_media_id, which every page step has: reading the card returns it, and setting
+            it sets the step's badge. Upload the image first (POST /v1/media/uploads, a PUT of its bytes, then
+            its complete call) or import it from a URL, and pass the media id: the image itself is never sent
+            here. Any READY image of at most 3 MB. An update that sends the card without media sets the badge
+            from this field, so empty or left out removes it; an update with media uses media.
           example: 5f1c2d3e-4b5a-6c7d-8e9f-0a1b2c3d4e5f
           type: string
         buttonLabel:
@@ -35002,6 +35328,7 @@ components:
         nextCanGoBack: true
         canvasPosition: ""
         rendersPage: true
+        media: ""
         branches:
         - branchId: a3f1c6d8-2e4b-4a7c-9d1f-6b8e0c2a4f57
           nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
@@ -35201,6 +35528,13 @@ components:
           example: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
           title: The link ID this workflow step belongs to (UUID)
           type: string
+        media:
+          allOf:
+          - $ref: "#/components/schemas/WorkflowStepMedia"
+          description: |-
+            The step's own images, shown in place of the page theme's badge and
+            cover on this step only. Absent when the step uses the theme's. Only
+            page steps (rendersPage true) carry them.
         nextCanGoBack:
           description: |-
             Whether a page added after this step could show a back button: this step
@@ -35342,6 +35676,35 @@ components:
       - KIND_CONDITION
       title: Workflow step kinds
       type: string
+    WorkflowStepMedia:
+      description: |-
+        A page step's own images: a badge and a cover that replace the page
+        theme's on this step only, so one link can show a different picture on
+        each page (a person's photo on a contact card, a logo on the thank-you
+        page, another cover on the form). They change what is shown, never how:
+        the badge keeps the theme's badge shape and border, the cover the theme's
+        cover mode and placement, and a step without one shows the theme's.
+
+        Each slot is an image of the workspace's media library (UUID): upload or
+        import the image first and pass its media id. Any READY PNG, JPEG, WebP or
+        SVG image of at most 3 MB. Available on page steps only: MESSAGE_PAGE,
+        MULTI_LINK, CONTACT_CARD, SOCIAL_LINKS_PAGE, FORM_SUBMIT, PASSWORD_VERIFY,
+        THANK_YOU_PAGE, LOCATION_REQUEST and CHAT_BOT. A contact card's badge is
+        the person's photo, also saved in the downloaded contact.
+      properties:
+        badgeMediaId:
+          description: |-
+            The image shown in the page theme's badge slot on this step, in the
+            theme's badge shape and border, even when the theme has no badge (UUID of
+            a media library image). Empty: the theme's badge.
+          example: 5f1c2d3e-4b5a-6c7d-8e9f-0a1b2c3d4e5f
+          type: string
+        coverMediaId:
+          description: |-
+            The image shown as this step's cover, in the theme's cover mode and
+            placement (UUID of a media library image). Empty: the theme's cover.
+          example: 7a2b3c4d-5e6f-4a1b-8c9d-0e1f2a3b4c5d
+          type: string
     WorkflowStepNodeType:
       default: NODE_TYPE_UNSPECIFIED
       description: |-
@@ -36078,6 +36441,7 @@ components:
           eventAction: EVENT_ACTION_FORM_SUBMIT
           attributeCapture: ""
           key: s1
+          stepMedia: ""
         - payload:
             timeOfDayCondition:
               elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
@@ -36398,6 +36762,7 @@ components:
           eventAction: EVENT_ACTION_FORM_SUBMIT
           attributeCapture: ""
           key: s1
+          stepMedia: ""
         version: 1
       properties:
         edges:
@@ -36790,6 +37155,7 @@ components:
         eventAction: EVENT_ACTION_FORM_SUBMIT
         attributeCapture: ""
         key: s1
+        stepMedia: ""
       properties:
         agentName:
           description: |-
@@ -36905,10 +37271,11 @@ components:
         media:
           allOf:
           - $ref: "#/components/schemas/WorkflowStepsDocumentMedia"
-          description: |-
-            The step's file, in place of its media id, which the payload leaves
-            empty: the one an open media step hands out, or a contact card's photo.
-            Imported into another workspace, the file is added to its media library.
+          title: |-
+            The file an open media step hands out, in place of its media id, which
+            the payload leaves empty. Imported into another workspace, the file is
+            added to its media library. (Documents made before stepMedia carried a
+            contact card's photo here; import still reads it as the card's badge.)
         name:
           description: |-
             A readable name for the step, such as "Form: Join the list". Ignored on
@@ -36922,8 +37289,25 @@ components:
           - $ref: "#/components/schemas/CanvasPosition"
           description: Where the step sits relative to the top left corner of the
             copied group.
+        stepMedia:
+          allOf:
+          - $ref: "#/components/schemas/WorkflowStepsDocumentStepMedia"
+          description: |-
+            The page's own badge and cover images, as files in place of their media
+            ids. Imported into another workspace, each is added to its media library.
       required:
       - eventAction
+    WorkflowStepsDocumentStepMedia:
+      description: A page step's own images in a document.
+      properties:
+        badge:
+          allOf:
+          - $ref: "#/components/schemas/WorkflowStepsDocumentMedia"
+          description: The badge image shown in place of the page theme's.
+        cover:
+          allOf:
+          - $ref: "#/components/schemas/WorkflowStepsDocumentMedia"
+          description: The cover image shown in place of the page theme's.
     WorkflowStepsServiceAutoLayoutWorkflowBody:
       type: object
     WorkflowStepsServiceConnectBody:
@@ -36941,6 +37325,7 @@ components:
         backButton: ""
         canvasPosition: ""
         id: 987fcdeb-a321-45e6-b789-123456789012
+        media: ""
         eventAction: EVENT_ACTION_FORM_SUBMIT
         attributeCapture: ""
         insertBefore: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
@@ -37068,6 +37453,12 @@ components:
             branches but leads nowhere until its own branches are connected.
           example: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
           type: string
+        media:
+          allOf:
+          - $ref: "#/components/schemas/WorkflowStepMedia"
+          description: |-
+            The page's own badge and cover images, in place of the page theme's
+            (optional). Page steps only.
         payload:
           allOf:
           - $ref: "#/components/schemas/WorkflowStepPayload"
@@ -37145,6 +37536,7 @@ components:
         payload: ""
         backButton: ""
         canvasPosition: ""
+        media: ""
         attributeCapture: ""
       properties:
         attributeCapture:
@@ -37166,6 +37558,14 @@ components:
           allOf:
           - $ref: "#/components/schemas/CanvasPosition"
           title: The updated canvas position (optional)
+        media:
+          allOf:
+          - $ref: "#/components/schemas/WorkflowStepMedia"
+          description: |-
+            Replaces the page's own badge and cover images, which show in place of
+            the page theme's on this step. Send both slots: an empty one goes back
+            to the theme's image. Leave it out to keep the current ones. Page steps
+            only.
         payload:
           allOf:
           - $ref: "#/components/schemas/WorkflowStepPayload"
@@ -37676,8 +38076,8 @@ components:
                - API_SCOPE_BILLING_WRITE: Open checkout, credit top-up and billing portal sessions.
                - API_SCOPE_ASSISTANT_READ: Read the Assistant conversation.
                - API_SCOPE_ASSISTANT_WRITE: Send files to the Assistant, clear the conversation and contact support.
-               - API_SCOPE_AGENTS_READ: Read agents and their knowledge documents.
-               - API_SCOPE_AGENTS_WRITE: Create, update and delete agents and their knowledge documents.
+               - API_SCOPE_AGENTS_READ: Read agents and their knowledge items.
+               - API_SCOPE_AGENTS_WRITE: Create, update and delete agents and their knowledge items.
             enum:
             - API_SCOPE_UNSPECIFIED
             - API_SCOPE_LINKS_READ
@@ -37802,8 +38202,8 @@ components:
                - API_SCOPE_BILLING_WRITE: Open checkout, credit top-up and billing portal sessions.
                - API_SCOPE_ASSISTANT_READ: Read the Assistant conversation.
                - API_SCOPE_ASSISTANT_WRITE: Send files to the Assistant, clear the conversation and contact support.
-               - API_SCOPE_AGENTS_READ: Read agents and their knowledge documents.
-               - API_SCOPE_AGENTS_WRITE: Create, update and delete agents and their knowledge documents.
+               - API_SCOPE_AGENTS_READ: Read agents and their knowledge items.
+               - API_SCOPE_AGENTS_WRITE: Create, update and delete agents and their knowledge items.
             enum:
             - API_SCOPE_UNSPECIFIED
             - API_SCOPE_LINKS_READ
@@ -38032,8 +38432,8 @@ components:
           authorizationUrl: https://mcp.linkbreakers.com/oauth/authorize
           refreshUrl: https://mcp.linkbreakers.com/oauth/token
           scopes:
-            agents:read: Read agents and their knowledge documents.
-            agents:write: "Create, update and delete agents and their knowledge documents."
+            agents:read: Read agents and their knowledge items.
+            agents:write: "Create, update and delete agents and their knowledge items."
             analytics:read: "Read events, metrics, time series, analytics data and\
               \ dashboards."
             analytics:write: "Create, update and delete analytics dashboards and generate\

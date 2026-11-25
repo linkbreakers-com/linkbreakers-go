@@ -3,7 +3,7 @@ Linkbreakers API
 
 The Linkbreakers REST API: links, QR codes, workflows, visitors and analytics, as JSON over HTTPS. Send a workspace API token as `Authorization: Bearer <token>`.  ## Entry points  `GET https://api.linkbreakers.com/` and `GET https://api.linkbreakers.com/v1` answer without credentials with the API's name, version and links. This document is served at `https://api.linkbreakers.com/openapi.json`.  ## Rate limits  Every response describes where the caller stands in the IETF `RateLimit-Policy` and `RateLimit` header fields (draft-ietf-httpapi-ratelimit-headers), and in `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset` and `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset` (a Unix timestamp) for clients that read those. A request past the limit gets `429 Too Many Requests` with `Retry-After` in seconds.  - Workspace API token: 720 requests per 60 seconds, per token. - Dashboard session or OAuth token: 600 requests per 60 seconds, per token. - No credentials: 300 requests per 60 seconds, per client IP.  Each plan also includes a number of API calls per billing cycle. Past it, calls answer `429` with the code `MAX_PUBLIC_API_QUERIED_REACHED` until the cycle renews or the plan changes.  ## Pagination  Every list pages with opaque cursors (AIP-158). Pass `pageSize`, then send the `nextPageToken` of each response back as `pageToken` (or its alias `cursor`) to get the next page. An empty or absent `nextPageToken` means the list is complete. Each list operation describes this in `x-pagination`.  ## Batches and background jobs  `POST /v1/links/bulk` creates up to 250 links in one transactional request; `POST /v1/links/batch` takes the same links as a bare JSON array. `POST /v1/links/bulk/jobs` accepts the same batch and answers `202 Accepted` at once with a link job and a `Location` header; poll `GET /v1/links/jobs/{id}` until `status` is `LINK_JOB_STATUS_SUCCEEDED` (the created link ids are in `linksBulkCreate.linkIds`) or `LINK_JOB_STATUS_FAILED` (`error` says why, and nothing was created). Link jobs can be read for 24 hours after they finish.  ## Paused workspaces  A free workspace whose members have not verified any email address is paused 7 days after sign-up. Its calls then answer `403` with the code `WORKSPACE_UNVERIFIED` and change nothing; QR codes and links keep working for visitors. To lift the pause, ask the workspace owner to verify their email: `POST /v1/members/email-verification` sends the verification email again, and works while the workspace is paused. `unverifiedPauseAt` on the workspace says when the pause starts.  ## Versioning and deprecation  The version is in the path: every operation lives under `/v1`. Within a version, changes are additive only: new operations, new optional request fields, new response fields and new enum values. Clients should ignore fields and enum values they do not know. Anything that would break an existing client ships under a new path version instead.  An operation is retired in two steps. First it is deprecated: it keeps working, is flagged `deprecated: true` in this document, and every response carries a `Deprecation` header field (RFC 9745) with the time it was deprecated and a `Link` with `rel=\"deprecation\"` to the policy. Then, at least 180 days later, it may be removed; that date is announced in advance in a `Sunset` header field (RFC 8594) and as `x-sunset` on the operation. The full policy: https://linkbreakers.com/help/article/api-versioning-and-deprecation-policy  A renamed operation keeps answering its former path while clients still call it, until that path's sunset at the latest: a former path no client calls for 14 days is removed. Responses on a former path carry the same `Deprecation`, `Sunset` and `Link` header fields; this document lists only the current path, and the policy lists the former paths that still answer.  ## Idempotent retries  Every POST, PUT and PATCH accepts an optional `Idempotency-Key` header (draft-ietf-httpapi-idempotency-key-header). Send a new unique value, such as a UUID, with each logical request and reuse it only to retry that request. A retry with the same key and the same request returns the first response, marked `Idempotent-Replayed: true`, instead of running again. Keys are scoped to the token and kept for 24 hours. The same key with a different request is refused with `422`, and a retry while the first request is still running gets `409` with `Retry-After`. Server errors (5xx) and refusals such as 401, 403 and 429 are not stored, so retrying them runs the request again.  ## Identifying your client  Send a `Linkbreakers-Client` request header saying which client made the call: `<client>/<version> (<details>)`, for example `my-integration/1.2.0 (python 3.12; linux)`. The official SDKs, the CLI and the MCP bridge set it for you, as `sdk-python/2.3.1 (python 3.12.4; linux)` or `cli/1.4.0 (darwin arm64)`. It is optional and changes nothing about how a request is handled; it tells us which clients and versions are in use, so we know what can be retired and what to fix first. Keep the details short and free of personal data. Browsers may send it too: it is allowed by CORS.
 
-API version: 1.205.1
+API version: 1.205.2
 */
 
 // Code generated by OpenAPI Generator (https://openapi-generator.tech); DO NOT EDIT.
@@ -164,42 +164,42 @@ func (a *AgentsAPIService) AgentsServiceCreateExecute(r ApiAgentsServiceCreateRe
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiAgentsServiceCreateKnowledgeDocumentRequest struct {
+type ApiAgentsServiceCreateKnowledgeItemRequest struct {
 	ctx context.Context
 	ApiService *AgentsAPIService
 	agentId string
-	agentsServiceCreateKnowledgeDocumentBody *AgentsServiceCreateKnowledgeDocumentBody
+	agentsServiceCreateKnowledgeItemBody *AgentsServiceCreateKnowledgeItemBody
 	idempotencyKey *string
 }
 
-func (r ApiAgentsServiceCreateKnowledgeDocumentRequest) AgentsServiceCreateKnowledgeDocumentBody(agentsServiceCreateKnowledgeDocumentBody AgentsServiceCreateKnowledgeDocumentBody) ApiAgentsServiceCreateKnowledgeDocumentRequest {
-	r.agentsServiceCreateKnowledgeDocumentBody = &agentsServiceCreateKnowledgeDocumentBody
+func (r ApiAgentsServiceCreateKnowledgeItemRequest) AgentsServiceCreateKnowledgeItemBody(agentsServiceCreateKnowledgeItemBody AgentsServiceCreateKnowledgeItemBody) ApiAgentsServiceCreateKnowledgeItemRequest {
+	r.agentsServiceCreateKnowledgeItemBody = &agentsServiceCreateKnowledgeItemBody
 	return r
 }
 
 // A unique value per request, such as a UUID, that makes retrying it safe: a retry with the same key and body returns the first response instead of acting twice.
-func (r ApiAgentsServiceCreateKnowledgeDocumentRequest) IdempotencyKey(idempotencyKey string) ApiAgentsServiceCreateKnowledgeDocumentRequest {
+func (r ApiAgentsServiceCreateKnowledgeItemRequest) IdempotencyKey(idempotencyKey string) ApiAgentsServiceCreateKnowledgeItemRequest {
 	r.idempotencyKey = &idempotencyKey
 	return r
 }
 
-func (r ApiAgentsServiceCreateKnowledgeDocumentRequest) Execute() (*CreateAgentKnowledgeDocumentResponse, *http.Response, error) {
-	return r.ApiService.AgentsServiceCreateKnowledgeDocumentExecute(r)
+func (r ApiAgentsServiceCreateKnowledgeItemRequest) Execute() (*CreateAgentKnowledgeItemResponse, *http.Response, error) {
+	return r.ApiService.AgentsServiceCreateKnowledgeItemExecute(r)
 }
 
 /*
-AgentsServiceCreateKnowledgeDocument Add a knowledge document
+AgentsServiceCreateKnowledgeItem Add a knowledge item
 
-Add a Markdown document to an agent's knowledge.
+Add an item to an agent's knowledge: Markdown text, a web page read from its URL, or a PDF or image of the media library. A web page or media item is read in the background: it is returned with the status reading, then becomes ready, or failed with a reason. Only ready items are part of what the agent knows.
 
 Requires the `agents:write` scope.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param agentId The agent's ID (UUID).
- @return ApiAgentsServiceCreateKnowledgeDocumentRequest
+ @return ApiAgentsServiceCreateKnowledgeItemRequest
 */
-func (a *AgentsAPIService) AgentsServiceCreateKnowledgeDocument(ctx context.Context, agentId string) ApiAgentsServiceCreateKnowledgeDocumentRequest {
-	return ApiAgentsServiceCreateKnowledgeDocumentRequest{
+func (a *AgentsAPIService) AgentsServiceCreateKnowledgeItem(ctx context.Context, agentId string) ApiAgentsServiceCreateKnowledgeItemRequest {
+	return ApiAgentsServiceCreateKnowledgeItemRequest{
 		ApiService: a,
 		ctx: ctx,
 		agentId: agentId,
@@ -207,28 +207,28 @@ func (a *AgentsAPIService) AgentsServiceCreateKnowledgeDocument(ctx context.Cont
 }
 
 // Execute executes the request
-//  @return CreateAgentKnowledgeDocumentResponse
-func (a *AgentsAPIService) AgentsServiceCreateKnowledgeDocumentExecute(r ApiAgentsServiceCreateKnowledgeDocumentRequest) (*CreateAgentKnowledgeDocumentResponse, *http.Response, error) {
+//  @return CreateAgentKnowledgeItemResponse
+func (a *AgentsAPIService) AgentsServiceCreateKnowledgeItemExecute(r ApiAgentsServiceCreateKnowledgeItemRequest) (*CreateAgentKnowledgeItemResponse, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
-		localVarReturnValue  *CreateAgentKnowledgeDocumentResponse
+		localVarReturnValue  *CreateAgentKnowledgeItemResponse
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AgentsAPIService.AgentsServiceCreateKnowledgeDocument")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AgentsAPIService.AgentsServiceCreateKnowledgeItem")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v1/agents/{agentId}/knowledge-documents"
+	localVarPath := localBasePath + "/v1/agents/{agentId}/knowledge-items"
 	localVarPath = strings.Replace(localVarPath, "{"+"agentId"+"}", url.PathEscape(parameterValueToString(r.agentId, "agentId")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
-	if r.agentsServiceCreateKnowledgeDocumentBody == nil {
-		return localVarReturnValue, nil, reportError("agentsServiceCreateKnowledgeDocumentBody is required and must be specified")
+	if r.agentsServiceCreateKnowledgeItemBody == nil {
+		return localVarReturnValue, nil, reportError("agentsServiceCreateKnowledgeItemBody is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -252,7 +252,7 @@ func (a *AgentsAPIService) AgentsServiceCreateKnowledgeDocumentExecute(r ApiAgen
 		parameterAddToHeaderOrQuery(localVarHeaderParams, "Idempotency-Key", r.idempotencyKey, "simple", "")
 	}
 	// body params
-	localVarPostBody = r.agentsServiceCreateKnowledgeDocumentBody
+	localVarPostBody = r.agentsServiceCreateKnowledgeItemBody
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
 		return localVarReturnValue, nil, err
@@ -322,7 +322,7 @@ func (r ApiAgentsServiceDeleteRequest) Execute() (map[string]interface{}, *http.
 /*
 AgentsServiceDelete Delete an agent
 
-Delete an agent and its knowledge documents.
+Delete an agent and its knowledge items.
 
 Requires the `agents:write` scope.
 
@@ -433,31 +433,31 @@ func (a *AgentsAPIService) AgentsServiceDeleteExecute(r ApiAgentsServiceDeleteRe
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiAgentsServiceDeleteKnowledgeDocumentRequest struct {
+type ApiAgentsServiceDeleteKnowledgeItemRequest struct {
 	ctx context.Context
 	ApiService *AgentsAPIService
 	agentId string
 	id string
 }
 
-func (r ApiAgentsServiceDeleteKnowledgeDocumentRequest) Execute() (map[string]interface{}, *http.Response, error) {
-	return r.ApiService.AgentsServiceDeleteKnowledgeDocumentExecute(r)
+func (r ApiAgentsServiceDeleteKnowledgeItemRequest) Execute() (map[string]interface{}, *http.Response, error) {
+	return r.ApiService.AgentsServiceDeleteKnowledgeItemExecute(r)
 }
 
 /*
-AgentsServiceDeleteKnowledgeDocument Delete a knowledge document
+AgentsServiceDeleteKnowledgeItem Delete a knowledge item
 
-Remove a document from an agent's knowledge.
+Remove an item from an agent's knowledge. A media file it read stays in the media library.
 
 Requires the `agents:write` scope.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param agentId The agent's ID (UUID).
- @param id The document's ID (UUID).
- @return ApiAgentsServiceDeleteKnowledgeDocumentRequest
+ @param id The item's ID (UUID).
+ @return ApiAgentsServiceDeleteKnowledgeItemRequest
 */
-func (a *AgentsAPIService) AgentsServiceDeleteKnowledgeDocument(ctx context.Context, agentId string, id string) ApiAgentsServiceDeleteKnowledgeDocumentRequest {
-	return ApiAgentsServiceDeleteKnowledgeDocumentRequest{
+func (a *AgentsAPIService) AgentsServiceDeleteKnowledgeItem(ctx context.Context, agentId string, id string) ApiAgentsServiceDeleteKnowledgeItemRequest {
+	return ApiAgentsServiceDeleteKnowledgeItemRequest{
 		ApiService: a,
 		ctx: ctx,
 		agentId: agentId,
@@ -467,7 +467,7 @@ func (a *AgentsAPIService) AgentsServiceDeleteKnowledgeDocument(ctx context.Cont
 
 // Execute executes the request
 //  @return map[string]interface{}
-func (a *AgentsAPIService) AgentsServiceDeleteKnowledgeDocumentExecute(r ApiAgentsServiceDeleteKnowledgeDocumentRequest) (map[string]interface{}, *http.Response, error) {
+func (a *AgentsAPIService) AgentsServiceDeleteKnowledgeItemExecute(r ApiAgentsServiceDeleteKnowledgeItemRequest) (map[string]interface{}, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodDelete
 		localVarPostBody     interface{}
@@ -475,12 +475,12 @@ func (a *AgentsAPIService) AgentsServiceDeleteKnowledgeDocumentExecute(r ApiAgen
 		localVarReturnValue  map[string]interface{}
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AgentsAPIService.AgentsServiceDeleteKnowledgeDocument")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AgentsAPIService.AgentsServiceDeleteKnowledgeItem")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v1/agents/{agentId}/knowledge-documents/{id}"
+	localVarPath := localBasePath + "/v1/agents/{agentId}/knowledge-items/{id}"
 	localVarPath = strings.Replace(localVarPath, "{"+"agentId"+"}", url.PathEscape(parameterValueToString(r.agentId, "agentId")), -1)
 	localVarPath = strings.Replace(localVarPath, "{"+"id"+"}", url.PathEscape(parameterValueToString(r.id, "id")), -1)
 
@@ -574,7 +574,7 @@ func (r ApiAgentsServiceGetRequest) Execute() (*GetAgentResponse, *http.Response
 /*
 AgentsServiceGet Get an agent
 
-Retrieve an agent with its knowledge documents.
+Retrieve an agent with its knowledge items.
 
 Requires the `agents:read` scope.
 
@@ -718,7 +718,7 @@ func (r ApiAgentsServiceListRequest) Execute() (*ListAgentsResponse, *http.Respo
 /*
 AgentsServiceList List agents
 
-List the workspace's agents, without their knowledge documents.
+List the workspace's agents, without their knowledge items.
 
 Requires the `agents:read` scope.
 
@@ -955,6 +955,155 @@ func (a *AgentsAPIService) AgentsServiceListPresetsExecute(r ApiAgentsServiceLis
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
+type ApiAgentsServiceRefreshKnowledgeItemRequest struct {
+	ctx context.Context
+	ApiService *AgentsAPIService
+	agentId string
+	id string
+	body *map[string]interface{}
+	idempotencyKey *string
+}
+
+func (r ApiAgentsServiceRefreshKnowledgeItemRequest) Body(body map[string]interface{}) ApiAgentsServiceRefreshKnowledgeItemRequest {
+	r.body = &body
+	return r
+}
+
+// A unique value per request, such as a UUID, that makes retrying it safe: a retry with the same key and body returns the first response instead of acting twice.
+func (r ApiAgentsServiceRefreshKnowledgeItemRequest) IdempotencyKey(idempotencyKey string) ApiAgentsServiceRefreshKnowledgeItemRequest {
+	r.idempotencyKey = &idempotencyKey
+	return r
+}
+
+func (r ApiAgentsServiceRefreshKnowledgeItemRequest) Execute() (*RefreshAgentKnowledgeItemResponse, *http.Response, error) {
+	return r.ApiService.AgentsServiceRefreshKnowledgeItemExecute(r)
+}
+
+/*
+AgentsServiceRefreshKnowledgeItem Refresh a knowledge item
+
+Read a web page or media item again, in the background: after the page or file changed, or to retry an item that failed. The agent keeps the text read before until the new reading is ready. A Markdown item has nothing to read and is refused.
+
+Requires the `agents:write` scope.
+
+ @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+ @param agentId The agent's ID (UUID).
+ @param id The item's ID (UUID).
+ @return ApiAgentsServiceRefreshKnowledgeItemRequest
+*/
+func (a *AgentsAPIService) AgentsServiceRefreshKnowledgeItem(ctx context.Context, agentId string, id string) ApiAgentsServiceRefreshKnowledgeItemRequest {
+	return ApiAgentsServiceRefreshKnowledgeItemRequest{
+		ApiService: a,
+		ctx: ctx,
+		agentId: agentId,
+		id: id,
+	}
+}
+
+// Execute executes the request
+//  @return RefreshAgentKnowledgeItemResponse
+func (a *AgentsAPIService) AgentsServiceRefreshKnowledgeItemExecute(r ApiAgentsServiceRefreshKnowledgeItemRequest) (*RefreshAgentKnowledgeItemResponse, *http.Response, error) {
+	var (
+		localVarHTTPMethod   = http.MethodPost
+		localVarPostBody     interface{}
+		formFiles            []formFile
+		localVarReturnValue  *RefreshAgentKnowledgeItemResponse
+	)
+
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AgentsAPIService.AgentsServiceRefreshKnowledgeItem")
+	if err != nil {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
+	}
+
+	localVarPath := localBasePath + "/v1/agents/{agentId}/knowledge-items/{id}:refresh"
+	localVarPath = strings.Replace(localVarPath, "{"+"agentId"+"}", url.PathEscape(parameterValueToString(r.agentId, "agentId")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"id"+"}", url.PathEscape(parameterValueToString(r.id, "id")), -1)
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+	localVarFormParams := url.Values{}
+	if r.body == nil {
+		return localVarReturnValue, nil, reportError("body is required and must be specified")
+	}
+
+	// to determine the Content-Type header
+	localVarHTTPContentTypes := []string{"application/json"}
+
+	// set Content-Type header
+	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
+	if localVarHTTPContentType != "" {
+		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
+	}
+
+	// to determine the Accept header
+	localVarHTTPHeaderAccepts := []string{"application/json"}
+
+	// set Accept header
+	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
+	if localVarHTTPHeaderAccept != "" {
+		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
+	}
+	if r.idempotencyKey != nil {
+		parameterAddToHeaderOrQuery(localVarHeaderParams, "Idempotency-Key", r.idempotencyKey, "simple", "")
+	}
+	// body params
+	localVarPostBody = r.body
+	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
+	if err != nil {
+		return localVarReturnValue, nil, err
+	}
+
+	localVarHTTPResponse, err := a.client.callAPI(req)
+	if err != nil || localVarHTTPResponse == nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
+	localVarHTTPResponse.Body.Close()
+	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
+	if err != nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	if localVarHTTPResponse.StatusCode >= 300 {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: localVarHTTPResponse.Status,
+		}
+		if localVarHTTPResponse.StatusCode == 429 {
+			var v ErrorResponse
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+					newErr.model = v
+			return localVarReturnValue, localVarHTTPResponse, newErr
+		}
+			var v ErrorResponse
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+					newErr.model = v
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
+}
+
 type ApiAgentsServiceUpdateRequest struct {
 	ctx context.Context
 	ApiService *AgentsAPIService
@@ -1100,44 +1249,44 @@ func (a *AgentsAPIService) AgentsServiceUpdateExecute(r ApiAgentsServiceUpdateRe
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiAgentsServiceUpdateKnowledgeDocumentRequest struct {
+type ApiAgentsServiceUpdateKnowledgeItemRequest struct {
 	ctx context.Context
 	ApiService *AgentsAPIService
 	agentId string
 	id string
-	agentsServiceUpdateKnowledgeDocumentBody *AgentsServiceUpdateKnowledgeDocumentBody
+	agentsServiceUpdateKnowledgeItemBody *AgentsServiceUpdateKnowledgeItemBody
 	idempotencyKey *string
 }
 
-func (r ApiAgentsServiceUpdateKnowledgeDocumentRequest) AgentsServiceUpdateKnowledgeDocumentBody(agentsServiceUpdateKnowledgeDocumentBody AgentsServiceUpdateKnowledgeDocumentBody) ApiAgentsServiceUpdateKnowledgeDocumentRequest {
-	r.agentsServiceUpdateKnowledgeDocumentBody = &agentsServiceUpdateKnowledgeDocumentBody
+func (r ApiAgentsServiceUpdateKnowledgeItemRequest) AgentsServiceUpdateKnowledgeItemBody(agentsServiceUpdateKnowledgeItemBody AgentsServiceUpdateKnowledgeItemBody) ApiAgentsServiceUpdateKnowledgeItemRequest {
+	r.agentsServiceUpdateKnowledgeItemBody = &agentsServiceUpdateKnowledgeItemBody
 	return r
 }
 
 // A unique value per request, such as a UUID, that makes retrying it safe: a retry with the same key and body returns the first response instead of acting twice.
-func (r ApiAgentsServiceUpdateKnowledgeDocumentRequest) IdempotencyKey(idempotencyKey string) ApiAgentsServiceUpdateKnowledgeDocumentRequest {
+func (r ApiAgentsServiceUpdateKnowledgeItemRequest) IdempotencyKey(idempotencyKey string) ApiAgentsServiceUpdateKnowledgeItemRequest {
 	r.idempotencyKey = &idempotencyKey
 	return r
 }
 
-func (r ApiAgentsServiceUpdateKnowledgeDocumentRequest) Execute() (*UpdateAgentKnowledgeDocumentResponse, *http.Response, error) {
-	return r.ApiService.AgentsServiceUpdateKnowledgeDocumentExecute(r)
+func (r ApiAgentsServiceUpdateKnowledgeItemRequest) Execute() (*UpdateAgentKnowledgeItemResponse, *http.Response, error) {
+	return r.ApiService.AgentsServiceUpdateKnowledgeItemExecute(r)
 }
 
 /*
-AgentsServiceUpdateKnowledgeDocument Update a knowledge document
+AgentsServiceUpdateKnowledgeItem Update a knowledge item
 
-Change a knowledge document's title or content.
+Change a knowledge item's title, a Markdown item's content, a web page item's URL or a media item's file. A new URL or file is read again in the background. The kind of an item cannot change.
 
 Requires the `agents:write` scope.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param agentId The agent's ID (UUID).
- @param id The document's ID (UUID).
- @return ApiAgentsServiceUpdateKnowledgeDocumentRequest
+ @param id The item's ID (UUID).
+ @return ApiAgentsServiceUpdateKnowledgeItemRequest
 */
-func (a *AgentsAPIService) AgentsServiceUpdateKnowledgeDocument(ctx context.Context, agentId string, id string) ApiAgentsServiceUpdateKnowledgeDocumentRequest {
-	return ApiAgentsServiceUpdateKnowledgeDocumentRequest{
+func (a *AgentsAPIService) AgentsServiceUpdateKnowledgeItem(ctx context.Context, agentId string, id string) ApiAgentsServiceUpdateKnowledgeItemRequest {
+	return ApiAgentsServiceUpdateKnowledgeItemRequest{
 		ApiService: a,
 		ctx: ctx,
 		agentId: agentId,
@@ -1146,29 +1295,29 @@ func (a *AgentsAPIService) AgentsServiceUpdateKnowledgeDocument(ctx context.Cont
 }
 
 // Execute executes the request
-//  @return UpdateAgentKnowledgeDocumentResponse
-func (a *AgentsAPIService) AgentsServiceUpdateKnowledgeDocumentExecute(r ApiAgentsServiceUpdateKnowledgeDocumentRequest) (*UpdateAgentKnowledgeDocumentResponse, *http.Response, error) {
+//  @return UpdateAgentKnowledgeItemResponse
+func (a *AgentsAPIService) AgentsServiceUpdateKnowledgeItemExecute(r ApiAgentsServiceUpdateKnowledgeItemRequest) (*UpdateAgentKnowledgeItemResponse, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPatch
 		localVarPostBody     interface{}
 		formFiles            []formFile
-		localVarReturnValue  *UpdateAgentKnowledgeDocumentResponse
+		localVarReturnValue  *UpdateAgentKnowledgeItemResponse
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AgentsAPIService.AgentsServiceUpdateKnowledgeDocument")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AgentsAPIService.AgentsServiceUpdateKnowledgeItem")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v1/agents/{agentId}/knowledge-documents/{id}"
+	localVarPath := localBasePath + "/v1/agents/{agentId}/knowledge-items/{id}"
 	localVarPath = strings.Replace(localVarPath, "{"+"agentId"+"}", url.PathEscape(parameterValueToString(r.agentId, "agentId")), -1)
 	localVarPath = strings.Replace(localVarPath, "{"+"id"+"}", url.PathEscape(parameterValueToString(r.id, "id")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
-	if r.agentsServiceUpdateKnowledgeDocumentBody == nil {
-		return localVarReturnValue, nil, reportError("agentsServiceUpdateKnowledgeDocumentBody is required and must be specified")
+	if r.agentsServiceUpdateKnowledgeItemBody == nil {
+		return localVarReturnValue, nil, reportError("agentsServiceUpdateKnowledgeItemBody is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -1192,7 +1341,7 @@ func (a *AgentsAPIService) AgentsServiceUpdateKnowledgeDocumentExecute(r ApiAgen
 		parameterAddToHeaderOrQuery(localVarHeaderParams, "Idempotency-Key", r.idempotencyKey, "simple", "")
 	}
 	// body params
-	localVarPostBody = r.agentsServiceUpdateKnowledgeDocumentBody
+	localVarPostBody = r.agentsServiceUpdateKnowledgeItemBody
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
 		return localVarReturnValue, nil, err
