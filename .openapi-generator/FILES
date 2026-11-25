@@ -260,6 +260,7 @@ model_events_service_create_trace_body.go
 model_events_service_update_device_body.go
 model_events_time_series.go
 model_events_time_series_data.go
+model_export_workflow_steps_response.go
 model_find_matching_page_theme_template_response.go
 model_firing_retargeting_pixel.go
 model_font_config.go
@@ -349,6 +350,8 @@ model_import_page_theme_template_request.go
 model_import_page_theme_template_response.go
 model_import_qrcode_template_request.go
 model_import_qrcode_template_response.go
+model_import_workflow_steps_response.go
+model_imported_workflow_step.go
 model_in_app_browser.go
 model_in_app_browser_details.go
 model_integration_delivery.go
@@ -651,11 +654,20 @@ model_widget_visualization.go
 model_workflow_issue.go
 model_workflow_step.go
 model_workflow_step_branch.go
+model_workflow_step_copy_notice.go
+model_workflow_step_copy_notice_type.go
 model_workflow_step_kind.go
 model_workflow_step_node_type.go
 model_workflow_step_payload.go
+model_workflow_steps_document.go
+model_workflow_steps_document_edge.go
+model_workflow_steps_document_entry.go
+model_workflow_steps_document_media.go
+model_workflow_steps_document_step.go
 model_workflow_steps_service_connect_body.go
 model_workflow_steps_service_create_body.go
+model_workflow_steps_service_export_body.go
+model_workflow_steps_service_import_body.go
 model_workflow_steps_service_update_body.go
 model_workspace.go
 model_workspace_allowance.go

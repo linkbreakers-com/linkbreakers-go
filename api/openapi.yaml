@@ -48,7 +48,7 @@ info:
 
     Send a `Linkbreakers-Client` request header saying which client made the call: `<client>/<version> (<details>)`, for example `my-integration/1.2.0 (python 3.12; linux)`. The official SDKs, the CLI and the MCP bridge set it for you, as `sdk-python/2.3.1 (python 3.12.4; linux)` or `cli/1.4.0 (darwin arm64)`. It is optional and changes nothing about how a request is handled; it tells us which clients and versions are in use, so we know what can be retired and what to fix first. Keep the details short and free of personal data. Browsers may send it too: it is allowed by CORS.
   title: Linkbreakers API
-  version: 1.205.0
+  version: 1.205.1
   x-api-versioning:
     compatibility: additive changes only within a version
     currentVersion: v1
@@ -5957,6 +5957,174 @@ paths:
       tags:
       - Workflow Steps
       x-required-scope: workflows:write
+  /v1/links/{linkId}/workflow-steps/export:
+    post:
+      description: |-
+        Writes the steps you name, with all their settings and the connections
+        between them, as a self-contained JSON document that names steps by local
+        keys rather than ids. Import it into any link's workflow to copy the
+        steps; it is the same document the dashboard puts on the clipboard when
+        steps are copied on the canvas.
+
+        Name the link's entry (the visit step) with the others to record what it
+        leads to: imported into another link, that link's own entry then leads to
+        the copy. The entry itself is never in the document.
+
+        Requires the `workflows:read` scope.
+      operationId: WorkflowStepsService_Export
+      parameters:
+      - description: The link the steps are exported from.
+        explode: false
+        in: path
+        name: linkId
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: "A unique value per request, such as a UUID, that makes retrying\
+          \ it safe: a retry with the same key and body returns the first response\
+          \ instead of acting twice."
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkflowStepsServiceExportBody"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExportWorkflowStepsResponse"
+          description: Everything worked as expected.
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - workflows:read
+      - oauth2:
+        - workflows:read
+      summary: Export workflow steps
+      tags:
+      - Workflow Steps
+      x-required-scope: workflows:read
+  /v1/links/{linkId}/workflow-steps/import:
+    post:
+      description: |-
+        Creates the steps of a document made by Export, or copied from the
+        dashboard's canvas, in the workflow of the link in the path. The steps get
+        new ids and the connections the document lists between them.
+
+        The entry is never duplicated. When the document says what the entry led
+        to, this link's own entry is connected to that step's copy; what it led to
+        before stays in the workflow, unconnected. Imported into the link it was
+        exported from, that part is ignored.
+
+        Everything is checked as if each step were created on its own. A step
+        handing out media, or a chat bot talking through an agent, that this
+        workspace does not have is left out, with a notice. All the steps are
+        created, or none.
+
+        Requires the `workflows:write` scope.
+      operationId: WorkflowStepsService_Import
+      parameters:
+      - description: The link whose workflow receives the steps.
+        explode: false
+        in: path
+        name: linkId
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: "A unique value per request, such as a UUID, that makes retrying\
+          \ it safe: a retry with the same key and body returns the first response\
+          \ instead of acting twice."
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          maxLength: 255
+          minLength: 1
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkflowStepsServiceImportBody"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportWorkflowStepsResponse"
+          description: Everything worked as expected.
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/Idempotent-Replayed"
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected error
+          headers:
+            RateLimit:
+              $ref: "#/components/headers/RateLimit"
+            RateLimit-Policy:
+              $ref: "#/components/headers/RateLimit-Policy"
+            RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit-Remaining"
+      security:
+      - bearerAuth:
+        - workflows:write
+      - oauth2:
+        - workflows:write
+      summary: Import workflow steps
+      tags:
+      - Workflow Steps
+      x-required-scope: workflows:write
   /v1/links/{linkId}/workflow-steps/validate:
     get:
       description: |-
@@ -6541,6 +6709,7 @@ paths:
            - UPLOAD_ORIGIN_FOOTER_LOGO: Uploaded while picking a page theme's footer logo
            - UPLOAD_ORIGIN_OPEN_MEDIA: Uploaded while picking the media an Open media step opens
            - UPLOAD_ORIGIN_ASSISTANT: Imported by the Assistant, from a file attached to a conversation or a URL
+           - UPLOAD_ORIGIN_CONTACT_CARD_AVATAR: Uploaded while picking a contact card's photo
         explode: true
         in: query
         name: uploadedFrom
@@ -8540,7 +8709,7 @@ paths:
       x-required-scope: page_themes:read
     patch:
       description: |-
-        Modify the metadata of a page theme template owned by the authenticated workspace.
+        Modify the metadata of a page theme template owned by the authenticated workspace. featuredRank is reserved for the Linkbreakers workspace, which curates the public gallery.
 
         Requires the `page_themes:write` scope.
       operationId: PageThemeTemplatesService_Update
@@ -9196,7 +9365,8 @@ paths:
   /v1/public/page-theme-templates:
     get:
       description: "Retrieve available public page theme templates, optionally filtered\
-        \ by search terms."
+        \ by search terms. Featured templates come first, lowest featuredRank first,\
+        \ then the rest from the most recently updated."
       operationId: PageThemeTemplatesService_ListPublic
       parameters:
       - description: |-
@@ -9359,7 +9529,8 @@ paths:
   /v1/public/qrcode-templates:
     get:
       description: "Retrieve available QR code templates, optionally filtered by search\
-        \ terms or link destination."
+        \ terms or link destination. Featured templates come first, lowest featuredRank\
+        \ first, then the rest from the most recently updated."
       operationId: QrcodeTemplatesService_ListPublic
       parameters:
       - description: |-
@@ -10263,7 +10434,7 @@ paths:
       x-required-scope: qrcodes:read
     patch:
       description: |-
-        Modify the name or description of a QR code template owned by the authenticated workspace.
+        Modify the name or description of a QR code template owned by the authenticated workspace. featuredRank is reserved for the Linkbreakers workspace, which curates the public gallery.
 
         Requires the `qrcodes:write` scope.
       operationId: QrcodeTemplatesService_Update
@@ -15137,6 +15308,18 @@ components:
       type: string
     ChatBotObjective:
       description: One visitor attribute the chat bot must learn.
+      example:
+        options:
+        - label: Terrace
+          value: terrace
+        - label: Terrace
+          value: terrace
+        label: Company
+        explanation: The company the visitor works for. A freelancer can answer their
+          own name.
+        type: FORM_FIELD_TYPE_EMAIL
+        key: company
+        required: true
       properties:
         explanation:
           description: |-
@@ -15213,6 +15396,38 @@ components:
       title: How a chat bot conversation ended
       type: string
     ChatBotPayload:
+      example:
+        elseNextStepId: b2e8f4a1-7c3d-4e9b-a6f2-1d5c8e0b3a74
+        skipLabel: Skip to the menu
+        agentId: 3f9a1c52-8d1e-4b7a-9c3e-2a6f5d8b1e40
+        openingMessage: Bonjour! One quick question and the spring menu is yours.
+        nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+        skipEnabled: true
+        objectives:
+        - options:
+          - label: Terrace
+            value: terrace
+          - label: Terrace
+            value: terrace
+          label: Company
+          explanation: The company the visitor works for. A freelancer can answer
+            their own name.
+          type: FORM_FIELD_TYPE_EMAIL
+          key: company
+          required: true
+        - options:
+          - label: Terrace
+            value: terrace
+          - label: Terrace
+            value: terrace
+          label: Company
+          explanation: The company the visitor works for. A freelancer can answer
+            their own name.
+          type: FORM_FIELD_TYPE_EMAIL
+          key: company
+          required: true
+        maxExchanges: 15
+        skipWhenKnown: true
       properties:
         agentId:
           example: 3f9a1c52-8d1e-4b7a-9c3e-2a6f5d8b1e40
@@ -15376,6 +15591,9 @@ components:
           type: string
       title: Request to claim an agent's workspace
     ClientRedirectPayload:
+      example:
+        conversionTracking: true
+        destination: https://brand.example.com/checkout
       properties:
         conversionTracking:
           description: |-
@@ -16161,6 +16379,9 @@ components:
       title: The rendering style for QR code corner squares
       type: string
     CountryConditionOutcome:
+      example:
+        countryCode: US
+        nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
       properties:
         countryCode:
           example: US
@@ -16172,6 +16393,13 @@ components:
           type: string
       title: Country condition outcome definition for EVENT_ACTION_COUNTRY_CONDITION
     CountryConditionPayload:
+      example:
+        elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+        countries:
+        - countryCode: US
+          nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+        - countryCode: US
+          nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
       properties:
         countries:
           items:
@@ -18618,6 +18846,17 @@ components:
       - DATA_COLLECTION_ADVANCED
       type: string
     DayOfMonthConditionPayload:
+      example:
+        elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+        options:
+        - dayOfMonth: 1
+          name: First of Month
+          nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+          id: option-1
+        - dayOfMonth: 1
+          name: First of Month
+          nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+          id: option-1
       properties:
         elseNextStepId:
           example: 987fcdeb-a321-45e6-b789-123456789012
@@ -18655,6 +18894,11 @@ components:
           example: First of the month
           type: string
     DayOfMonthOption:
+      example:
+        dayOfMonth: 1
+        name: First of Month
+        nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+        id: option-1
       properties:
         dayOfMonth:
           description: "Day of month (1-31, or -1 for last day)"
@@ -18676,6 +18920,27 @@ components:
           type: string
       title: Day of month option for EVENT_ACTION_DAY_OF_MONTH_CONDITION
     DayOfWeekConditionPayload:
+      example:
+        elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+        options:
+        - name: Weekdays
+          nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+          id: option-1
+          daysOfWeek:
+          - 1
+          - 2
+          - 3
+          - 4
+          - 5
+        - name: Weekdays
+          nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+          id: option-1
+          daysOfWeek:
+          - 1
+          - 2
+          - 3
+          - 4
+          - 5
       properties:
         elseNextStepId:
           example: 987fcdeb-a321-45e6-b789-123456789012
@@ -18716,6 +18981,16 @@ components:
           example: Weekend brunch
           type: string
     DayOfWeekOption:
+      example:
+        name: Weekdays
+        nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+        id: option-1
+        daysOfWeek:
+        - 1
+        - 2
+        - 3
+        - 4
+        - 5
       properties:
         daysOfWeek:
           description: "Days of the week: 0=Sunday, 1=Monday, 2=Tuesday, 3=Wednesday,\
@@ -19174,6 +19449,11 @@ components:
       type: string
     DeviceActorConditionOption:
       description: Device actor condition option for EVENT_ACTION_DEVICE_ACTOR_CONDITION.
+      example:
+        name: Bots
+        nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+        id: option-1
+        value: DEVICE_ACTOR_CONDITION_VALUE_BOT
       properties:
         id:
           example: option-1
@@ -19203,6 +19483,17 @@ components:
         automation from its second visit, once the link collects data at the
         Advanced level, which lets the page read navigator.webdriver. To treat both
         the same, route AGENT and AUTOMATED to the same step.
+      example:
+        elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+        options:
+        - name: Bots
+          nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+          id: option-1
+          value: DEVICE_ACTOR_CONDITION_VALUE_BOT
+        - name: Bots
+          nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+          id: option-1
+          value: DEVICE_ACTOR_CONDITION_VALUE_BOT
       properties:
         elseNextStepId:
           example: 987fcdeb-a321-45e6-b789-123456789012
@@ -19251,6 +19542,11 @@ components:
       type: string
     DeviceBrandConditionOption:
       description: Device brand condition option for EVENT_ACTION_DEVICE_BRAND_CONDITION.
+      example:
+        name: Apple Devices
+        nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+        id: option-1
+        value: DEVICE_BRAND_CONDITION_VALUE_APPLE
       properties:
         id:
           example: option-1
@@ -19274,6 +19570,17 @@ components:
           example: DEVICE_BRAND_CONDITION_VALUE_APPLE
           type: string
     DeviceBrandConditionPayload:
+      example:
+        elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+        options:
+        - name: Apple Devices
+          nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+          id: option-1
+          value: DEVICE_BRAND_CONDITION_VALUE_APPLE
+        - name: Apple Devices
+          nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+          id: option-1
+          value: DEVICE_BRAND_CONDITION_VALUE_APPLE
       properties:
         elseNextStepId:
           example: 987fcdeb-a321-45e6-b789-123456789012
@@ -19323,6 +19630,12 @@ components:
       type: string
     DeviceBrowserConditionOption:
       description: Device browser condition option for EVENT_ACTION_DEVICE_BROWSER_CONDITION.
+      example:
+        name: Chrome Visitors
+        nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+        minAppVersion: "400"
+        id: option-1
+        value: DEVICE_BROWSER_CONDITION_VALUE_CHROME
       properties:
         id:
           example: option-1
@@ -19391,6 +19704,19 @@ components:
           example: DEVICE_BROWSER_CONDITION_VALUE_CHROME
           type: string
     DeviceBrowserConditionPayload:
+      example:
+        elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+        options:
+        - name: Chrome Visitors
+          nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+          minAppVersion: "400"
+          id: option-1
+          value: DEVICE_BROWSER_CONDITION_VALUE_CHROME
+        - name: Chrome Visitors
+          nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+          minAppVersion: "400"
+          id: option-1
+          value: DEVICE_BROWSER_CONDITION_VALUE_CHROME
       properties:
         elseNextStepId:
           example: 987fcdeb-a321-45e6-b789-123456789012
@@ -19610,6 +19936,11 @@ components:
       title: The input for device information
     DevicePlatformConditionOption:
       description: Device platform condition option for EVENT_ACTION_DEVICE_PLATFORM_CONDITION.
+      example:
+        name: iOS Visitors
+        nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+        id: option-1
+        value: DEVICE_PLATFORM_CONDITION_VALUE_IOS
       properties:
         id:
           example: option-1
@@ -19633,6 +19964,17 @@ components:
           example: DEVICE_PLATFORM_CONDITION_VALUE_IOS
           type: string
     DevicePlatformConditionPayload:
+      example:
+        elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+        options:
+        - name: iOS Visitors
+          nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+          id: option-1
+          value: DEVICE_PLATFORM_CONDITION_VALUE_IOS
+        - name: iOS Visitors
+          nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+          id: option-1
+          value: DEVICE_PLATFORM_CONDITION_VALUE_IOS
       properties:
         elseNextStepId:
           example: 987fcdeb-a321-45e6-b789-123456789012
@@ -19703,6 +20045,11 @@ components:
       type: string
     DeviceTypeConditionOption:
       description: Device type condition option for EVENT_ACTION_DEVICE_TYPE_CONDITION.
+      example:
+        name: Desktop Users
+        nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+        id: option-1
+        value: DEVICE_TYPE_CONDITION_VALUE_DESKTOP
       properties:
         id:
           example: option-1
@@ -19724,6 +20071,17 @@ components:
           example: DEVICE_TYPE_CONDITION_VALUE_DESKTOP
           type: string
     DeviceTypeConditionPayload:
+      example:
+        elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+        options:
+        - name: Desktop Users
+          nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+          id: option-1
+          value: DEVICE_TYPE_CONDITION_VALUE_DESKTOP
+        - name: Desktop Users
+          nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+          id: option-1
+          value: DEVICE_TYPE_CONDITION_VALUE_DESKTOP
       properties:
         elseNextStepId:
           example: 987fcdeb-a321-45e6-b789-123456789012
@@ -20680,6 +21038,665 @@ components:
           title: Start timestamp of the interval
           type: string
       title: A single data point in the time series
+    ExportWorkflowStepsResponse:
+      example:
+        document:
+          entry: ""
+          edges:
+          - from: s1
+            to: s2
+            branch: next
+          - from: s1
+            to: s2
+            branch: next
+          type: linkbreakers/workflow-steps
+          steps:
+          - payload:
+              timeOfDayCondition:
+                elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+                ranges:
+                - name: Business Hours
+                  nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                  startTime: 09:00
+                  endTime: 17:00
+                  id: range-1
+                - name: Business Hours
+                  nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                  startTime: 09:00
+                  endTime: 17:00
+                  id: range-1
+              chatBot:
+                elseNextStepId: b2e8f4a1-7c3d-4e9b-a6f2-1d5c8e0b3a74
+                skipLabel: Skip to the menu
+                agentId: 3f9a1c52-8d1e-4b7a-9c3e-2a6f5d8b1e40
+                openingMessage: Bonjour! One quick question and the spring menu is
+                  yours.
+                nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                skipEnabled: true
+                objectives:
+                - options:
+                  - label: Terrace
+                    value: terrace
+                  - label: Terrace
+                    value: terrace
+                  label: Company
+                  explanation: The company the visitor works for. A freelancer can
+                    answer their own name.
+                  type: FORM_FIELD_TYPE_EMAIL
+                  key: company
+                  required: true
+                - options:
+                  - label: Terrace
+                    value: terrace
+                  - label: Terrace
+                    value: terrace
+                  label: Company
+                  explanation: The company the visitor works for. A freelancer can
+                    answer their own name.
+                  type: FORM_FIELD_TYPE_EMAIL
+                  key: company
+                  required: true
+                maxExchanges: 15
+                skipWhenKnown: true
+              socialLinks:
+                displayStyle: SOCIAL_LINKS_DISPLAY_STYLE_DETAILED
+                description: Follow us on your favorite platform
+                links:
+                - id: link-1
+                  platform: instagram
+                  url: https://instagram.com/username
+                  order: 1
+                - id: link-1
+                  platform: instagram
+                  url: https://instagram.com/username
+                  order: 1
+                title: Connect with us
+              messagePage:
+                timerSeconds: 5
+                description: Our spring menu is served on the terrace from noon to
+                  10 pm.
+                navigationType: MESSAGE_PAGE_NAVIGATION_TYPE_BUTTON
+                title: Welcome to Hotel Lumiere
+                buttonLabel: See the menu
+              clientRedirect:
+                conversionTracking: true
+                destination: https://brand.example.com/checkout
+              thankYouPage:
+                description: The spring menu is on its way to your inbox.
+                title: "Merci, see you at the table!"
+              password:
+                password: lumiere2026
+                description: Enter the code your server gave you.
+                title: Chef's tasting menu
+              deviceActorCondition:
+                elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+                options:
+                - name: Bots
+                  nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                  id: option-1
+                  value: DEVICE_ACTOR_CONDITION_VALUE_BOT
+                - name: Bots
+                  nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                  id: option-1
+                  value: DEVICE_ACTOR_CONDITION_VALUE_BOT
+              dayOfMonthCondition:
+                elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+                options:
+                - dayOfMonth: 1
+                  name: First of Month
+                  nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                  id: option-1
+                - dayOfMonth: 1
+                  name: First of Month
+                  nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                  id: option-1
+              trafficSplit:
+                sticky: true
+                variants:
+                - nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                  weight: 50
+                  id: a3f1c6d8-2e4b-4a7c-9d1f-6b8e0c2a4f57
+                  label: Short form
+                - nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                  weight: 50
+                  id: a3f1c6d8-2e4b-4a7c-9d1f-6b8e0c2a4f57
+                  label: Short form
+              multiLink:
+                buttons:
+                - nextStepId: 987fcdeb-a321-45e6-b789-123456789012
+                  id: btn-1
+                  label: Continue to Website
+                  order: 1
+                - nextStepId: 987fcdeb-a321-45e6-b789-123456789012
+                  id: btn-1
+                  label: Continue to Website
+                  order: 1
+                description: Select one of the options below to continue
+                title: Choose your destination
+              devicePlatformCondition:
+                elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+                options:
+                - name: iOS Visitors
+                  nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                  id: option-1
+                  value: DEVICE_PLATFORM_CONDITION_VALUE_IOS
+                - name: iOS Visitors
+                  nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                  id: option-1
+                  value: DEVICE_PLATFORM_CONDITION_VALUE_IOS
+              linkVisit: "{}"
+              openMedia:
+                mediaId: 5f1c2d3e-4b5a-6c7d-8e9f-0a1b2c3d4e5f
+              languageCondition:
+                elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+                languages:
+                - nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                  languageCode: fr
+                - nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                  languageCode: fr
+              visitorDataCondition:
+                elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+                options:
+                - comparisonValue: "18"
+                  nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                  attributeKey: age
+                  id: option-1
+                  operator: NUMBER_GREATER_THAN
+                - comparisonValue: "18"
+                  nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                  attributeKey: age
+                  id: option-1
+                  operator: NUMBER_GREATER_THAN
+              vcard:
+                country: United States
+                lastName: Doe
+                socialLinks:
+                - platform: linkedin
+                  url: https://linkedin.com/in/janedoe
+                - platform: linkedin
+                  url: https://linkedin.com/in/janedoe
+                website: https://acme.com
+                city: San Francisco
+                postalCode: "94102"
+                phoneSmsEnabled: true
+                title: Software Engineer
+                buttonLabel: Add to contacts
+                avatarMediaId: 5f1c2d3e-4b5a-6c7d-8e9f-0a1b2c3d4e5f
+                firstName: Jane
+                walletPassEnabled: true
+                phone: "+33123456789"
+                streetAddress: 123 Main Street
+                organization: Acme Corporation
+                phoneIsWhatsapp: true
+                state: CA
+                email: hello@acme.com
+                saveButtonEnabled: true
+              dayOfWeekCondition:
+                elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+                options:
+                - name: Weekdays
+                  nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                  id: option-1
+                  daysOfWeek:
+                  - 1
+                  - 2
+                  - 3
+                  - 4
+                  - 5
+                - name: Weekdays
+                  nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                  id: option-1
+                  daysOfWeek:
+                  - 1
+                  - 2
+                  - 3
+                  - 4
+                  - 5
+              deviceBrandCondition:
+                elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+                options:
+                - name: Apple Devices
+                  nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                  id: option-1
+                  value: DEVICE_BRAND_CONDITION_VALUE_APPLE
+                - name: Apple Devices
+                  nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                  id: option-1
+                  value: DEVICE_BRAND_CONDITION_VALUE_APPLE
+              locationRequest:
+                elseNextStepId: b2e8f4a1-7c3d-4e9b-a6f2-1d5c8e0b3a74
+                skipLabel: Not now
+                nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                askOnce: true
+                description: We use it to show you the nearest store.
+                skipEnabled: true
+                title: Share your location
+                buttonLabel: Share my location
+              visitTypeCondition:
+                elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+                options:
+                - nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                  value: FIRST
+                - nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                  value: FIRST
+              deviceBrowserCondition:
+                elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+                options:
+                - name: Chrome Visitors
+                  nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                  minAppVersion: "400"
+                  id: option-1
+                  value: DEVICE_BROWSER_CONDITION_VALUE_CHROME
+                - name: Chrome Visitors
+                  nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                  minAppVersion: "400"
+                  id: option-1
+                  value: DEVICE_BROWSER_CONDITION_VALUE_CHROME
+              specificDateCondition:
+                elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+                options:
+                - month: 12
+                  year: 2024
+                  name: Christmas
+                  nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                  id: option-1
+                  day: 25
+                - month: 12
+                  year: 2024
+                  name: Christmas
+                  nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                  id: option-1
+                  day: 25
+              form:
+                autoSkipIfKnown: true
+                skipForm: true
+                formDescription: Leave your email and we'll send tonight's specials
+                  along with the menu.
+                formTitle: Get the spring menu
+                submitButtonText: Show me the menu
+                formFields:
+                - validationPattern: "^[^@\\s]+@[^@\\s]+\\.[a-z]{2,}$"
+                  helpText: We send tonight's specials with the menu.
+                  defaultValue: jules.martin@example.com
+                  options:
+                  - label: Terrace
+                    value: terrace
+                  - label: Terrace
+                    value: terrace
+                  id: 3f0d2b23-9f51-4d56-84d7-5d9d70fb49c2
+                  label: Email
+                  placeholder: jules.martin@example.com
+                  type: FORM_FIELD_TYPE_EMAIL
+                  key: $email
+                  required: true
+                  order: 1
+                - validationPattern: "^[^@\\s]+@[^@\\s]+\\.[a-z]{2,}$"
+                  helpText: We send tonight's specials with the menu.
+                  defaultValue: jules.martin@example.com
+                  options:
+                  - label: Terrace
+                    value: terrace
+                  - label: Terrace
+                    value: terrace
+                  id: 3f0d2b23-9f51-4d56-84d7-5d9d70fb49c2
+                  label: Email
+                  placeholder: jules.martin@example.com
+                  type: FORM_FIELD_TYPE_EMAIL
+                  key: $email
+                  required: true
+                  order: 1
+                skipButtonText: Skip for now
+              countryCondition:
+                elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+                countries:
+                - countryCode: US
+                  nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                - countryCode: US
+                  nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+              deviceTypeCondition:
+                elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+                options:
+                - name: Desktop Users
+                  nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                  id: option-1
+                  value: DEVICE_TYPE_CONDITION_VALUE_DESKTOP
+                - name: Desktop Users
+                  nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                  id: option-1
+                  value: DEVICE_TYPE_CONDITION_VALUE_DESKTOP
+            backButton: ""
+            name: "Form: Join the list"
+            agentName: Front desk
+            media: ""
+            position: ""
+            eventAction: EVENT_ACTION_FORM_SUBMIT
+            attributeCapture: ""
+            key: s1
+          - payload:
+              timeOfDayCondition:
+                elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+                ranges:
+                - name: Business Hours
+                  nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                  startTime: 09:00
+                  endTime: 17:00
+                  id: range-1
+                - name: Business Hours
+                  nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                  startTime: 09:00
+                  endTime: 17:00
+                  id: range-1
+              chatBot:
+                elseNextStepId: b2e8f4a1-7c3d-4e9b-a6f2-1d5c8e0b3a74
+                skipLabel: Skip to the menu
+                agentId: 3f9a1c52-8d1e-4b7a-9c3e-2a6f5d8b1e40
+                openingMessage: Bonjour! One quick question and the spring menu is
+                  yours.
+                nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                skipEnabled: true
+                objectives:
+                - options:
+                  - label: Terrace
+                    value: terrace
+                  - label: Terrace
+                    value: terrace
+                  label: Company
+                  explanation: The company the visitor works for. A freelancer can
+                    answer their own name.
+                  type: FORM_FIELD_TYPE_EMAIL
+                  key: company
+                  required: true
+                - options:
+                  - label: Terrace
+                    value: terrace
+                  - label: Terrace
+                    value: terrace
+                  label: Company
+                  explanation: The company the visitor works for. A freelancer can
+                    answer their own name.
+                  type: FORM_FIELD_TYPE_EMAIL
+                  key: company
+                  required: true
+                maxExchanges: 15
+                skipWhenKnown: true
+              socialLinks:
+                displayStyle: SOCIAL_LINKS_DISPLAY_STYLE_DETAILED
+                description: Follow us on your favorite platform
+                links:
+                - id: link-1
+                  platform: instagram
+                  url: https://instagram.com/username
+                  order: 1
+                - id: link-1
+                  platform: instagram
+                  url: https://instagram.com/username
+                  order: 1
+                title: Connect with us
+              messagePage:
+                timerSeconds: 5
+                description: Our spring menu is served on the terrace from noon to
+                  10 pm.
+                navigationType: MESSAGE_PAGE_NAVIGATION_TYPE_BUTTON
+                title: Welcome to Hotel Lumiere
+                buttonLabel: See the menu
+              clientRedirect:
+                conversionTracking: true
+                destination: https://brand.example.com/checkout
+              thankYouPage:
+                description: The spring menu is on its way to your inbox.
+                title: "Merci, see you at the table!"
+              password:
+                password: lumiere2026
+                description: Enter the code your server gave you.
+                title: Chef's tasting menu
+              deviceActorCondition:
+                elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+                options:
+                - name: Bots
+                  nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                  id: option-1
+                  value: DEVICE_ACTOR_CONDITION_VALUE_BOT
+                - name: Bots
+                  nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                  id: option-1
+                  value: DEVICE_ACTOR_CONDITION_VALUE_BOT
+              dayOfMonthCondition:
+                elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+                options:
+                - dayOfMonth: 1
+                  name: First of Month
+                  nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                  id: option-1
+                - dayOfMonth: 1
+                  name: First of Month
+                  nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                  id: option-1
+              trafficSplit:
+                sticky: true
+                variants:
+                - nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                  weight: 50
+                  id: a3f1c6d8-2e4b-4a7c-9d1f-6b8e0c2a4f57
+                  label: Short form
+                - nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                  weight: 50
+                  id: a3f1c6d8-2e4b-4a7c-9d1f-6b8e0c2a4f57
+                  label: Short form
+              multiLink:
+                buttons:
+                - nextStepId: 987fcdeb-a321-45e6-b789-123456789012
+                  id: btn-1
+                  label: Continue to Website
+                  order: 1
+                - nextStepId: 987fcdeb-a321-45e6-b789-123456789012
+                  id: btn-1
+                  label: Continue to Website
+                  order: 1
+                description: Select one of the options below to continue
+                title: Choose your destination
+              devicePlatformCondition:
+                elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+                options:
+                - name: iOS Visitors
+                  nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                  id: option-1
+                  value: DEVICE_PLATFORM_CONDITION_VALUE_IOS
+                - name: iOS Visitors
+                  nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                  id: option-1
+                  value: DEVICE_PLATFORM_CONDITION_VALUE_IOS
+              linkVisit: "{}"
+              openMedia:
+                mediaId: 5f1c2d3e-4b5a-6c7d-8e9f-0a1b2c3d4e5f
+              languageCondition:
+                elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+                languages:
+                - nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                  languageCode: fr
+                - nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                  languageCode: fr
+              visitorDataCondition:
+                elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+                options:
+                - comparisonValue: "18"
+                  nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                  attributeKey: age
+                  id: option-1
+                  operator: NUMBER_GREATER_THAN
+                - comparisonValue: "18"
+                  nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                  attributeKey: age
+                  id: option-1
+                  operator: NUMBER_GREATER_THAN
+              vcard:
+                country: United States
+                lastName: Doe
+                socialLinks:
+                - platform: linkedin
+                  url: https://linkedin.com/in/janedoe
+                - platform: linkedin
+                  url: https://linkedin.com/in/janedoe
+                website: https://acme.com
+                city: San Francisco
+                postalCode: "94102"
+                phoneSmsEnabled: true
+                title: Software Engineer
+                buttonLabel: Add to contacts
+                avatarMediaId: 5f1c2d3e-4b5a-6c7d-8e9f-0a1b2c3d4e5f
+                firstName: Jane
+                walletPassEnabled: true
+                phone: "+33123456789"
+                streetAddress: 123 Main Street
+                organization: Acme Corporation
+                phoneIsWhatsapp: true
+                state: CA
+                email: hello@acme.com
+                saveButtonEnabled: true
+              dayOfWeekCondition:
+                elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+                options:
+                - name: Weekdays
+                  nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                  id: option-1
+                  daysOfWeek:
+                  - 1
+                  - 2
+                  - 3
+                  - 4
+                  - 5
+                - name: Weekdays
+                  nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                  id: option-1
+                  daysOfWeek:
+                  - 1
+                  - 2
+                  - 3
+                  - 4
+                  - 5
+              deviceBrandCondition:
+                elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+                options:
+                - name: Apple Devices
+                  nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                  id: option-1
+                  value: DEVICE_BRAND_CONDITION_VALUE_APPLE
+                - name: Apple Devices
+                  nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                  id: option-1
+                  value: DEVICE_BRAND_CONDITION_VALUE_APPLE
+              locationRequest:
+                elseNextStepId: b2e8f4a1-7c3d-4e9b-a6f2-1d5c8e0b3a74
+                skipLabel: Not now
+                nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                askOnce: true
+                description: We use it to show you the nearest store.
+                skipEnabled: true
+                title: Share your location
+                buttonLabel: Share my location
+              visitTypeCondition:
+                elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+                options:
+                - nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                  value: FIRST
+                - nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                  value: FIRST
+              deviceBrowserCondition:
+                elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+                options:
+                - name: Chrome Visitors
+                  nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                  minAppVersion: "400"
+                  id: option-1
+                  value: DEVICE_BROWSER_CONDITION_VALUE_CHROME
+                - name: Chrome Visitors
+                  nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                  minAppVersion: "400"
+                  id: option-1
+                  value: DEVICE_BROWSER_CONDITION_VALUE_CHROME
+              specificDateCondition:
+                elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+                options:
+                - month: 12
+                  year: 2024
+                  name: Christmas
+                  nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                  id: option-1
+                  day: 25
+                - month: 12
+                  year: 2024
+                  name: Christmas
+                  nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                  id: option-1
+                  day: 25
+              form:
+                autoSkipIfKnown: true
+                skipForm: true
+                formDescription: Leave your email and we'll send tonight's specials
+                  along with the menu.
+                formTitle: Get the spring menu
+                submitButtonText: Show me the menu
+                formFields:
+                - validationPattern: "^[^@\\s]+@[^@\\s]+\\.[a-z]{2,}$"
+                  helpText: We send tonight's specials with the menu.
+                  defaultValue: jules.martin@example.com
+                  options:
+                  - label: Terrace
+                    value: terrace
+                  - label: Terrace
+                    value: terrace
+                  id: 3f0d2b23-9f51-4d56-84d7-5d9d70fb49c2
+                  label: Email
+                  placeholder: jules.martin@example.com
+                  type: FORM_FIELD_TYPE_EMAIL
+                  key: $email
+                  required: true
+                  order: 1
+                - validationPattern: "^[^@\\s]+@[^@\\s]+\\.[a-z]{2,}$"
+                  helpText: We send tonight's specials with the menu.
+                  defaultValue: jules.martin@example.com
+                  options:
+                  - label: Terrace
+                    value: terrace
+                  - label: Terrace
+                    value: terrace
+                  id: 3f0d2b23-9f51-4d56-84d7-5d9d70fb49c2
+                  label: Email
+                  placeholder: jules.martin@example.com
+                  type: FORM_FIELD_TYPE_EMAIL
+                  key: $email
+                  required: true
+                  order: 1
+                skipButtonText: Skip for now
+              countryCondition:
+                elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+                countries:
+                - countryCode: US
+                  nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                - countryCode: US
+                  nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+              deviceTypeCondition:
+                elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+                options:
+                - name: Desktop Users
+                  nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                  id: option-1
+                  value: DEVICE_TYPE_CONDITION_VALUE_DESKTOP
+                - name: Desktop Users
+                  nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                  id: option-1
+                  value: DEVICE_TYPE_CONDITION_VALUE_DESKTOP
+            backButton: ""
+            name: "Form: Join the list"
+            agentName: Front desk
+            media: ""
+            position: ""
+            eventAction: EVENT_ACTION_FORM_SUBMIT
+            attributeCapture: ""
+            key: s1
+          version: 1
+      properties:
+        document:
+          $ref: "#/components/schemas/WorkflowStepsDocument"
     FindMatchingPageThemeTemplateResponse:
       properties:
         matched:
@@ -20866,6 +21883,22 @@ components:
       - FORM_CONNECTION_STATUS_ACCESS_REVOKED
       type: string
     FormField:
+      example:
+        validationPattern: "^[^@\\s]+@[^@\\s]+\\.[a-z]{2,}$"
+        helpText: We send tonight's specials with the menu.
+        defaultValue: jules.martin@example.com
+        options:
+        - label: Terrace
+          value: terrace
+        - label: Terrace
+          value: terrace
+        id: 3f0d2b23-9f51-4d56-84d7-5d9d70fb49c2
+        label: Email
+        placeholder: jules.martin@example.com
+        type: FORM_FIELD_TYPE_EMAIL
+        key: $email
+        required: true
+        order: 1
       properties:
         defaultValue:
           example: jules.martin@example.com
@@ -20939,6 +21972,9 @@ components:
           type: string
       title: Form field definition for FORM_SUBMIT event action
     FormFieldOption:
+      example:
+        label: Terrace
+        value: terrace
       properties:
         label:
           example: Terrace
@@ -21019,6 +22055,45 @@ components:
           description: Leave UNSPECIFIED to keep the status.
           example: FORM_CONNECTION_STATUS_PAUSED
     FormPayload:
+      example:
+        autoSkipIfKnown: true
+        skipForm: true
+        formDescription: Leave your email and we'll send tonight's specials along
+          with the menu.
+        formTitle: Get the spring menu
+        submitButtonText: Show me the menu
+        formFields:
+        - validationPattern: "^[^@\\s]+@[^@\\s]+\\.[a-z]{2,}$"
+          helpText: We send tonight's specials with the menu.
+          defaultValue: jules.martin@example.com
+          options:
+          - label: Terrace
+            value: terrace
+          - label: Terrace
+            value: terrace
+          id: 3f0d2b23-9f51-4d56-84d7-5d9d70fb49c2
+          label: Email
+          placeholder: jules.martin@example.com
+          type: FORM_FIELD_TYPE_EMAIL
+          key: $email
+          required: true
+          order: 1
+        - validationPattern: "^[^@\\s]+@[^@\\s]+\\.[a-z]{2,}$"
+          helpText: We send tonight's specials with the menu.
+          defaultValue: jules.martin@example.com
+          options:
+          - label: Terrace
+            value: terrace
+          - label: Terrace
+            value: terrace
+          id: 3f0d2b23-9f51-4d56-84d7-5d9d70fb49c2
+          label: Email
+          placeholder: jules.martin@example.com
+          type: FORM_FIELD_TYPE_EMAIL
+          key: $email
+          required: true
+          order: 1
+        skipButtonText: Skip for now
       properties:
         autoSkipIfKnown:
           example: true
@@ -23083,6 +24158,133 @@ components:
           - $ref: "#/components/schemas/QrcodeTemplate"
           title: The imported QR code template (now owned by the importing workspace)
       title: The response after importing a template
+    ImportWorkflowStepsResponse:
+      description: "The steps created, in the document's order."
+      example:
+        notices:
+        - message: The visit step of this link now leads to the copied form submit.
+          type: WORKFLOW_STEP_COPY_NOTICE_TYPE_ENTRY_CONNECTED
+          key: s1
+        - message: The visit step of this link now leads to the copied form submit.
+          type: WORKFLOW_STEP_COPY_NOTICE_TYPE_ENTRY_CONNECTED
+          key: s1
+        issues:
+        - severity: error
+          stepType: FORM_SUBMIT
+          stepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+          message: 4c7e1a92 (FORM_SUBMIT) has no outgoing connection — visitors will
+            be stuck here
+        - severity: error
+          stepType: FORM_SUBMIT
+          stepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+          message: 4c7e1a92 (FORM_SUBMIT) has no outgoing connection — visitors will
+            be stuck here
+        steps:
+        - step:
+            kind: KIND_INTERACTION
+            nextCanGoBack: true
+            canvasPosition: ""
+            rendersPage: true
+            branches:
+            - branchId: a3f1c6d8-2e4b-4a7c-9d1f-6b8e0c2a4f57
+              nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+              label: Short form
+            - branchId: a3f1c6d8-2e4b-4a7c-9d1f-6b8e0c2a4f57
+              nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+              label: Short form
+            nodeType: NODE_TYPE_COMPOSITE
+            eventAction: EVENT_ACTION_CLIENT_REDIRECT
+            attributeCapture: ""
+            backButtonAvailable: true
+            createdAt: 2026-03-14T09:30:00Z
+            linkId: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
+            payload: ""
+            backButton: ""
+            childStepIds:
+            - 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+            id: 987fcdeb-a321-45e6-b789-123456789012
+            parentStepIds:
+            - c6f0a3d9-1e7b-4c52-8f4a-9b2d6e0c1f83
+            updatedAt: 2026-03-18T16:05:00Z
+          key: s1
+        - step:
+            kind: KIND_INTERACTION
+            nextCanGoBack: true
+            canvasPosition: ""
+            rendersPage: true
+            branches:
+            - branchId: a3f1c6d8-2e4b-4a7c-9d1f-6b8e0c2a4f57
+              nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+              label: Short form
+            - branchId: a3f1c6d8-2e4b-4a7c-9d1f-6b8e0c2a4f57
+              nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+              label: Short form
+            nodeType: NODE_TYPE_COMPOSITE
+            eventAction: EVENT_ACTION_CLIENT_REDIRECT
+            attributeCapture: ""
+            backButtonAvailable: true
+            createdAt: 2026-03-14T09:30:00Z
+            linkId: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
+            payload: ""
+            backButton: ""
+            childStepIds:
+            - 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+            id: 987fcdeb-a321-45e6-b789-123456789012
+            parentStepIds:
+            - c6f0a3d9-1e7b-4c52-8f4a-9b2d6e0c1f83
+            updatedAt: 2026-03-18T16:05:00Z
+          key: s1
+      properties:
+        issues:
+          description: What workflow validation finds on the workflow now.
+          items:
+            $ref: "#/components/schemas/WorkflowIssue"
+          type: array
+        notices:
+          items:
+            $ref: "#/components/schemas/WorkflowStepCopyNotice"
+          type: array
+        steps:
+          items:
+            $ref: "#/components/schemas/ImportedWorkflowStep"
+          type: array
+    ImportedWorkflowStep:
+      description: One step created from the document.
+      example:
+        step:
+          kind: KIND_INTERACTION
+          nextCanGoBack: true
+          canvasPosition: ""
+          rendersPage: true
+          branches:
+          - branchId: a3f1c6d8-2e4b-4a7c-9d1f-6b8e0c2a4f57
+            nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+            label: Short form
+          - branchId: a3f1c6d8-2e4b-4a7c-9d1f-6b8e0c2a4f57
+            nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+            label: Short form
+          nodeType: NODE_TYPE_COMPOSITE
+          eventAction: EVENT_ACTION_CLIENT_REDIRECT
+          attributeCapture: ""
+          backButtonAvailable: true
+          createdAt: 2026-03-14T09:30:00Z
+          linkId: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
+          payload: ""
+          backButton: ""
+          childStepIds:
+          - 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+          id: 987fcdeb-a321-45e6-b789-123456789012
+          parentStepIds:
+          - c6f0a3d9-1e7b-4c52-8f4a-9b2d6e0c1f83
+          updatedAt: 2026-03-18T16:05:00Z
+        key: s1
+      properties:
+        key:
+          description: The step's key in the document.
+          example: s1
+          type: string
+        step:
+          $ref: "#/components/schemas/WorkflowStep"
     InAppBrowser:
       default: IN_APP_BROWSER_UNSPECIFIED
       description: |-
@@ -23321,6 +24523,9 @@ components:
           format: int32
           type: integer
     LanguageConditionOutcome:
+      example:
+        nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+        languageCode: fr
       properties:
         languageCode:
           description: |-
@@ -23338,6 +24543,13 @@ components:
         Language condition payload for EVENT_ACTION_LANGUAGE_CONDITION. The
         visitor's language is the first one their phone or browser sends; visitors
         whose language is not listed, or who send none, take the "else" branch.
+      example:
+        elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+        languages:
+        - nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+          languageCode: fr
+        - nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+          languageCode: fr
       properties:
         elseNextStepId:
           example: 987fcdeb-a321-45e6-b789-123456789012
@@ -25617,6 +26829,7 @@ components:
           thumbnailPendingUpdateSince: 2026-03-18T16:05:00Z
           createdAt: 2026-03-14T09:30:00Z
           pageThemeId: a8c5e111-8894-4f8a-b5db-9efe0d12a210
+          featuredRank: 1
           learnMore: |-
             ## Spring menu
 
@@ -25677,6 +26890,7 @@ components:
           thumbnailPendingUpdateSince: 2026-03-18T16:05:00Z
           createdAt: 2026-03-14T09:30:00Z
           pageThemeId: a8c5e111-8894-4f8a-b5db-9efe0d12a210
+          featuredRank: 1
           learnMore: |-
             ## Spring menu
 
@@ -25979,6 +27193,7 @@ components:
           tags: "restaurant,menu,elegant"
           thumbnailPendingUpdateSince: 2026-03-18T16:05:00Z
           createdAt: 2026-03-14T09:30:00Z
+          featuredRank: 1
           learnMore: |-
             ## When to use it
             Table cards and menus where the QR code should match a warm, classic decor.
@@ -26021,6 +27236,7 @@ components:
           tags: "restaurant,menu,elegant"
           thumbnailPendingUpdateSince: 2026-03-18T16:05:00Z
           createdAt: 2026-03-14T09:30:00Z
+          featuredRank: 1
           learnMore: |-
             ## When to use it
             Table cards and menus where the QR code should match a warm, classic decor.
@@ -26603,6 +27819,15 @@ components:
       - LOCATION_REQUEST_OUTCOME_ALREADY_SHARED
       type: string
     LocationRequestPayload:
+      example:
+        elseNextStepId: b2e8f4a1-7c3d-4e9b-a6f2-1d5c8e0b3a74
+        skipLabel: Not now
+        nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+        askOnce: true
+        description: We use it to show you the nearest store.
+        skipEnabled: true
+        title: Share your location
+        buttonLabel: Share my location
       properties:
         askOnce:
           example: true
@@ -26903,8 +28128,9 @@ components:
           readOnly: true
           title: What uses the media
         workflowStepId:
-          description: The Open media workflow step handing out the media (UUID).
-            Set only for TYPE_OPEN_MEDIA_STEP.
+          description: |-
+            The workflow step using the media (UUID): the Open media step handing it out, or the contact card
+            showing it as its photo. Set only for TYPE_OPEN_MEDIA_STEP and TYPE_CONTACT_CARD_AVATAR.
           example: 987fcdeb-a321-45e6-b789-123456789012
           readOnly: true
           type: string
@@ -26919,6 +28145,8 @@ components:
          - TYPE_QR_CODE_LOGO: A QR code design uses the media as its logo, in the center of the QR code. The design keeps its
         own copy of the image, so this does not block deleting the media; deleting it clears this use.
         Replacing the media's file detaches it too: the design keeps its current logo.
+         - TYPE_CONTACT_CARD_AVATAR: A contact card workflow step shows the media as the person's photo, and saves it with the
+        contact. It blocks deleting the media.
       enum:
       - TYPE_UNSPECIFIED
       - TYPE_OPEN_MEDIA_STEP
@@ -26926,6 +28154,7 @@ components:
       - TYPE_PAGE_THEME_BADGE
       - TYPE_PAGE_THEME_FOOTER_LOGO
       - TYPE_QR_CODE_LOGO
+      - TYPE_CONTACT_CARD_AVATAR
       title: What uses the media
       type: string
     MediaSelection:
@@ -27084,6 +28313,7 @@ components:
          - UPLOAD_ORIGIN_FOOTER_LOGO: Uploaded while picking a page theme's footer logo
          - UPLOAD_ORIGIN_OPEN_MEDIA: Uploaded while picking the media an Open media step opens
          - UPLOAD_ORIGIN_ASSISTANT: Imported by the Assistant, from a file attached to a conversation or a URL
+         - UPLOAD_ORIGIN_CONTACT_CARD_AVATAR: Uploaded while picking a contact card's photo
       enum:
       - UPLOAD_ORIGIN_UNSPECIFIED
       - UPLOAD_ORIGIN_MEDIA_LIBRARY
@@ -27093,6 +28323,7 @@ components:
       - UPLOAD_ORIGIN_FOOTER_LOGO
       - UPLOAD_ORIGIN_OPEN_MEDIA
       - UPLOAD_ORIGIN_ASSISTANT
+      - UPLOAD_ORIGIN_CONTACT_CARD_AVATAR
       type: string
     MediaUsage:
       default: USAGE_UNSPECIFIED
@@ -27100,7 +28331,7 @@ components:
         Deprecated: the value recorded at upload, kept for older clients. It no longer limits anything. Uploads
         accept images (PNG, JPEG, WebP, SVG) up to 10 MB, PDF documents up to 25 MB and MP4 videos up to 50 MB,
         whatever the usage. Where media is used is checked when it is attached: a QR code logo, background
-        cover, badge or footer logo must be an image of at most 3 MB; an Open media step takes any media.
+        cover, badge, footer logo or contact card photo must be an image of at most 3 MB; an Open media step takes any media.
 
          - USAGE_UNSPECIFIED: Not set
          - USAGE_CENTRAL_QRCODE_IMAGE: The logo in the center of a QR code
@@ -27333,6 +28564,12 @@ components:
       title: How visitors proceed from a message page
       type: string
     MessagePagePayload:
+      example:
+        timerSeconds: 5
+        description: Our spring menu is served on the terrace from noon to 10 pm.
+        navigationType: MESSAGE_PAGE_NAVIGATION_TYPE_BUTTON
+        title: Welcome to Hotel Lumiere
+        buttonLabel: See the menu
       properties:
         buttonLabel:
           example: See the menu
@@ -27384,6 +28621,11 @@ components:
           type: string
       title: An amount in one currency
     MultiLinkButton:
+      example:
+        nextStepId: 987fcdeb-a321-45e6-b789-123456789012
+        id: btn-1
+        label: Continue to Website
+        order: 1
       properties:
         id:
           example: btn-1
@@ -27404,6 +28646,18 @@ components:
           type: integer
       title: Button definition for EVENT_ACTION_MULTI_LINK
     MultiLinkPayload:
+      example:
+        buttons:
+        - nextStepId: 987fcdeb-a321-45e6-b789-123456789012
+          id: btn-1
+          label: Continue to Website
+          order: 1
+        - nextStepId: 987fcdeb-a321-45e6-b789-123456789012
+          id: btn-1
+          label: Continue to Website
+          order: 1
+        description: Select one of the options below to continue
+        title: Choose your destination
       properties:
         buttons:
           items:
@@ -27504,6 +28758,8 @@ components:
           title: "Workspace display name, empty when it was never named"
           type: string
     OpenMediaPayload:
+      example:
+        mediaId: 5f1c2d3e-4b5a-6c7d-8e9f-0a1b2c3d4e5f
       properties:
         mediaId:
           description: "The media item (UUID) handed to the visitor: any ready media\
@@ -28068,6 +29324,7 @@ components:
         thumbnailPendingUpdateSince: 2026-03-18T16:05:00Z
         createdAt: 2026-03-14T09:30:00Z
         pageThemeId: a8c5e111-8894-4f8a-b5db-9efe0d12a210
+        featuredRank: 1
         learnMore: |-
           ## Spring menu
 
@@ -28159,6 +29416,13 @@ components:
             \ first.\", \"order\": 1}]"
           title: FAQ data stored as JSON
           type: string
+        featuredRank:
+          description: "Position among the featured templates that open the public\
+            \ gallery, lowest first. Absent when the template is not featured. Only\
+            \ Linkbreakers features templates."
+          example: 1
+          format: int32
+          type: integer
         footerLogoSignedUrl:
           description: Signed URL for the template's footer logo image. Empty when
             the template has no footer logo.
@@ -28268,6 +29532,7 @@ components:
       type: object
     PageThemeTemplatesServiceUpdateBody:
       example:
+        featuredRank: 1
         learnMore: |-
           ## Spring menu
 
@@ -28290,6 +29555,14 @@ components:
             \ first.\", \"order\": 1}]"
           title: FAQ data to update (JSON string)
           type: string
+        featuredRank:
+          description: "Position among the featured templates that open the public\
+            \ gallery, lowest first; 0 stops featuring the template. Only the Linkbreakers\
+            \ workspace may set it: any other workspace gets a permission error and\
+            \ nothing is updated."
+          example: 1
+          format: int32
+          type: integer
         learnMore:
           example: |-
             ## Spring menu
@@ -28734,6 +30007,10 @@ components:
           type: string
       title: Request to update a page theme
     PasswordPayload:
+      example:
+        password: lumiere2026
+        description: Enter the code your server gave you.
+        title: Chef's tasting menu
       properties:
         description:
           example: Enter the code your server gave you.
@@ -29050,6 +30327,7 @@ components:
           description: "A warm cream page with navy buttons, made for restaurant menus."
           footerLogoSignedUrl: https://cdn.linkbreakers.com/media/5f1c2d3e/lumiere-logo.png?Expires=1774108800&Signature=b7Xk2pQz9LmN4vR8
           tags: "restaurant,spring-2026"
+          featuredRank: 1
           learnMore: |-
             ## Spring menu
 
@@ -29069,6 +30347,7 @@ components:
           description: "A warm cream page with navy buttons, made for restaurant menus."
           footerLogoSignedUrl: https://cdn.linkbreakers.com/media/5f1c2d3e/lumiere-logo.png?Expires=1774108800&Signature=b7Xk2pQz9LmN4vR8
           tags: "restaurant,spring-2026"
+          featuredRank: 1
           learnMore: |-
             ## Spring menu
 
@@ -29101,6 +30380,7 @@ components:
         hasMore: true
         qrcodeTemplates:
         - workspace: ""
+          featuredRank: 1
           learnMore: |-
             ## When to use it
             Table cards and menus where the QR code should match a warm, classic decor.
@@ -29116,6 +30396,7 @@ components:
           slug: bistro-navy
           tags: "restaurant,menu,elegant"
         - workspace: ""
+          featuredRank: 1
           learnMore: |-
             ## When to use it
             Table cards and menus where the QR code should match a warm, classic decor.
@@ -29154,6 +30435,7 @@ components:
         description: "A warm cream page with navy buttons, made for restaurant menus."
         footerLogoSignedUrl: https://cdn.linkbreakers.com/media/5f1c2d3e/lumiere-logo.png?Expires=1774108800&Signature=b7Xk2pQz9LmN4vR8
         tags: "restaurant,spring-2026"
+        featuredRank: 1
         learnMore: |-
           ## Spring menu
 
@@ -29196,6 +30478,13 @@ components:
             \ first.\", \"order\": 1}]"
           title: FAQ data stored as JSON
           type: string
+        featuredRank:
+          description: "Position among the featured templates that open the gallery,\
+            \ lowest first. Absent when the template is not featured. The gallery\
+            \ list returns featured templates first."
+          example: 1
+          format: int32
+          type: integer
         footerLogoSignedUrl:
           description: Signed URL for the template's footer logo image. Empty when
             it has none.
@@ -29249,6 +30538,7 @@ components:
     PublicQrcodeTemplate:
       example:
         workspace: ""
+        featuredRank: 1
         learnMore: |-
           ## When to use it
           Table cards and menus where the QR code should match a warm, classic decor.
@@ -29284,6 +30574,13 @@ components:
             \ the dots behind it are hidden.\", \"order\": 1}]}"
           title: FAQ data stored as JSON
           type: string
+        featuredRank:
+          description: "Position among the featured templates that open the gallery,\
+            \ lowest first. Absent when the template is not featured. The gallery\
+            \ list returns featured templates first."
+          example: 1
+          format: int32
+          type: integer
         learnMore:
           description: Extended markdown-supported content providing detailed information
             about the template
@@ -29704,6 +31001,7 @@ components:
         tags: "restaurant,menu,elegant"
         thumbnailPendingUpdateSince: 2026-03-18T16:05:00Z
         createdAt: 2026-03-14T09:30:00Z
+        featuredRank: 1
         learnMore: |-
           ## When to use it
           Table cards and menus where the QR code should match a warm, classic decor.
@@ -29749,6 +31047,13 @@ components:
             \ the dots behind it are hidden.\", \"order\": 1}]}"
           title: FAQ data stored as JSON
           type: string
+        featuredRank:
+          description: "Position among the featured templates that open the public\
+            \ gallery, lowest first. Absent when the template is not featured. Only\
+            \ Linkbreakers features templates."
+          example: 1
+          format: int32
+          type: integer
         id:
           example: 0d7f4d9c-1aef-4ed4-821b-321a3f9cba1d
           title: Unique identifier of the template (UUID)
@@ -29839,6 +31144,7 @@ components:
       type: object
     QrcodeTemplatesServiceUpdateBody:
       example:
+        featuredRank: 1
         learnMore: |-
           ## When to use it
           Table cards and menus where the QR code should match a warm, classic decor.
@@ -29862,6 +31168,14 @@ components:
             \ the dots behind it are hidden.\", \"order\": 1}]}"
           title: FAQ data to update (JSON string)
           type: string
+        featuredRank:
+          description: "Position among the featured templates that open the public\
+            \ gallery, lowest first; 0 stops featuring the template. Only the Linkbreakers\
+            \ workspace may set it: any other workspace gets a permission error and\
+            \ nothing is updated."
+          example: 1
+          format: int32
+          type: integer
         learnMore:
           description: Extended markdown-supported content providing detailed information
             about the template
@@ -30573,6 +31887,11 @@ components:
       title: The status of a Slack integration
       type: string
     SocialLinkButton:
+      example:
+        id: link-1
+        platform: instagram
+        url: https://instagram.com/username
+        order: 1
       properties:
         id:
           example: link-1
@@ -30626,6 +31945,19 @@ components:
       title: Display style options for social links page
       type: string
     SocialLinksPayload:
+      example:
+        displayStyle: SOCIAL_LINKS_DISPLAY_STYLE_DETAILED
+        description: Follow us on your favorite platform
+        links:
+        - id: link-1
+          platform: instagram
+          url: https://instagram.com/username
+          order: 1
+        - id: link-1
+          platform: instagram
+          url: https://instagram.com/username
+          order: 1
+        title: Connect with us
       properties:
         description:
           example: Follow us on your favorite platform
@@ -30913,6 +32245,21 @@ components:
       - SORT_DIRECTION_DESC
       type: string
     SpecificDateConditionPayload:
+      example:
+        elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+        options:
+        - month: 12
+          year: 2024
+          name: Christmas
+          nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+          id: option-1
+          day: 25
+        - month: 12
+          year: 2024
+          name: Christmas
+          nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+          id: option-1
+          day: 25
       properties:
         elseNextStepId:
           example: 987fcdeb-a321-45e6-b789-123456789012
@@ -30958,6 +32305,13 @@ components:
           format: int32
           type: integer
     SpecificDateOption:
+      example:
+        month: 12
+        year: 2024
+        name: Christmas
+        nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+        id: option-1
+        day: 25
       properties:
         day:
           description: Day of month (1-31)
@@ -31100,6 +32454,9 @@ components:
           type: boolean
       title: Confirms the test notification was sent
     ThankYouPagePayload:
+      example:
+        description: The spring menu is on its way to your inbox.
+        title: "Merci, see you at the table!"
       properties:
         description:
           example: The spring menu is on its way to your inbox.
@@ -31169,6 +32526,19 @@ components:
       - THEME_COLOR_TYPE_RADIAL
       type: string
     TimeOfDayConditionPayload:
+      example:
+        elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+        ranges:
+        - name: Business Hours
+          nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+          startTime: 09:00
+          endTime: 17:00
+          id: range-1
+        - name: Business Hours
+          nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+          startTime: 09:00
+          endTime: 17:00
+          id: range-1
       properties:
         elseNextStepId:
           example: 987fcdeb-a321-45e6-b789-123456789012
@@ -31208,6 +32578,12 @@ components:
           example: 12:00
           type: string
     TimeOfDayRange:
+      example:
+        name: Business Hours
+        nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+        startTime: 09:00
+        endTime: 17:00
+        id: range-1
       properties:
         endTime:
           description: End time in 24-hour format (HH:MM)
@@ -31316,6 +32692,17 @@ components:
         To end a test, set the weights to 100 and 0: everyone goes to the winner,
         including those who had the other variant. To target a test, place a
         condition before the split, not inside it: a split has no rules of its own.
+      example:
+        sticky: true
+        variants:
+        - nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+          weight: 50
+          id: a3f1c6d8-2e4b-4a7c-9d1f-6b8e0c2a4f57
+          label: Short form
+        - nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+          weight: 50
+          id: a3f1c6d8-2e4b-4a7c-9d1f-6b8e0c2a4f57
+          label: Short form
       properties:
         sticky:
           description: |-
@@ -31364,6 +32751,11 @@ components:
           type: string
     TrafficSplitVariant:
       description: One exit of a traffic split (EVENT_ACTION_TRAFFIC_SPLIT).
+      example:
+        nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+        weight: 50
+        id: a3f1c6d8-2e4b-4a7c-9d1f-6b8e0c2a4f57
+        label: Short form
       properties:
         id:
           description: |-
@@ -31771,6 +33163,7 @@ components:
           thumbnailPendingUpdateSince: 2026-03-18T16:05:00Z
           createdAt: 2026-03-14T09:30:00Z
           pageThemeId: a8c5e111-8894-4f8a-b5db-9efe0d12a210
+          featuredRank: 1
           learnMore: |-
             ## Spring menu
 
@@ -32121,6 +33514,13 @@ components:
           title: Token metadata (does not include the secret access token)
     VCardData:
       properties:
+        avatarMediaId:
+          description: |-
+            A photo of the person, from the workspace's media library (UUID), shown round at the top of the
+            card and saved with the contact. Upload or import the image first and pass its media id. Any READY
+            image of at most 3 MB.
+          example: 5f1c2d3e-4b5a-6c7d-8e9f-0a1b2c3d4e5f
+          type: string
         buttonLabel:
           example: Add to contacts
           title: Custom label for the contact button
@@ -32198,7 +33598,40 @@ components:
           type: string
       title: Contains the contact information for vCard links
     VCardPayload:
+      example:
+        country: United States
+        lastName: Doe
+        socialLinks:
+        - platform: linkedin
+          url: https://linkedin.com/in/janedoe
+        - platform: linkedin
+          url: https://linkedin.com/in/janedoe
+        website: https://acme.com
+        city: San Francisco
+        postalCode: "94102"
+        phoneSmsEnabled: true
+        title: Software Engineer
+        buttonLabel: Add to contacts
+        avatarMediaId: 5f1c2d3e-4b5a-6c7d-8e9f-0a1b2c3d4e5f
+        firstName: Jane
+        walletPassEnabled: true
+        phone: "+33123456789"
+        streetAddress: 123 Main Street
+        organization: Acme Corporation
+        phoneIsWhatsapp: true
+        state: CA
+        email: hello@acme.com
+        saveButtonEnabled: true
       properties:
+        avatarMediaId:
+          description: |-
+            A photo of the person, from the workspace's media library (UUID): shown round at the top of the
+            card, in the page theme's badge style, and saved with the contact as its photo. Upload the image
+            first (POST /v1/media/uploads, a PUT of its bytes, then its complete call) or import it from a URL,
+            and pass the media id: the image itself is never sent here. Any READY image of at most 3 MB can be
+            a contact card photo. Empty on an update removes it.
+          example: 5f1c2d3e-4b5a-6c7d-8e9f-0a1b2c3d4e5f
+          type: string
         buttonLabel:
           example: Add to contacts
           title: Label displayed on the contact button
@@ -32281,6 +33714,9 @@ components:
           type: string
       title: vCard payload for EVENT_ACTION_CONTACT_CARD
     VCardSocialLink:
+      example:
+        platform: linkedin
+        url: https://linkedin.com/in/janedoe
       properties:
         platform:
           description: |-
@@ -32402,6 +33838,9 @@ components:
       title: The type of visit for a given event
       type: string
     VisitTypeConditionOption:
+      example:
+        nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+        value: FIRST
       properties:
         nextStepId:
           example: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
@@ -32412,6 +33851,13 @@ components:
           title: "Visit type value to match (e.g. FIRST, RETURNING)"
           type: string
     VisitTypeConditionPayload:
+      example:
+        elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+        options:
+        - nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+          value: FIRST
+        - nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+          value: FIRST
       properties:
         elseNextStepId:
           example: 987fcdeb-a321-45e6-b789-123456789012
@@ -32901,6 +34347,12 @@ components:
           type: string
     VisitorDataConditionOption:
       description: Visitor data condition option for EVENT_ACTION_VISITOR_DATA_CONDITION.
+      example:
+        comparisonValue: "18"
+        nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+        attributeKey: age
+        id: option-1
+        operator: NUMBER_GREATER_THAN
       properties:
         attributeKey:
           example: age
@@ -32932,6 +34384,19 @@ components:
           example: NUMBER_GREATER_THAN
           type: string
     VisitorDataConditionPayload:
+      example:
+        elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+        options:
+        - comparisonValue: "18"
+          nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+          attributeKey: age
+          id: option-1
+          operator: NUMBER_GREATER_THAN
+        - comparisonValue: "18"
+          nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+          attributeKey: age
+          id: option-1
+          operator: NUMBER_GREATER_THAN
       properties:
         elseNextStepId:
           example: 987fcdeb-a321-45e6-b789-123456789012
@@ -33822,6 +35287,45 @@ components:
           description: The step this branch leads to. Empty when the branch is unconnected.
           example: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
           type: string
+    WorkflowStepCopyNotice:
+      description: "Something the import did besides creating a step, in words."
+      example:
+        message: The visit step of this link now leads to the copied form submit.
+        type: WORKFLOW_STEP_COPY_NOTICE_TYPE_ENTRY_CONNECTED
+        key: s1
+      properties:
+        key:
+          description: "The key of the step it is about, if any."
+          example: s1
+          type: string
+        message:
+          example: The visit step of this link now leads to the copied form submit.
+          type: string
+        type:
+          allOf:
+          - $ref: "#/components/schemas/WorkflowStepCopyNoticeType"
+          example: WORKFLOW_STEP_COPY_NOTICE_TYPE_ENTRY_CONNECTED
+    WorkflowStepCopyNoticeType:
+      default: WORKFLOW_STEP_COPY_NOTICE_TYPE_UNSPECIFIED
+      description: |-
+        What an import did besides creating a step.
+
+         - WORKFLOW_STEP_COPY_NOTICE_TYPE_ENTRY_IGNORED: The document's entry part was not used: pasted onto the link it came
+        from, or the step it led to was left out.
+         - WORKFLOW_STEP_COPY_NOTICE_TYPE_ENTRY_CONNECTED: The link's entry now leads to the step the document's entry led to.
+         - WORKFLOW_STEP_COPY_NOTICE_TYPE_STEP_LEFT_OUT: A step was not created: its media could not be brought, or the
+        workspace has no agent for a chat bot. Connections to it are empty.
+         - WORKFLOW_STEP_COPY_NOTICE_TYPE_MEDIA_COPIED: A file a step hands out was added to this workspace's media library.
+         - WORKFLOW_STEP_COPY_NOTICE_TYPE_REVIEW_NEEDED: A setting that does not travel was replaced and needs a look: a password
+        step's password, a chat bot's agent.
+      enum:
+      - WORKFLOW_STEP_COPY_NOTICE_TYPE_UNSPECIFIED
+      - WORKFLOW_STEP_COPY_NOTICE_TYPE_ENTRY_IGNORED
+      - WORKFLOW_STEP_COPY_NOTICE_TYPE_ENTRY_CONNECTED
+      - WORKFLOW_STEP_COPY_NOTICE_TYPE_STEP_LEFT_OUT
+      - WORKFLOW_STEP_COPY_NOTICE_TYPE_MEDIA_COPIED
+      - WORKFLOW_STEP_COPY_NOTICE_TYPE_REVIEW_NEEDED
+      type: string
     WorkflowStepKind:
       default: KIND_UNSPECIFIED
       description: |-
@@ -33867,6 +35371,317 @@ components:
       title: Workflow step node types
       type: string
     WorkflowStepPayload:
+      example:
+        timeOfDayCondition:
+          elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+          ranges:
+          - name: Business Hours
+            nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+            startTime: 09:00
+            endTime: 17:00
+            id: range-1
+          - name: Business Hours
+            nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+            startTime: 09:00
+            endTime: 17:00
+            id: range-1
+        chatBot:
+          elseNextStepId: b2e8f4a1-7c3d-4e9b-a6f2-1d5c8e0b3a74
+          skipLabel: Skip to the menu
+          agentId: 3f9a1c52-8d1e-4b7a-9c3e-2a6f5d8b1e40
+          openingMessage: Bonjour! One quick question and the spring menu is yours.
+          nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+          skipEnabled: true
+          objectives:
+          - options:
+            - label: Terrace
+              value: terrace
+            - label: Terrace
+              value: terrace
+            label: Company
+            explanation: The company the visitor works for. A freelancer can answer
+              their own name.
+            type: FORM_FIELD_TYPE_EMAIL
+            key: company
+            required: true
+          - options:
+            - label: Terrace
+              value: terrace
+            - label: Terrace
+              value: terrace
+            label: Company
+            explanation: The company the visitor works for. A freelancer can answer
+              their own name.
+            type: FORM_FIELD_TYPE_EMAIL
+            key: company
+            required: true
+          maxExchanges: 15
+          skipWhenKnown: true
+        socialLinks:
+          displayStyle: SOCIAL_LINKS_DISPLAY_STYLE_DETAILED
+          description: Follow us on your favorite platform
+          links:
+          - id: link-1
+            platform: instagram
+            url: https://instagram.com/username
+            order: 1
+          - id: link-1
+            platform: instagram
+            url: https://instagram.com/username
+            order: 1
+          title: Connect with us
+        messagePage:
+          timerSeconds: 5
+          description: Our spring menu is served on the terrace from noon to 10 pm.
+          navigationType: MESSAGE_PAGE_NAVIGATION_TYPE_BUTTON
+          title: Welcome to Hotel Lumiere
+          buttonLabel: See the menu
+        clientRedirect:
+          conversionTracking: true
+          destination: https://brand.example.com/checkout
+        thankYouPage:
+          description: The spring menu is on its way to your inbox.
+          title: "Merci, see you at the table!"
+        password:
+          password: lumiere2026
+          description: Enter the code your server gave you.
+          title: Chef's tasting menu
+        deviceActorCondition:
+          elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+          options:
+          - name: Bots
+            nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+            id: option-1
+            value: DEVICE_ACTOR_CONDITION_VALUE_BOT
+          - name: Bots
+            nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+            id: option-1
+            value: DEVICE_ACTOR_CONDITION_VALUE_BOT
+        dayOfMonthCondition:
+          elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+          options:
+          - dayOfMonth: 1
+            name: First of Month
+            nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+            id: option-1
+          - dayOfMonth: 1
+            name: First of Month
+            nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+            id: option-1
+        trafficSplit:
+          sticky: true
+          variants:
+          - nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+            weight: 50
+            id: a3f1c6d8-2e4b-4a7c-9d1f-6b8e0c2a4f57
+            label: Short form
+          - nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+            weight: 50
+            id: a3f1c6d8-2e4b-4a7c-9d1f-6b8e0c2a4f57
+            label: Short form
+        multiLink:
+          buttons:
+          - nextStepId: 987fcdeb-a321-45e6-b789-123456789012
+            id: btn-1
+            label: Continue to Website
+            order: 1
+          - nextStepId: 987fcdeb-a321-45e6-b789-123456789012
+            id: btn-1
+            label: Continue to Website
+            order: 1
+          description: Select one of the options below to continue
+          title: Choose your destination
+        devicePlatformCondition:
+          elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+          options:
+          - name: iOS Visitors
+            nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+            id: option-1
+            value: DEVICE_PLATFORM_CONDITION_VALUE_IOS
+          - name: iOS Visitors
+            nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+            id: option-1
+            value: DEVICE_PLATFORM_CONDITION_VALUE_IOS
+        linkVisit: "{}"
+        openMedia:
+          mediaId: 5f1c2d3e-4b5a-6c7d-8e9f-0a1b2c3d4e5f
+        languageCondition:
+          elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+          languages:
+          - nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+            languageCode: fr
+          - nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+            languageCode: fr
+        visitorDataCondition:
+          elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+          options:
+          - comparisonValue: "18"
+            nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+            attributeKey: age
+            id: option-1
+            operator: NUMBER_GREATER_THAN
+          - comparisonValue: "18"
+            nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+            attributeKey: age
+            id: option-1
+            operator: NUMBER_GREATER_THAN
+        vcard:
+          country: United States
+          lastName: Doe
+          socialLinks:
+          - platform: linkedin
+            url: https://linkedin.com/in/janedoe
+          - platform: linkedin
+            url: https://linkedin.com/in/janedoe
+          website: https://acme.com
+          city: San Francisco
+          postalCode: "94102"
+          phoneSmsEnabled: true
+          title: Software Engineer
+          buttonLabel: Add to contacts
+          avatarMediaId: 5f1c2d3e-4b5a-6c7d-8e9f-0a1b2c3d4e5f
+          firstName: Jane
+          walletPassEnabled: true
+          phone: "+33123456789"
+          streetAddress: 123 Main Street
+          organization: Acme Corporation
+          phoneIsWhatsapp: true
+          state: CA
+          email: hello@acme.com
+          saveButtonEnabled: true
+        dayOfWeekCondition:
+          elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+          options:
+          - name: Weekdays
+            nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+            id: option-1
+            daysOfWeek:
+            - 1
+            - 2
+            - 3
+            - 4
+            - 5
+          - name: Weekdays
+            nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+            id: option-1
+            daysOfWeek:
+            - 1
+            - 2
+            - 3
+            - 4
+            - 5
+        deviceBrandCondition:
+          elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+          options:
+          - name: Apple Devices
+            nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+            id: option-1
+            value: DEVICE_BRAND_CONDITION_VALUE_APPLE
+          - name: Apple Devices
+            nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+            id: option-1
+            value: DEVICE_BRAND_CONDITION_VALUE_APPLE
+        locationRequest:
+          elseNextStepId: b2e8f4a1-7c3d-4e9b-a6f2-1d5c8e0b3a74
+          skipLabel: Not now
+          nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+          askOnce: true
+          description: We use it to show you the nearest store.
+          skipEnabled: true
+          title: Share your location
+          buttonLabel: Share my location
+        visitTypeCondition:
+          elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+          options:
+          - nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+            value: FIRST
+          - nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+            value: FIRST
+        deviceBrowserCondition:
+          elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+          options:
+          - name: Chrome Visitors
+            nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+            minAppVersion: "400"
+            id: option-1
+            value: DEVICE_BROWSER_CONDITION_VALUE_CHROME
+          - name: Chrome Visitors
+            nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+            minAppVersion: "400"
+            id: option-1
+            value: DEVICE_BROWSER_CONDITION_VALUE_CHROME
+        specificDateCondition:
+          elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+          options:
+          - month: 12
+            year: 2024
+            name: Christmas
+            nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+            id: option-1
+            day: 25
+          - month: 12
+            year: 2024
+            name: Christmas
+            nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+            id: option-1
+            day: 25
+        form:
+          autoSkipIfKnown: true
+          skipForm: true
+          formDescription: Leave your email and we'll send tonight's specials along
+            with the menu.
+          formTitle: Get the spring menu
+          submitButtonText: Show me the menu
+          formFields:
+          - validationPattern: "^[^@\\s]+@[^@\\s]+\\.[a-z]{2,}$"
+            helpText: We send tonight's specials with the menu.
+            defaultValue: jules.martin@example.com
+            options:
+            - label: Terrace
+              value: terrace
+            - label: Terrace
+              value: terrace
+            id: 3f0d2b23-9f51-4d56-84d7-5d9d70fb49c2
+            label: Email
+            placeholder: jules.martin@example.com
+            type: FORM_FIELD_TYPE_EMAIL
+            key: $email
+            required: true
+            order: 1
+          - validationPattern: "^[^@\\s]+@[^@\\s]+\\.[a-z]{2,}$"
+            helpText: We send tonight's specials with the menu.
+            defaultValue: jules.martin@example.com
+            options:
+            - label: Terrace
+              value: terrace
+            - label: Terrace
+              value: terrace
+            id: 3f0d2b23-9f51-4d56-84d7-5d9d70fb49c2
+            label: Email
+            placeholder: jules.martin@example.com
+            type: FORM_FIELD_TYPE_EMAIL
+            key: $email
+            required: true
+            order: 1
+          skipButtonText: Skip for now
+        countryCondition:
+          elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+          countries:
+          - countryCode: US
+            nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+          - countryCode: US
+            nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+        deviceTypeCondition:
+          elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+          options:
+          - name: Desktop Users
+            nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+            id: option-1
+            value: DEVICE_TYPE_CONDITION_VALUE_DESKTOP
+          - name: Desktop Users
+            nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+            id: option-1
+            value: DEVICE_TYPE_CONDITION_VALUE_DESKTOP
       properties:
         chatBot:
           $ref: "#/components/schemas/ChatBotPayload"
@@ -33924,6 +35739,1191 @@ components:
         visitorDataCondition:
           $ref: "#/components/schemas/VisitorDataConditionPayload"
       title: Workflow step payload - uses oneof for type safety based on EventAction
+    WorkflowStepsDocument:
+      description: |-
+        A copy of workflow steps: their settings and the connections between them,
+        self-contained, naming steps by keys local to the document. It holds no id
+        of a workspace, link or step, and nothing secret: a password step's password
+        is left out, media travels as a download link, and a chat bot's agent by its
+        name. Its JSON Schema is published at
+        https://linkbreakers.com/schemas/workflow-steps/v1.json.
+      example:
+        entry: ""
+        edges:
+        - from: s1
+          to: s2
+          branch: next
+        - from: s1
+          to: s2
+          branch: next
+        type: linkbreakers/workflow-steps
+        steps:
+        - payload:
+            timeOfDayCondition:
+              elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+              ranges:
+              - name: Business Hours
+                nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                startTime: 09:00
+                endTime: 17:00
+                id: range-1
+              - name: Business Hours
+                nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                startTime: 09:00
+                endTime: 17:00
+                id: range-1
+            chatBot:
+              elseNextStepId: b2e8f4a1-7c3d-4e9b-a6f2-1d5c8e0b3a74
+              skipLabel: Skip to the menu
+              agentId: 3f9a1c52-8d1e-4b7a-9c3e-2a6f5d8b1e40
+              openingMessage: Bonjour! One quick question and the spring menu is yours.
+              nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+              skipEnabled: true
+              objectives:
+              - options:
+                - label: Terrace
+                  value: terrace
+                - label: Terrace
+                  value: terrace
+                label: Company
+                explanation: The company the visitor works for. A freelancer can answer
+                  their own name.
+                type: FORM_FIELD_TYPE_EMAIL
+                key: company
+                required: true
+              - options:
+                - label: Terrace
+                  value: terrace
+                - label: Terrace
+                  value: terrace
+                label: Company
+                explanation: The company the visitor works for. A freelancer can answer
+                  their own name.
+                type: FORM_FIELD_TYPE_EMAIL
+                key: company
+                required: true
+              maxExchanges: 15
+              skipWhenKnown: true
+            socialLinks:
+              displayStyle: SOCIAL_LINKS_DISPLAY_STYLE_DETAILED
+              description: Follow us on your favorite platform
+              links:
+              - id: link-1
+                platform: instagram
+                url: https://instagram.com/username
+                order: 1
+              - id: link-1
+                platform: instagram
+                url: https://instagram.com/username
+                order: 1
+              title: Connect with us
+            messagePage:
+              timerSeconds: 5
+              description: Our spring menu is served on the terrace from noon to 10
+                pm.
+              navigationType: MESSAGE_PAGE_NAVIGATION_TYPE_BUTTON
+              title: Welcome to Hotel Lumiere
+              buttonLabel: See the menu
+            clientRedirect:
+              conversionTracking: true
+              destination: https://brand.example.com/checkout
+            thankYouPage:
+              description: The spring menu is on its way to your inbox.
+              title: "Merci, see you at the table!"
+            password:
+              password: lumiere2026
+              description: Enter the code your server gave you.
+              title: Chef's tasting menu
+            deviceActorCondition:
+              elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+              options:
+              - name: Bots
+                nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                id: option-1
+                value: DEVICE_ACTOR_CONDITION_VALUE_BOT
+              - name: Bots
+                nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                id: option-1
+                value: DEVICE_ACTOR_CONDITION_VALUE_BOT
+            dayOfMonthCondition:
+              elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+              options:
+              - dayOfMonth: 1
+                name: First of Month
+                nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                id: option-1
+              - dayOfMonth: 1
+                name: First of Month
+                nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                id: option-1
+            trafficSplit:
+              sticky: true
+              variants:
+              - nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                weight: 50
+                id: a3f1c6d8-2e4b-4a7c-9d1f-6b8e0c2a4f57
+                label: Short form
+              - nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                weight: 50
+                id: a3f1c6d8-2e4b-4a7c-9d1f-6b8e0c2a4f57
+                label: Short form
+            multiLink:
+              buttons:
+              - nextStepId: 987fcdeb-a321-45e6-b789-123456789012
+                id: btn-1
+                label: Continue to Website
+                order: 1
+              - nextStepId: 987fcdeb-a321-45e6-b789-123456789012
+                id: btn-1
+                label: Continue to Website
+                order: 1
+              description: Select one of the options below to continue
+              title: Choose your destination
+            devicePlatformCondition:
+              elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+              options:
+              - name: iOS Visitors
+                nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                id: option-1
+                value: DEVICE_PLATFORM_CONDITION_VALUE_IOS
+              - name: iOS Visitors
+                nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                id: option-1
+                value: DEVICE_PLATFORM_CONDITION_VALUE_IOS
+            linkVisit: "{}"
+            openMedia:
+              mediaId: 5f1c2d3e-4b5a-6c7d-8e9f-0a1b2c3d4e5f
+            languageCondition:
+              elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+              languages:
+              - nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                languageCode: fr
+              - nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                languageCode: fr
+            visitorDataCondition:
+              elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+              options:
+              - comparisonValue: "18"
+                nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                attributeKey: age
+                id: option-1
+                operator: NUMBER_GREATER_THAN
+              - comparisonValue: "18"
+                nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                attributeKey: age
+                id: option-1
+                operator: NUMBER_GREATER_THAN
+            vcard:
+              country: United States
+              lastName: Doe
+              socialLinks:
+              - platform: linkedin
+                url: https://linkedin.com/in/janedoe
+              - platform: linkedin
+                url: https://linkedin.com/in/janedoe
+              website: https://acme.com
+              city: San Francisco
+              postalCode: "94102"
+              phoneSmsEnabled: true
+              title: Software Engineer
+              buttonLabel: Add to contacts
+              avatarMediaId: 5f1c2d3e-4b5a-6c7d-8e9f-0a1b2c3d4e5f
+              firstName: Jane
+              walletPassEnabled: true
+              phone: "+33123456789"
+              streetAddress: 123 Main Street
+              organization: Acme Corporation
+              phoneIsWhatsapp: true
+              state: CA
+              email: hello@acme.com
+              saveButtonEnabled: true
+            dayOfWeekCondition:
+              elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+              options:
+              - name: Weekdays
+                nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                id: option-1
+                daysOfWeek:
+                - 1
+                - 2
+                - 3
+                - 4
+                - 5
+              - name: Weekdays
+                nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                id: option-1
+                daysOfWeek:
+                - 1
+                - 2
+                - 3
+                - 4
+                - 5
+            deviceBrandCondition:
+              elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+              options:
+              - name: Apple Devices
+                nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                id: option-1
+                value: DEVICE_BRAND_CONDITION_VALUE_APPLE
+              - name: Apple Devices
+                nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                id: option-1
+                value: DEVICE_BRAND_CONDITION_VALUE_APPLE
+            locationRequest:
+              elseNextStepId: b2e8f4a1-7c3d-4e9b-a6f2-1d5c8e0b3a74
+              skipLabel: Not now
+              nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+              askOnce: true
+              description: We use it to show you the nearest store.
+              skipEnabled: true
+              title: Share your location
+              buttonLabel: Share my location
+            visitTypeCondition:
+              elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+              options:
+              - nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                value: FIRST
+              - nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                value: FIRST
+            deviceBrowserCondition:
+              elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+              options:
+              - name: Chrome Visitors
+                nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                minAppVersion: "400"
+                id: option-1
+                value: DEVICE_BROWSER_CONDITION_VALUE_CHROME
+              - name: Chrome Visitors
+                nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                minAppVersion: "400"
+                id: option-1
+                value: DEVICE_BROWSER_CONDITION_VALUE_CHROME
+            specificDateCondition:
+              elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+              options:
+              - month: 12
+                year: 2024
+                name: Christmas
+                nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                id: option-1
+                day: 25
+              - month: 12
+                year: 2024
+                name: Christmas
+                nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                id: option-1
+                day: 25
+            form:
+              autoSkipIfKnown: true
+              skipForm: true
+              formDescription: Leave your email and we'll send tonight's specials
+                along with the menu.
+              formTitle: Get the spring menu
+              submitButtonText: Show me the menu
+              formFields:
+              - validationPattern: "^[^@\\s]+@[^@\\s]+\\.[a-z]{2,}$"
+                helpText: We send tonight's specials with the menu.
+                defaultValue: jules.martin@example.com
+                options:
+                - label: Terrace
+                  value: terrace
+                - label: Terrace
+                  value: terrace
+                id: 3f0d2b23-9f51-4d56-84d7-5d9d70fb49c2
+                label: Email
+                placeholder: jules.martin@example.com
+                type: FORM_FIELD_TYPE_EMAIL
+                key: $email
+                required: true
+                order: 1
+              - validationPattern: "^[^@\\s]+@[^@\\s]+\\.[a-z]{2,}$"
+                helpText: We send tonight's specials with the menu.
+                defaultValue: jules.martin@example.com
+                options:
+                - label: Terrace
+                  value: terrace
+                - label: Terrace
+                  value: terrace
+                id: 3f0d2b23-9f51-4d56-84d7-5d9d70fb49c2
+                label: Email
+                placeholder: jules.martin@example.com
+                type: FORM_FIELD_TYPE_EMAIL
+                key: $email
+                required: true
+                order: 1
+              skipButtonText: Skip for now
+            countryCondition:
+              elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+              countries:
+              - countryCode: US
+                nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+              - countryCode: US
+                nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+            deviceTypeCondition:
+              elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+              options:
+              - name: Desktop Users
+                nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                id: option-1
+                value: DEVICE_TYPE_CONDITION_VALUE_DESKTOP
+              - name: Desktop Users
+                nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                id: option-1
+                value: DEVICE_TYPE_CONDITION_VALUE_DESKTOP
+          backButton: ""
+          name: "Form: Join the list"
+          agentName: Front desk
+          media: ""
+          position: ""
+          eventAction: EVENT_ACTION_FORM_SUBMIT
+          attributeCapture: ""
+          key: s1
+        - payload:
+            timeOfDayCondition:
+              elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+              ranges:
+              - name: Business Hours
+                nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                startTime: 09:00
+                endTime: 17:00
+                id: range-1
+              - name: Business Hours
+                nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                startTime: 09:00
+                endTime: 17:00
+                id: range-1
+            chatBot:
+              elseNextStepId: b2e8f4a1-7c3d-4e9b-a6f2-1d5c8e0b3a74
+              skipLabel: Skip to the menu
+              agentId: 3f9a1c52-8d1e-4b7a-9c3e-2a6f5d8b1e40
+              openingMessage: Bonjour! One quick question and the spring menu is yours.
+              nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+              skipEnabled: true
+              objectives:
+              - options:
+                - label: Terrace
+                  value: terrace
+                - label: Terrace
+                  value: terrace
+                label: Company
+                explanation: The company the visitor works for. A freelancer can answer
+                  their own name.
+                type: FORM_FIELD_TYPE_EMAIL
+                key: company
+                required: true
+              - options:
+                - label: Terrace
+                  value: terrace
+                - label: Terrace
+                  value: terrace
+                label: Company
+                explanation: The company the visitor works for. A freelancer can answer
+                  their own name.
+                type: FORM_FIELD_TYPE_EMAIL
+                key: company
+                required: true
+              maxExchanges: 15
+              skipWhenKnown: true
+            socialLinks:
+              displayStyle: SOCIAL_LINKS_DISPLAY_STYLE_DETAILED
+              description: Follow us on your favorite platform
+              links:
+              - id: link-1
+                platform: instagram
+                url: https://instagram.com/username
+                order: 1
+              - id: link-1
+                platform: instagram
+                url: https://instagram.com/username
+                order: 1
+              title: Connect with us
+            messagePage:
+              timerSeconds: 5
+              description: Our spring menu is served on the terrace from noon to 10
+                pm.
+              navigationType: MESSAGE_PAGE_NAVIGATION_TYPE_BUTTON
+              title: Welcome to Hotel Lumiere
+              buttonLabel: See the menu
+            clientRedirect:
+              conversionTracking: true
+              destination: https://brand.example.com/checkout
+            thankYouPage:
+              description: The spring menu is on its way to your inbox.
+              title: "Merci, see you at the table!"
+            password:
+              password: lumiere2026
+              description: Enter the code your server gave you.
+              title: Chef's tasting menu
+            deviceActorCondition:
+              elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+              options:
+              - name: Bots
+                nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                id: option-1
+                value: DEVICE_ACTOR_CONDITION_VALUE_BOT
+              - name: Bots
+                nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                id: option-1
+                value: DEVICE_ACTOR_CONDITION_VALUE_BOT
+            dayOfMonthCondition:
+              elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+              options:
+              - dayOfMonth: 1
+                name: First of Month
+                nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                id: option-1
+              - dayOfMonth: 1
+                name: First of Month
+                nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                id: option-1
+            trafficSplit:
+              sticky: true
+              variants:
+              - nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                weight: 50
+                id: a3f1c6d8-2e4b-4a7c-9d1f-6b8e0c2a4f57
+                label: Short form
+              - nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                weight: 50
+                id: a3f1c6d8-2e4b-4a7c-9d1f-6b8e0c2a4f57
+                label: Short form
+            multiLink:
+              buttons:
+              - nextStepId: 987fcdeb-a321-45e6-b789-123456789012
+                id: btn-1
+                label: Continue to Website
+                order: 1
+              - nextStepId: 987fcdeb-a321-45e6-b789-123456789012
+                id: btn-1
+                label: Continue to Website
+                order: 1
+              description: Select one of the options below to continue
+              title: Choose your destination
+            devicePlatformCondition:
+              elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+              options:
+              - name: iOS Visitors
+                nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                id: option-1
+                value: DEVICE_PLATFORM_CONDITION_VALUE_IOS
+              - name: iOS Visitors
+                nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                id: option-1
+                value: DEVICE_PLATFORM_CONDITION_VALUE_IOS
+            linkVisit: "{}"
+            openMedia:
+              mediaId: 5f1c2d3e-4b5a-6c7d-8e9f-0a1b2c3d4e5f
+            languageCondition:
+              elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+              languages:
+              - nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                languageCode: fr
+              - nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                languageCode: fr
+            visitorDataCondition:
+              elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+              options:
+              - comparisonValue: "18"
+                nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                attributeKey: age
+                id: option-1
+                operator: NUMBER_GREATER_THAN
+              - comparisonValue: "18"
+                nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                attributeKey: age
+                id: option-1
+                operator: NUMBER_GREATER_THAN
+            vcard:
+              country: United States
+              lastName: Doe
+              socialLinks:
+              - platform: linkedin
+                url: https://linkedin.com/in/janedoe
+              - platform: linkedin
+                url: https://linkedin.com/in/janedoe
+              website: https://acme.com
+              city: San Francisco
+              postalCode: "94102"
+              phoneSmsEnabled: true
+              title: Software Engineer
+              buttonLabel: Add to contacts
+              avatarMediaId: 5f1c2d3e-4b5a-6c7d-8e9f-0a1b2c3d4e5f
+              firstName: Jane
+              walletPassEnabled: true
+              phone: "+33123456789"
+              streetAddress: 123 Main Street
+              organization: Acme Corporation
+              phoneIsWhatsapp: true
+              state: CA
+              email: hello@acme.com
+              saveButtonEnabled: true
+            dayOfWeekCondition:
+              elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+              options:
+              - name: Weekdays
+                nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                id: option-1
+                daysOfWeek:
+                - 1
+                - 2
+                - 3
+                - 4
+                - 5
+              - name: Weekdays
+                nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                id: option-1
+                daysOfWeek:
+                - 1
+                - 2
+                - 3
+                - 4
+                - 5
+            deviceBrandCondition:
+              elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+              options:
+              - name: Apple Devices
+                nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                id: option-1
+                value: DEVICE_BRAND_CONDITION_VALUE_APPLE
+              - name: Apple Devices
+                nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                id: option-1
+                value: DEVICE_BRAND_CONDITION_VALUE_APPLE
+            locationRequest:
+              elseNextStepId: b2e8f4a1-7c3d-4e9b-a6f2-1d5c8e0b3a74
+              skipLabel: Not now
+              nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+              askOnce: true
+              description: We use it to show you the nearest store.
+              skipEnabled: true
+              title: Share your location
+              buttonLabel: Share my location
+            visitTypeCondition:
+              elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+              options:
+              - nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                value: FIRST
+              - nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                value: FIRST
+            deviceBrowserCondition:
+              elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+              options:
+              - name: Chrome Visitors
+                nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                minAppVersion: "400"
+                id: option-1
+                value: DEVICE_BROWSER_CONDITION_VALUE_CHROME
+              - name: Chrome Visitors
+                nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                minAppVersion: "400"
+                id: option-1
+                value: DEVICE_BROWSER_CONDITION_VALUE_CHROME
+            specificDateCondition:
+              elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+              options:
+              - month: 12
+                year: 2024
+                name: Christmas
+                nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                id: option-1
+                day: 25
+              - month: 12
+                year: 2024
+                name: Christmas
+                nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                id: option-1
+                day: 25
+            form:
+              autoSkipIfKnown: true
+              skipForm: true
+              formDescription: Leave your email and we'll send tonight's specials
+                along with the menu.
+              formTitle: Get the spring menu
+              submitButtonText: Show me the menu
+              formFields:
+              - validationPattern: "^[^@\\s]+@[^@\\s]+\\.[a-z]{2,}$"
+                helpText: We send tonight's specials with the menu.
+                defaultValue: jules.martin@example.com
+                options:
+                - label: Terrace
+                  value: terrace
+                - label: Terrace
+                  value: terrace
+                id: 3f0d2b23-9f51-4d56-84d7-5d9d70fb49c2
+                label: Email
+                placeholder: jules.martin@example.com
+                type: FORM_FIELD_TYPE_EMAIL
+                key: $email
+                required: true
+                order: 1
+              - validationPattern: "^[^@\\s]+@[^@\\s]+\\.[a-z]{2,}$"
+                helpText: We send tonight's specials with the menu.
+                defaultValue: jules.martin@example.com
+                options:
+                - label: Terrace
+                  value: terrace
+                - label: Terrace
+                  value: terrace
+                id: 3f0d2b23-9f51-4d56-84d7-5d9d70fb49c2
+                label: Email
+                placeholder: jules.martin@example.com
+                type: FORM_FIELD_TYPE_EMAIL
+                key: $email
+                required: true
+                order: 1
+              skipButtonText: Skip for now
+            countryCondition:
+              elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+              countries:
+              - countryCode: US
+                nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+              - countryCode: US
+                nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+            deviceTypeCondition:
+              elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+              options:
+              - name: Desktop Users
+                nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                id: option-1
+                value: DEVICE_TYPE_CONDITION_VALUE_DESKTOP
+              - name: Desktop Users
+                nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+                id: option-1
+                value: DEVICE_TYPE_CONDITION_VALUE_DESKTOP
+          backButton: ""
+          name: "Form: Join the list"
+          agentName: Front desk
+          media: ""
+          position: ""
+          eventAction: EVENT_ACTION_FORM_SUBMIT
+          attributeCapture: ""
+          key: s1
+        version: 1
+      properties:
+        edges:
+          description: The connections between the steps of the document.
+          items:
+            $ref: "#/components/schemas/WorkflowStepsDocumentEdge"
+          type: array
+        entry:
+          allOf:
+          - $ref: "#/components/schemas/WorkflowStepsDocumentEntry"
+          description: "What the source link's entry led to, when it was copied with\
+            \ the steps."
+        steps:
+          description: |-
+            The steps, up to 100. Their own connections (`nextStepId` and the like in
+            the payload) are ignored: `edges` holds them.
+          items:
+            $ref: "#/components/schemas/WorkflowStepsDocumentStep"
+          type: array
+        type:
+          description: Always `linkbreakers/workflow-steps`.
+          example: linkbreakers/workflow-steps
+          type: string
+        version:
+          description: "The version of this format: 1."
+          example: 1
+          format: int32
+          type: integer
+    WorkflowStepsDocumentEdge:
+      description: A connection between two steps of a document.
+      example:
+        from: s1
+        to: s2
+        branch: next
+      properties:
+        branch:
+          description: |-
+            The branch it leaves by: `next` for a step with one exit, else the
+            branch id as the step lists it (a button, option or range id, a country
+            or language code, a variant id, or `else`).
+          example: next
+          type: string
+        from:
+          description: The key of the step the connection leaves from.
+          example: s1
+          type: string
+        to:
+          description: The key of the step it leads to.
+          example: s2
+          type: string
+    WorkflowStepsDocumentEntry:
+      description: What the source link's entry led to.
+      properties:
+        connectsTo:
+          description: The key of the step the entry led to.
+          example: s1
+          type: string
+    WorkflowStepsDocumentMedia:
+      description: A file carried by a document.
+      properties:
+        fileName:
+          example: menu.pdf
+          type: string
+        url:
+          description: |-
+            Where the file can be downloaded. A link made by Export works for a
+            limited time.
+          example: https://media.linkbreakers.com/menu.pdf
+          type: string
+    WorkflowStepsDocumentStep:
+      description: One step of a document.
+      example:
+        payload:
+          timeOfDayCondition:
+            elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+            ranges:
+            - name: Business Hours
+              nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+              startTime: 09:00
+              endTime: 17:00
+              id: range-1
+            - name: Business Hours
+              nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+              startTime: 09:00
+              endTime: 17:00
+              id: range-1
+          chatBot:
+            elseNextStepId: b2e8f4a1-7c3d-4e9b-a6f2-1d5c8e0b3a74
+            skipLabel: Skip to the menu
+            agentId: 3f9a1c52-8d1e-4b7a-9c3e-2a6f5d8b1e40
+            openingMessage: Bonjour! One quick question and the spring menu is yours.
+            nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+            skipEnabled: true
+            objectives:
+            - options:
+              - label: Terrace
+                value: terrace
+              - label: Terrace
+                value: terrace
+              label: Company
+              explanation: The company the visitor works for. A freelancer can answer
+                their own name.
+              type: FORM_FIELD_TYPE_EMAIL
+              key: company
+              required: true
+            - options:
+              - label: Terrace
+                value: terrace
+              - label: Terrace
+                value: terrace
+              label: Company
+              explanation: The company the visitor works for. A freelancer can answer
+                their own name.
+              type: FORM_FIELD_TYPE_EMAIL
+              key: company
+              required: true
+            maxExchanges: 15
+            skipWhenKnown: true
+          socialLinks:
+            displayStyle: SOCIAL_LINKS_DISPLAY_STYLE_DETAILED
+            description: Follow us on your favorite platform
+            links:
+            - id: link-1
+              platform: instagram
+              url: https://instagram.com/username
+              order: 1
+            - id: link-1
+              platform: instagram
+              url: https://instagram.com/username
+              order: 1
+            title: Connect with us
+          messagePage:
+            timerSeconds: 5
+            description: Our spring menu is served on the terrace from noon to 10
+              pm.
+            navigationType: MESSAGE_PAGE_NAVIGATION_TYPE_BUTTON
+            title: Welcome to Hotel Lumiere
+            buttonLabel: See the menu
+          clientRedirect:
+            conversionTracking: true
+            destination: https://brand.example.com/checkout
+          thankYouPage:
+            description: The spring menu is on its way to your inbox.
+            title: "Merci, see you at the table!"
+          password:
+            password: lumiere2026
+            description: Enter the code your server gave you.
+            title: Chef's tasting menu
+          deviceActorCondition:
+            elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+            options:
+            - name: Bots
+              nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+              id: option-1
+              value: DEVICE_ACTOR_CONDITION_VALUE_BOT
+            - name: Bots
+              nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+              id: option-1
+              value: DEVICE_ACTOR_CONDITION_VALUE_BOT
+          dayOfMonthCondition:
+            elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+            options:
+            - dayOfMonth: 1
+              name: First of Month
+              nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+              id: option-1
+            - dayOfMonth: 1
+              name: First of Month
+              nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+              id: option-1
+          trafficSplit:
+            sticky: true
+            variants:
+            - nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+              weight: 50
+              id: a3f1c6d8-2e4b-4a7c-9d1f-6b8e0c2a4f57
+              label: Short form
+            - nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+              weight: 50
+              id: a3f1c6d8-2e4b-4a7c-9d1f-6b8e0c2a4f57
+              label: Short form
+          multiLink:
+            buttons:
+            - nextStepId: 987fcdeb-a321-45e6-b789-123456789012
+              id: btn-1
+              label: Continue to Website
+              order: 1
+            - nextStepId: 987fcdeb-a321-45e6-b789-123456789012
+              id: btn-1
+              label: Continue to Website
+              order: 1
+            description: Select one of the options below to continue
+            title: Choose your destination
+          devicePlatformCondition:
+            elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+            options:
+            - name: iOS Visitors
+              nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+              id: option-1
+              value: DEVICE_PLATFORM_CONDITION_VALUE_IOS
+            - name: iOS Visitors
+              nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+              id: option-1
+              value: DEVICE_PLATFORM_CONDITION_VALUE_IOS
+          linkVisit: "{}"
+          openMedia:
+            mediaId: 5f1c2d3e-4b5a-6c7d-8e9f-0a1b2c3d4e5f
+          languageCondition:
+            elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+            languages:
+            - nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+              languageCode: fr
+            - nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+              languageCode: fr
+          visitorDataCondition:
+            elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+            options:
+            - comparisonValue: "18"
+              nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+              attributeKey: age
+              id: option-1
+              operator: NUMBER_GREATER_THAN
+            - comparisonValue: "18"
+              nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+              attributeKey: age
+              id: option-1
+              operator: NUMBER_GREATER_THAN
+          vcard:
+            country: United States
+            lastName: Doe
+            socialLinks:
+            - platform: linkedin
+              url: https://linkedin.com/in/janedoe
+            - platform: linkedin
+              url: https://linkedin.com/in/janedoe
+            website: https://acme.com
+            city: San Francisco
+            postalCode: "94102"
+            phoneSmsEnabled: true
+            title: Software Engineer
+            buttonLabel: Add to contacts
+            avatarMediaId: 5f1c2d3e-4b5a-6c7d-8e9f-0a1b2c3d4e5f
+            firstName: Jane
+            walletPassEnabled: true
+            phone: "+33123456789"
+            streetAddress: 123 Main Street
+            organization: Acme Corporation
+            phoneIsWhatsapp: true
+            state: CA
+            email: hello@acme.com
+            saveButtonEnabled: true
+          dayOfWeekCondition:
+            elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+            options:
+            - name: Weekdays
+              nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+              id: option-1
+              daysOfWeek:
+              - 1
+              - 2
+              - 3
+              - 4
+              - 5
+            - name: Weekdays
+              nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+              id: option-1
+              daysOfWeek:
+              - 1
+              - 2
+              - 3
+              - 4
+              - 5
+          deviceBrandCondition:
+            elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+            options:
+            - name: Apple Devices
+              nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+              id: option-1
+              value: DEVICE_BRAND_CONDITION_VALUE_APPLE
+            - name: Apple Devices
+              nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+              id: option-1
+              value: DEVICE_BRAND_CONDITION_VALUE_APPLE
+          locationRequest:
+            elseNextStepId: b2e8f4a1-7c3d-4e9b-a6f2-1d5c8e0b3a74
+            skipLabel: Not now
+            nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+            askOnce: true
+            description: We use it to show you the nearest store.
+            skipEnabled: true
+            title: Share your location
+            buttonLabel: Share my location
+          visitTypeCondition:
+            elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+            options:
+            - nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+              value: FIRST
+            - nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+              value: FIRST
+          deviceBrowserCondition:
+            elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+            options:
+            - name: Chrome Visitors
+              nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+              minAppVersion: "400"
+              id: option-1
+              value: DEVICE_BROWSER_CONDITION_VALUE_CHROME
+            - name: Chrome Visitors
+              nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+              minAppVersion: "400"
+              id: option-1
+              value: DEVICE_BROWSER_CONDITION_VALUE_CHROME
+          specificDateCondition:
+            elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+            options:
+            - month: 12
+              year: 2024
+              name: Christmas
+              nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+              id: option-1
+              day: 25
+            - month: 12
+              year: 2024
+              name: Christmas
+              nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+              id: option-1
+              day: 25
+          form:
+            autoSkipIfKnown: true
+            skipForm: true
+            formDescription: Leave your email and we'll send tonight's specials along
+              with the menu.
+            formTitle: Get the spring menu
+            submitButtonText: Show me the menu
+            formFields:
+            - validationPattern: "^[^@\\s]+@[^@\\s]+\\.[a-z]{2,}$"
+              helpText: We send tonight's specials with the menu.
+              defaultValue: jules.martin@example.com
+              options:
+              - label: Terrace
+                value: terrace
+              - label: Terrace
+                value: terrace
+              id: 3f0d2b23-9f51-4d56-84d7-5d9d70fb49c2
+              label: Email
+              placeholder: jules.martin@example.com
+              type: FORM_FIELD_TYPE_EMAIL
+              key: $email
+              required: true
+              order: 1
+            - validationPattern: "^[^@\\s]+@[^@\\s]+\\.[a-z]{2,}$"
+              helpText: We send tonight's specials with the menu.
+              defaultValue: jules.martin@example.com
+              options:
+              - label: Terrace
+                value: terrace
+              - label: Terrace
+                value: terrace
+              id: 3f0d2b23-9f51-4d56-84d7-5d9d70fb49c2
+              label: Email
+              placeholder: jules.martin@example.com
+              type: FORM_FIELD_TYPE_EMAIL
+              key: $email
+              required: true
+              order: 1
+            skipButtonText: Skip for now
+          countryCondition:
+            elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+            countries:
+            - countryCode: US
+              nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+            - countryCode: US
+              nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+          deviceTypeCondition:
+            elseNextStepId: 987fcdeb-a321-45e6-b789-123456789012
+            options:
+            - name: Desktop Users
+              nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+              id: option-1
+              value: DEVICE_TYPE_CONDITION_VALUE_DESKTOP
+            - name: Desktop Users
+              nextStepId: 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+              id: option-1
+              value: DEVICE_TYPE_CONDITION_VALUE_DESKTOP
+        backButton: ""
+        name: "Form: Join the list"
+        agentName: Front desk
+        media: ""
+        position: ""
+        eventAction: EVENT_ACTION_FORM_SUBMIT
+        attributeCapture: ""
+        key: s1
+      properties:
+        agentName:
+          description: |-
+            The name of the agent a chat bot step talks through, in place of its id,
+            which the payload leaves empty. Imported, the step talks through the
+            workspace's agent of that name, or else its first agent.
+          example: Front desk
+          type: string
+        attributeCapture:
+          allOf:
+          - $ref: "#/components/schemas/AttributeCapture"
+          description: What the step saves to the visitor's profile.
+        backButton:
+          allOf:
+          - $ref: "#/components/schemas/BackButton"
+          description: The page's back button.
+        eventAction:
+          description: |-
+            - EVENT_ACTION_UNSPECIFIED: Event action not specified
+             - EVENT_ACTION_CLIENT_REDIRECT: Redirect visitors to a destination URL
+             - EVENT_ACTION_LINK_VISIT: Entry step triggered when the link is visited.
+             - EVENT_ACTION_PASSWORD_VERIFY: Require visitors to enter a password before proceeding
+             - EVENT_ACTION_FORM_SUBMIT: Present a data collection form to visitors
+             - EVENT_ACTION_CONTACT_CARD: Generate a vCard (VCF) response with contact information
+             - EVENT_ACTION_MULTI_LINK: A page of buttons where each one continues into more workflow: the button
+            leads to a next step, not straight out. Records which button the visitor
+            pressed, so use it over SOCIAL_LINKS_PAGE when that choice is worth
+            measuring or when a branch needs to do more than redirect. This is the
+            menu step: for several documents or PDFs, give each one a button
+            connected to an OPEN_MEDIA step for media uploaded to the media library, or to
+            a CLIENT_REDIRECT when the document is already hosted at a URL.
+             - EVENT_ACTION_VISIT_TYPE_CONDITION: Route visitors based on whether it's a first or returning visit
+             - EVENT_ACTION_COUNTRY_CONDITION: Route visitors based on their country location
+             - EVENT_ACTION_DAY_OF_WEEK_CONDITION: Route visitors based on day of week
+             - EVENT_ACTION_TIME_OF_DAY_CONDITION: Route visitors based on time of day
+             - EVENT_ACTION_DAY_OF_MONTH_CONDITION: Route visitors based on day of month
+             - EVENT_ACTION_SPECIFIC_DATE_CONDITION: Route visitors based on specific calendar dates
+             - EVENT_ACTION_SOCIAL_LINKS_PAGE: A page of buttons that each leave for an external URL. Social profiles are
+            the common case, not the only one: app stores, docs, booking pages and
+            storefronts all work, and the name is the only thing about it that is
+            social. It is an exit step, so the visitor leaves from here.
+             - EVENT_ACTION_DEVICE_TYPE_CONDITION: Route visitors based on device type (e.g. MOBILE, DESKTOP, TABLET)
+             - EVENT_ACTION_DEVICE_PLATFORM_CONDITION: Route visitors based on device platform / operating system (e.g. iOS, Android, macOS)
+             - EVENT_ACTION_DEVICE_BROWSER_CONDITION: Route visitors based on their browser: a browser family (Chrome, Safari,
+            Firefox...) or the in-app browser of the app a link was opened in
+            (Instagram, TikTok, Facebook, LinkedIn...)
+             - EVENT_ACTION_DEVICE_BRAND_CONDITION: Route visitors based on hardware brand (e.g. Apple, Samsung, Google)
+             - EVENT_ACTION_DEVICE_ACTOR_CONDITION: Route visitors based on actor classification: HUMAN, BOT, AGENT, AUTOMATED
+            or UNKNOWN. AGENT is an AI agent that names itself (GPTBot, Claude-User,
+            Perplexity-User...). AUTOMATED is a browser driven by software, whoever is
+            behind it: headless Chrome from its request, and a visible browser under
+            automation once a link with the Advanced data collection level has read
+            navigator.webdriver, from that device's next visit on.
+             - EVENT_ACTION_VISITOR_DATA_CONDITION: Route visitors based on their profile data or custom attributes
+             - EVENT_ACTION_THANK_YOU_PAGE: Display a final thank you / completion message (exit step)
+             - EVENT_ACTION_MESSAGE_PAGE: Text with ONE way onward: a single button, or a timer that moves the
+            visitor automatically. It carries no list of destinations, so a page that
+            should offer a choice between two or more places is not this step. Use
+            SOCIAL_LINKS_PAGE when the choices leave for external URLs, or MULTI_LINK
+            when each choice continues into more workflow. Never put links, documents
+            or PDFs on it: it is a message, nothing else.
+             - EVENT_ACTION_OPEN_MEDIA: Hand the visitor one piece of uploaded media, opened in their browser (exit step): a PDF,
+            an image (PNG, JPEG, WebP, SVG) or an MP4 video. The visitor is sent straight to the media,
+            with no page of its own. Any media of the library can be opened: it is uploaded once and
+            referenced by its mediaId; swapping it means pointing the step at another media item,
+            and the QR code never changes.
+             - EVENT_ACTION_LOCATION_REQUEST: Ask the visitor for their precise location (GPS) through the browser, with
+            their permission (composite: two branches, "location" when it was shared,
+            "else" when it was refused, skipped or is unavailable).
+             - EVENT_ACTION_LANGUAGE_CONDITION: Route visitors based on their phone or browser language (the first
+            language it sends, matched on its two-letter ISO 639-1 base, so "fr"
+            catches fr-FR and fr-CA)
+             - EVENT_ACTION_CHAT_BOT: A conversation with one of the workspace's agents that collects visitor
+            attributes (composite: two branches, "completed" when every required
+            objective is known, "else" otherwise)
+             - EVENT_ACTION_TRAFFIC_SPLIT: Split visitors between 2 to 20 variants by percentage, for an A/B test
+            (composite: one branch per variant, no "else"). Assignment is deterministic
+            and sticky per device by default. See TrafficSplitPayload.
+          enum:
+          - EVENT_ACTION_UNSPECIFIED
+          - EVENT_ACTION_CLIENT_REDIRECT
+          - EVENT_ACTION_LINK_VISIT
+          - EVENT_ACTION_PASSWORD_VERIFY
+          - EVENT_ACTION_FORM_SUBMIT
+          - EVENT_ACTION_CONTACT_CARD
+          - EVENT_ACTION_MULTI_LINK
+          - EVENT_ACTION_VISIT_TYPE_CONDITION
+          - EVENT_ACTION_COUNTRY_CONDITION
+          - EVENT_ACTION_DAY_OF_WEEK_CONDITION
+          - EVENT_ACTION_TIME_OF_DAY_CONDITION
+          - EVENT_ACTION_DAY_OF_MONTH_CONDITION
+          - EVENT_ACTION_SPECIFIC_DATE_CONDITION
+          - EVENT_ACTION_SOCIAL_LINKS_PAGE
+          - EVENT_ACTION_DEVICE_TYPE_CONDITION
+          - EVENT_ACTION_DEVICE_PLATFORM_CONDITION
+          - EVENT_ACTION_DEVICE_BROWSER_CONDITION
+          - EVENT_ACTION_DEVICE_BRAND_CONDITION
+          - EVENT_ACTION_DEVICE_ACTOR_CONDITION
+          - EVENT_ACTION_VISITOR_DATA_CONDITION
+          - EVENT_ACTION_THANK_YOU_PAGE
+          - EVENT_ACTION_MESSAGE_PAGE
+          - EVENT_ACTION_OPEN_MEDIA
+          - EVENT_ACTION_LOCATION_REQUEST
+          - EVENT_ACTION_LANGUAGE_CONDITION
+          - EVENT_ACTION_CHAT_BOT
+          - EVENT_ACTION_TRAFFIC_SPLIT
+          example: EVENT_ACTION_FORM_SUBMIT
+          type: string
+        key:
+          description: "The step's name within the document, which edges use."
+          example: s1
+          type: string
+        media:
+          allOf:
+          - $ref: "#/components/schemas/WorkflowStepsDocumentMedia"
+          description: |-
+            The step's file, in place of its media id, which the payload leaves
+            empty: the one an open media step hands out, or a contact card's photo.
+            Imported into another workspace, the file is added to its media library.
+        name:
+          description: |-
+            A readable name for the step, such as "Form: Join the list". Ignored on
+            import.
+          example: "Form: Join the list"
+          type: string
+        payload:
+          $ref: "#/components/schemas/WorkflowStepPayload"
+        position:
+          allOf:
+          - $ref: "#/components/schemas/CanvasPosition"
+          description: Where the step sits relative to the top left corner of the
+            copied group.
+      required:
+      - eventAction
     WorkflowStepsServiceAutoLayoutWorkflowBody:
       type: object
     WorkflowStepsServiceConnectBody:
@@ -34073,6 +37073,71 @@ components:
           - $ref: "#/components/schemas/WorkflowStepPayload"
           title: The payload for the workflow step (structure varies by event action)
       title: Request to create a new workflow step
+    WorkflowStepsServiceExportBody:
+      description: Exports steps of a link's workflow.
+      example:
+        stepIds:
+        - 987fcdeb-a321-45e6-b789-123456789012
+        - 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+      properties:
+        stepIds:
+          description: |-
+            The steps to export, up to 100. Include the entry to record what it
+            leads to.
+          example:
+          - 987fcdeb-a321-45e6-b789-123456789012
+          - 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+          items:
+            type: string
+          type: array
+      required:
+      - stepIds
+    WorkflowStepsServiceImportBody:
+      description: Imports a document into a link's workflow.
+      example:
+        ignoreEntry: false
+        sourceStepIds:
+        - 987fcdeb-a321-45e6-b789-123456789012
+        - 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+        sourceLinkId: 6e2b7f40-3c1a-4d8e-9b25-7a0f1c3d5e82
+        document: ""
+        canvasPosition: ""
+      properties:
+        canvasPosition:
+          allOf:
+          - $ref: "#/components/schemas/CanvasPosition"
+          description: |-
+            Where the top left corner of the group goes on the canvas. Left out, the
+            steps go next to the existing ones.
+        document:
+          allOf:
+          - $ref: "#/components/schemas/WorkflowStepsDocument"
+          description: |-
+            The steps to create: a document made by Export or copied from the
+            dashboard. Leave it out to copy from `sourceLinkId` instead.
+        ignoreEntry:
+          description: |-
+            Leave this link's entry as it is, whatever the document's entry led to:
+            for steps copied from this same link. Copying from `sourceLinkId` equal
+            to `linkId` does it on its own.
+          example: false
+          type: boolean
+        sourceLinkId:
+          description: |-
+            Instead of a document, the link of this workspace to copy steps from,
+            with `sourceStepIds`: the same as importing what Export returns for them.
+          example: 6e2b7f40-3c1a-4d8e-9b25-7a0f1c3d5e82
+          type: string
+        sourceStepIds:
+          description: |-
+            The steps of `sourceLinkId` to copy, up to 100. Include its entry to
+            connect this link's entry to the copy of what it leads to.
+          example:
+          - 987fcdeb-a321-45e6-b789-123456789012
+          - 4c7e1a92-5b3d-4f60-8a1e-2d9c6b0f7e35
+          items:
+            type: string
+          type: array
     WorkflowStepsServiceResolveCollisionsBody:
       type: object
     WorkflowStepsServiceUpdateBody:
